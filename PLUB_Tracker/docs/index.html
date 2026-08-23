@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UB / PL Sourcing Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2322D3EE'/%3E%3Cstop offset='1' stop-color='%23A78BFF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='42' font-family='Inter,Arial' font-size='28' font-weight='800' fill='%23030304' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#030304;color:#EDEDF2;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden}
+.bar{position:fixed;inset:0 0 auto 0;height:48px;display:flex;align-items:center;gap:14px;
+  padding:0 14px;background:#030304;border-bottom:1px solid #17171C;z-index:10}
+.mark{display:flex;align-items:center;gap:9px;user-select:none}
+.mark .dot{width:22px;height:22px;border-radius:7px;flex:none;
+  background:linear-gradient(135deg,#22D3EE,#A78BFF);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;color:#030304}
+.mark b{font-size:13px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
+.mark span{font-size:11px;color:#6E6E7A;white-space:nowrap}
+.tabs{display:flex;gap:4px;margin-left:6px;background:#0C0C10;border:1px solid #1B1B22;
+  border-radius:11px;padding:3px}
+.tab{appearance:none;border:none;background:none;cursor:pointer;color:#9A9AA6;
+  font:600 12.5px/1 'Inter',sans-serif;padding:8px 16px;border-radius:8px;
+  display:flex;align-items:center;gap:8px;transition:color .15s cubic-bezier(.4,0,.2,1),background .15s cubic-bezier(.4,0,.2,1),transform .1s cubic-bezier(.4,0,.2,1)}
+.tab:active{transform:scale(.96)}
+.tab i{width:8px;height:8px;border-radius:50%;font-style:normal;flex:none;background:#3A3A44;transition:background .15s}
+.tab.on{color:#FFFFFF;background:#17171E}
+.tab.on.ub i{background:#22D3EE}
+.tab.on.pl i{background:#A78BFF}
+.right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.chip{font:600 11px/1 ui-monospace,'SF Mono',monospace;color:#8A8A96;background:#0C0C10;
+  border:1px solid #1B1B22;border-radius:7px;padding:5px 9px;white-space:nowrap}
+.chip b{color:#22D3EE;font-weight:700}
+.stage{position:fixed;inset:48px 0 0 0}
+iframe{position:absolute;inset:0;width:100%;height:100%;border:none;background:#030304;display:none}
+iframe.show{display:block;animation:frameIn .18s cubic-bezier(.4,0,.2,1)}
+@keyframes frameIn{from{opacity:0}to{opacity:1}}
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="mark">
+    <div class="dot">S</div>
+    <b>Sourcing Tracker</b>
+    <span>UB&nbsp;/&nbsp;PL</span>
+  </div>
+  <div class="tabs" id="tabs">
+    <button class="tab ub" data-app="ub"><i></i>Unique Bundles</button>
+    <button class="tab pl" data-app="pl"><i></i>Private Label</button>
+  </div>
+  <div class="right">
+    <span class="chip">local · <b id="buildChip"></b></span>
+  </div>
+</div>
+<div class="stage">
+  <iframe id="f_ub" title="Unique Bundle Tracker"></iframe>
+  <iframe id="f_pl" title="PL Sourcing"></iframe>
+</div>
+<script>
+// Bump BUILD on every push — it busts the GitHub Pages cache for both apps
+// and shows in the top-right chip so anyone can confirm what they're running.
+var BUILD = '0.1';
+document.getElementById('buildChip').textContent = 'v' + BUILD;
+
+var FRAMES = { ub: document.getElementById('f_ub'), pl: document.getElementById('f_pl') };
+var SRC = { ub: 'ub.html', pl: 'pl.html' };
+var TAB_KEY = 'ubpl_shell_tab';
+
+function ensureLoaded(app){
+  var f = FRAMES[app];
+  if (!f.getAttribute('src')) f.src = SRC[app] + '?v=' + encodeURIComponent(BUILD);
+}
+function show(app){
+  if (!FRAMES[app]) app = 'ub';
+  ensureLoaded(app);
+  Object.keys(FRAMES).forEach(function(k){
+    FRAMES[k].classList.toggle('show', k === app);
+  });
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.classList.toggle('on', t.dataset.app === app);
+  });
+  try { localStorage.setItem(TAB_KEY, app); } catch(e){}
+  setTimeout(function(){ try { FRAMES[app].contentWindow.focus(); } catch(e){} }, 60);
+}
+document.getElementById('tabs').addEventListener('click', function(e){
+  var b = e.target.closest('.tab');
+  if (b) show(b.dataset.app);
+});
+var last = 'ub';
+try { last = localStorage.getItem(TAB_KEY) || 'ub'; } catch(e){}
+show(last);
+// Preload the other app once the first is settled, so switching is instant.
+setTimeout(function(){ ensureLoaded(last === 'ub' ? 'pl' : 'ub'); }, 1500);
+</script>
+</body>
+</html>
