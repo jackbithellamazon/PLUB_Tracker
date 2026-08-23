@@ -59,9 +59,9 @@ iframe.show{display:block;animation:frameIn .18s cubic-bezier(.4,0,.2,1)}
   <iframe id="f_pl" title="PL Sourcing"></iframe>
 </div>
 <script>
-// Bump BUILD on every push — it busts the GitHub Pages cache for both apps
-// and shows in the top-right chip so anyone can confirm what they're running.
-var BUILD = '0.1';
+// BUILD is the version people see; STAMP is what actually busts the cache. Bump STAMP every push.
+var BUILD = '0.1';          // shown in the chip — bump by 0.1 each release
+var STAMP = '2026-08-24a';   // bump on EVERY push (even a same-version fix) — it busts the GitHub Pages cache
 document.getElementById('buildChip').textContent = 'v' + BUILD;
 
 var FRAMES = { ub: document.getElementById('f_ub'), pl: document.getElementById('f_pl') };
@@ -70,7 +70,7 @@ var TAB_KEY = 'ubpl_shell_tab';
 
 function ensureLoaded(app){
   var f = FRAMES[app];
-  if (!f.getAttribute('src')) f.src = SRC[app] + '?v=' + encodeURIComponent(BUILD);
+  if (!f.getAttribute('src')) f.src = SRC[app] + '?v=' + encodeURIComponent(BUILD + '-' + STAMP);
 }
 function show(app){
   if (!FRAMES[app]) app = 'ub';

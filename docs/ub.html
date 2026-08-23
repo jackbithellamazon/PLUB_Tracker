@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BDL Unique Bundle Tracker</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ════════════════════════════════════════════════════════════════
    BDL UNIQUE BUNDLE TRACKER — v51.7 DESIGN SYSTEM
@@ -32,8 +32,8 @@
   --purple:#FF5CC8; --pt:#FF92DC; --pd:rgba(255,92,200,.14); --pb:rgba(255,92,200,.45);
   --blue:#3B9EFF;
   /* type */
-  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
-  --mono:"SF Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --r:14px; --r-sm:10px;
   --shadow:0 8px 28px rgba(0,0,0,.45);
 }
@@ -1485,6 +1485,214 @@ td{font-size:13px}
 
 /* ── selection uses the brand rather than the browser default ── */
 ::selection{background:rgba(167,139,255,.32);color:#fff}
+
+/* ── questionnaire: hamper/bundle, optional season, red flags ── */
+.seg-kind button{min-width:120px;font-size:13px;padding:10px 18px}
+.seg-kind button.on-kind{background:color-mix(in srgb,var(--accent) 22%,transparent);color:#fff;border-color:var(--accent)}
+.qb-wait{font-size:11.5px;color:var(--t3);margin-top:8px}
+.qb-optional{font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--t4);margin-left:6px;vertical-align:middle}
+.qb-opt{border-style:dashed}
+.season-sel{margin-left:10px;min-width:180px}
+.season-note{margin-top:10px;font-size:12px;padding:8px 12px;border-radius:9px;line-height:1.45}
+.season-note.ok{background:var(--gd);color:var(--gt);border:1px solid var(--gb)}
+.season-note.late{background:var(--ad);color:var(--at);border:1px solid var(--ab)}
+.flagged-q{border-color:var(--ab)}
+.q-flag{margin-top:8px;font-size:11.5px;color:var(--at);font-weight:600}
+.sig-chip.sig-kind{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--acc-t);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.sig-chip.sig-season{background:color-mix(in srgb,var(--amber) 14%,transparent);color:var(--at)}
+.q-applies{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:2px 6px;border-radius:5px;background:var(--b2);color:var(--t3);margin-left:4px;vertical-align:middle}
+
+/* ── KPI tiles v0.1: three targets, compact, colour by pace ── */
+.pace-strip{margin:0 0 10px}
+.pace-bar{height:4px;border-radius:3px;background:var(--b1);overflow:hidden}
+.pace-fill{height:100%;border-radius:3px;background:var(--grad)}
+.pace-text{margin-top:6px;font-size:11.5px;color:var(--t3)} .pace-text b{color:var(--t1)} .pace-ok{color:var(--gt)} .pace-bad{color:var(--at)}
+.kpi-row{display:grid;gap:10px;margin-bottom:10px}
+.kpi-row-3{grid-template-columns:repeat(3,1fr)} .kpi-row-4{grid-template-columns:repeat(4,1fr)} .kpi-row-2{grid-template-columns:repeat(2,1fr)} .kpi-row-1{grid-template-columns:1fr}
+.kpi{padding:12px 14px 10px;border-radius:13px;min-height:0;border:1px solid color-mix(in srgb,var(--own) 28%,var(--b1));background:linear-gradient(180deg,color-mix(in srgb,var(--own) 9%,var(--s1)) 0%,var(--s1) 70%)}
+.kpi-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.kpi-label{font-size:12px;font-weight:700;color:var(--t1);letter-spacing:.1px}
+.kpi-st{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:color-mix(in srgb,var(--tier) 16%,transparent);color:var(--tier);border:1px solid color-mix(in srgb,var(--tier) 40%,transparent)}
+.kpi-st-grey{color:var(--t3);background:var(--b1);border-color:var(--b2)}
+.kpi-mid{display:flex;align-items:center;gap:12px}
+.kpi-ring{width:56px;height:56px;position:relative;flex:none} .kpi-ring svg{width:56px;height:56px}
+.kpi-ring-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--t1);letter-spacing:-.3px} .kpi-ring-pct i{font-style:normal;font-size:9px;opacity:.7;margin-left:1px}
+.kpi-val{font-size:22px;font-weight:800;letter-spacing:-.8px;line-height:1;font-variant-numeric:tabular-nums} .kpi-val .of{font-size:12px;color:var(--t3);font-weight:600;letter-spacing:0;margin-left:2px}
+.kpi-pace{font-size:11px;margin-top:5px;font-weight:600} .kpi-pace.ok{color:var(--gt)} .kpi-pace.off{color:var(--at)}
+.kpi-foot{margin-top:9px;padding-top:7px;border-top:1px solid var(--b1);font-size:10.5px;color:var(--t4);display:flex;justify-content:space-between;align-items:center}
+.kpi.m100 .kpi-ring-pct{color:var(--gt);font-size:18px}
+.kpi.kpi-done{border-color:var(--gb)}
+.info-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.info-cell{background:var(--s1);border:1px solid var(--b1);border-radius:11px;padding:10px 12px}
+.info-cell .v{font-size:18px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums;line-height:1.1} .info-cell .v .of{font-size:11px;color:var(--t3);font-weight:600}
+.info-cell .l{font-size:11px;font-weight:700;color:var(--t2);margin-top:4px} .info-cell .s{font-size:10.5px;color:var(--t4);margin-top:2px}
+.info-cell.hot{border-color:var(--ab);background:linear-gradient(180deg,var(--ad),var(--s1))} .info-cell.hot .s{color:var(--at)}
+@media (max-width:1100px){.kpi-row-3{grid-template-columns:1fr 1fr}.info-strip{grid-template-columns:1fr 1fr}}
+
+/* ── sessions v0.1 ── */
+.sess-choose{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.sess-choice{text-align:left;padding:14px 16px;border-radius:12px;border:1px solid var(--b2);background:var(--s2);cursor:pointer;transition:border-color .15s,transform .1s}
+.sess-choice:hover{border-color:var(--accent2)} .sess-choice:active{transform:scale(.98)}
+.sess-choice.sc-working:hover{border-color:var(--accent)}
+.scc-t{font-size:14px;font-weight:800;color:var(--t1)} .scc-s{font-size:11.5px;color:var(--t3);margin-top:4px;line-height:1.4}
+.sess-start-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sess-start-card{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:12px;border:1px dashed var(--b3);background:var(--s1);cursor:pointer;transition:border-color .15s,background .15s}
+.sess-start-card:hover{border-style:solid;background:var(--s2)} .ssc-fresh:hover{border-color:var(--accent2)} .ssc-working:hover{border-color:var(--accent)}
+.ssc-ic{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex:none;background:var(--grad);color:#030304}
+.ssc-working .ssc-ic{background:linear-gradient(135deg,#A78BFF,#FF5CC8)}
+.ssc-t{font-size:13.5px;font-weight:800} .ssc-s{font-size:11.5px;color:var(--t3);margin-top:2px;line-height:1.4}
+.sess-live-card{border:1px solid var(--b2);border-radius:13px;padding:14px 16px;background:linear-gradient(180deg,color-mix(in srgb,var(--accent2) 10%,var(--s1)),var(--s1))}
+.sess-live-card.sl-working{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 12%,var(--s1)),var(--s1))}
+.slc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.slc-live{font-size:13px;font-weight:800;display:flex;align-items:center;gap:8px} .slc-hint{font-size:11.5px;color:var(--t3);margin-top:3px}
+.slc-clock{font-size:30px;font-weight:800;letter-spacing:-1px;font-variant-numeric:tabular-nums;line-height:1;color:var(--t1)}
+.slc-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.slc-stat{background:rgba(255,255,255,.03);border:1px solid var(--b1);border-radius:10px;padding:9px 10px}
+.slc-stat .v{font-size:20px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums} .slc-stat .l{font-size:10.5px;color:var(--t3);margin-top:2px}
+.slc-note{font-size:11px;color:var(--t4);margin-top:10px}
+.sess-month{display:grid;grid-template-columns:1.3fr 1fr;gap:10px}
+.sm-hours,.sm-grid{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:12px 14px}
+.sm-big{font-size:30px;font-weight:800;letter-spacing:-1px;font-variant-numeric:tabular-nums;line-height:1} .sm-big .of{font-size:13px;color:var(--t3);font-weight:600;letter-spacing:0}
+.sm-label{font-size:11.5px;color:var(--t3);margin-top:6px}
+.sm-bar{position:relative;height:8px;border-radius:4px;background:var(--b1);margin-top:10px;display:flex;overflow:visible}
+.sm-fill{height:100%} .sm-fill.fresh{background:var(--accent2);border-radius:4px 0 0 4px} .sm-fill.working{background:var(--accent)} .sm-fill.fresh:only-child{border-radius:4px}
+.sm-pace{position:absolute;top:-3px;width:2px;height:14px;background:var(--t1);opacity:.8}
+.sm-split{display:flex;gap:14px;margin-top:8px;font-size:11px} .sp-fresh{color:var(--accent2)} .sp-working{color:var(--acc-t)} .sp-pace{color:var(--t4)}
+.sm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-content:center}
+.sm-cell .v{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.4px} .sm-cell .l{font-size:10.5px;color:var(--t3)}
+.sh-row{display:flex;align-items:center;gap:12px;padding:9px 12px;border-bottom:1px solid var(--b1);flex-wrap:wrap} .sh-row:last-child{border-bottom:none}
+.sh-date{font-size:12px;font-weight:700;min-width:54px} .sh-time{font-size:10.5px;color:var(--t4);font-weight:500}
+.sh-type{font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:3px 7px;border-radius:999px}
+.sh-type.st-fresh{background:color-mix(in srgb,var(--accent2) 16%,transparent);color:var(--accent2)} .sh-type.st-working{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--acc-t)}
+.sh-dur{font-size:12px;font-weight:700;min-width:58px;cursor:pointer;font-variant-numeric:tabular-nums} .sh-dur:hover{color:var(--accent2)} .sh-dur i{font-style:normal;font-size:9.5px;color:var(--t4);font-weight:600}
+.sh-bar{flex:1;min-width:80px;height:6px;border-radius:3px;background:var(--b1);overflow:hidden} .sh-fill{height:100%;border-radius:3px} .sh-fill.fresh{background:var(--accent2)} .sh-fill.working{background:var(--accent)}
+.sh-chips{display:flex;gap:10px;font-size:11px;color:var(--t3);align-items:center} .sh-chips b{color:var(--t1)}
+.sh-more{font:600 10.5px/1 inherit;background:none;border:1px solid var(--b2);color:var(--t3);border-radius:6px;padding:3px 7px;cursor:pointer} .sh-more:hover{color:var(--t1);border-color:var(--b3)}
+.sh-note{flex-basis:100%;font-size:11.5px;color:var(--t2);padding-left:66px;margin-top:-2px}
+.ss-type{font-size:12px;color:var(--t3);margin-bottom:10px}
+.ss-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ss-cell{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:9px 10px} .ss-cell .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums} .ss-cell .l{font-size:10.5px;color:var(--t3)}
+.idle-banner{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:60;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:var(--s2);border:1px solid var(--ab);box-shadow:var(--shadow);font-size:12.5px;font-weight:600;color:var(--at)}
+.cp-sess-strip{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--at);background:var(--ad);border:1px solid var(--ab);border-radius:9px;padding:7px 10px;margin-bottom:10px}
+.cp-sess-strip span{flex:1;min-width:200px}
+.sb-clock{font-family:inherit;font-variant-numeric:tabular-nums;font-weight:800}
+
+/* ═══════ v0.1 VISUAL SWEEP — compact, colour where it means something ═══════ */
+html{font-size:13px}
+.content{padding:18px 22px 48px}
+.page-head{margin-bottom:12px;gap:12px;align-items:center}
+.eyebrow{font-size:9.5px;letter-spacing:1.6px;margin-bottom:3px}
+.page-title{font-size:21px;letter-spacing:-.6px}
+.page-sub{font-size:12px;margin-top:3px}
+.sec-label{margin:13px 0 7px;font-size:10px;letter-spacing:1.4px}
+.card.sec{margin-bottom:11px}
+.btn{padding:6px 12px;font-size:12px;border-radius:9px;gap:6px}
+.btn-sm{padding:4px 9px;font-size:11px;border-radius:8px}
+.btn:hover{transform:none}
+.topbar{padding:7px 16px;gap:8px;background:rgba(3,3,4,.92)}
+.tb-search{min-width:260px}
+.tb-saved{font-family:inherit}
+.sess-bar{padding:6px 16px}
+.sb-clock{font-size:15px;letter-spacing:0}
+/* sidebar */
+.sidebar{width:218px;background:var(--s1)}
+.sb-logo{padding:13px 12px 9px;gap:9px}
+.sb-mark{width:32px;height:32px;border-radius:10px;font-size:12px;box-shadow:none}
+.sb-name{font-size:13px}
+.sb-sub{font-size:9.5px;letter-spacing:1.2px}
+.sb-collapse{width:22px;height:22px;border-radius:7px}
+.sb-nav{padding:2px 9px 8px}
+.sb-sec{padding:11px 9px 4px;font-size:9px;letter-spacing:1.6px}
+.nav-item{padding:7px 10px;font-size:12.5px;border-radius:9px;gap:10px;margin-bottom:1px}
+.nav-item svg{width:15px;height:15px}
+.nav-item .nav-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-item.active{background:var(--s3);color:#fff}
+.nav-item.active::before{left:-9px;width:3px;top:7px;bottom:7px}
+.nav-item.g-op.active::before{background:var(--accent2)} .nav-item.g-op.active svg{color:var(--accent2)}
+.nav-item.g-find.active::before{background:var(--accent)} .nav-item.g-find.active svg{color:var(--acc-t)}
+.nav-item.g-build.active::before{background:var(--green)} .nav-item.g-build.active svg{color:var(--gt)}
+.nav-item.g-help.active::before{background:var(--t3)} .nav-item.g-help.active svg{color:var(--t2)}
+.nav-badge{font-family:inherit;font-size:10px;min-width:20px;padding:1px 6px;font-variant-numeric:tabular-nums}
+.sb-foot{padding:9px 12px;gap:9px}
+.sb-avatar{width:30px;height:30px;border-radius:9px;font-size:11px}
+.sb-user{font-size:12px} .sb-role{font-size:9.5px}
+.sb-expand{display:none;margin:4px auto;width:26px;height:26px;border-radius:8px;border:1px solid var(--b2);color:var(--t3);align-items:center;justify-content:center;background:none}
+.sb-expand:hover{color:var(--t1);border-color:var(--b3)}
+body.sb-min .sidebar{width:60px}
+body.sb-min .sb-logo{padding:12px 0 6px;gap:0} body.sb-min .sb-collapse{display:none} body.sb-min .sb-expand{display:flex}
+body.sb-min .sb-nav{padding:2px 6px 6px}
+body.sb-min .nav-item{justify-content:center;padding:9px 0;font-size:0;gap:0;border-radius:9px}
+body.sb-min .nav-item .nav-t{display:none}
+body.sb-min .nav-item svg{width:17px;height:17px}
+body.sb-min .nav-item.active::before{left:-6px}
+body.sb-min .nav-badge{top:2px;right:3px;min-width:14px;padding:0 3px;font-size:8px}
+body.sb-min .live-dot{position:absolute;top:4px;right:6px}
+body.sb-min .sb-foot{padding:9px 0;justify-content:center} body.sb-min .sb-foot>div:nth-child(2){display:none}
+body.sb-min .sb-avatar{width:28px;height:28px}
+/* tables / rows / tiles tighter */
+.set-row{padding:9px 12px}
+.set-row-l{font-size:12.5px} .set-row-d{font-size:11px}
+.mini-stat{padding:7px 12px}
+.action-row{padding:8px 12px}
+.act-rank{font-family:inherit;font-variant-numeric:tabular-nums}
+.card-count{font-family:inherit}
+.tc-name,.tc-age{font-family:inherit} .tc-name{font-variant-numeric:tabular-nums}
+.tc-grid{gap:9px}
+.lb-row{padding:9px 12px}
+.welcome{padding:16px 18px;border-radius:13px}
+.wc-t{font-size:14.5px;margin-bottom:4px} .wc-s,.wc-sub{font-size:12px}
+.wc-steps{gap:8px;margin:10px 0} .wc-step{padding:9px 11px}
+.wc-acts{gap:7px} .wc-foot{font-size:10.5px;margin-top:8px}
+.tbl th{font-size:9.5px;letter-spacing:1.2px;padding:7px 10px} .tbl td{padding:7px 10px;font-size:12px}
+.mono,[class*="mono"]{font-family:inherit!important;font-variant-numeric:tabular-nums}
+input,select,textarea,.set-input,.filter-input{font-family:inherit!important}
+.empty{padding:18px} .empty-t{font-size:13px} .empty-s{font-size:11.5px}
+/* stage & status colour where it carries meaning */
+.badge.bg-green{color:var(--gt)} .badge.bg-amber{color:var(--at)} .badge.bg-red{color:var(--rt)} .badge.bg-purple{color:var(--pt)} .badge.bg-blue{color:#8CC8FF}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--red);display:none} body.in-session .live-dot{display:inline-block;animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ── pipeline flow (the conveyor belt) ── */
+.flow{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:11px 14px 12px;margin-bottom:14px}
+.flow-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.flow-title{font-size:12.5px;font-weight:800;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.flow-health{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid}
+.fh-ok{color:var(--gt);background:var(--gd);border-color:var(--gb)} .fh-warn{color:var(--at);background:var(--ad);border-color:var(--ab)} .fh-bad{color:var(--rt);background:var(--rd);border-color:var(--rb)} .fh-quiet{color:var(--t3);background:var(--b1);border-color:var(--b2)}
+.flow-week{display:flex;gap:10px;align-items:center;font-size:11px;color:var(--t4);flex-wrap:wrap} .flow-week b{font-weight:700;color:var(--t2)}
+.fw-in{color:var(--accent2)!important} .fw-move{color:var(--acc-t)!important} .fw-jack{color:var(--pt)!important} .fw-drop{color:var(--rt)!important} .fw-launch{color:var(--gt)!important}
+.flow-cols{display:flex;align-items:stretch;gap:4px;overflow-x:auto}
+.flow-col{flex:1;min-width:96px;background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:8px 10px;cursor:pointer;transition:border-color .15s;border-top:2px solid var(--b2)}
+.flow-col:hover{border-color:var(--b3)}
+.fc-ideas{border-top-color:var(--accent)} .fc-ready_to_source{border-top-color:var(--accent2)} .fc-source{border-top-color:#3B9EFF} .fc-jack_validation{border-top-color:var(--purple)} .fc-prepare_to_launch{border-top-color:var(--amber)} .fc-order_purchase{border-top-color:#FF8A3D} .fc-launch{border-top-color:var(--green)} .fc-launched{border-top-color:var(--green);background:color-mix(in srgb,var(--green) 8%,var(--s2))}
+.fc-empty .fc-n{color:var(--t4)}
+.fc-n{font-size:20px;font-weight:800;letter-spacing:-.6px;font-variant-numeric:tabular-nums;line-height:1}
+.fc-name{font-size:10.5px;font-weight:700;color:var(--t2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc-sub{font-size:10px;color:var(--t4);margin-top:3px;display:flex;gap:6px;min-height:13px}
+.fc-stuck{color:var(--rt);font-weight:700} .fc-wait{color:var(--at);font-weight:700}
+.flow-arrow{align-self:center;color:var(--b3);font-size:16px;flex:none}
+
+/* ── guide v0.1 ── */
+.g-toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.g-toc a{font-size:11px;font-weight:700;color:var(--t2);background:var(--s2);border:1px solid var(--b1);border-radius:999px;padding:5px 11px;text-decoration:none;transition:border-color .15s,color .15s}
+.g-toc a:hover{color:var(--t1);border-color:var(--b3)}
+.g-sec{margin-bottom:16px;scroll-margin-top:12px}
+.g-h2{font-size:15px;font-weight:800;letter-spacing:-.3px;margin:0 0 8px;display:flex;align-items:center;gap:10px}
+.g-h2::after{content:'';flex:1;height:1px;background:var(--b1)}
+.g-card{padding:14px 16px;border-radius:12px} .g-card h3{font-size:13.5px;margin-bottom:7px} .g-card p{font-size:12.5px;margin-bottom:8px} .g-list{font-size:12.5px;line-height:1.65} .g-day p{font-size:12px} .g-keys{font-size:12px}
+.g-chain{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0 12px;color:var(--b3);font-size:13px}
+.g-chain span{font-size:11.5px;font-weight:700;color:var(--t1);background:var(--s3);border:1px solid var(--b2);border-radius:999px;padding:4px 10px}
+.g-two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:4px 0 10px} .g-two ol{padding-left:18px}
+.g-k{display:block;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--acc-t);margin-bottom:5px}
+.g-stages td:first-child{width:160px;vertical-align:top;padding-right:10px} .g-stages td{padding:5px 0;border-bottom:1px solid var(--b1)}
+@media (max-width:900px){.g-two{grid-template-columns:1fr}}
+
+/* ── seasonality: work on now ── */
+.se-now{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:11px 14px;margin-bottom:12px}
+.se-now-h{font-size:12.5px;font-weight:800;display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.se-now-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.se-now-card{background:var(--s2);border:1px solid var(--b1);border-left:3px solid var(--amber);border-radius:10px;padding:9px 11px}
+.se-now-t{font-size:13px;font-weight:800} .se-now-d{font-size:11.5px;color:var(--t2);margin-top:3px} .se-now-s{font-size:10.5px;color:var(--t4);margin-top:3px}
+.se-now-empty{font-size:12px;color:var(--t3)} .se-now-missed{font-size:11px;color:var(--t4);margin-top:8px}
 </style>
 </head>
 <body>
@@ -1498,54 +1706,55 @@ td{font-size:13px}
         <div class="sb-name" id="sbName">Unique Bundle Tracker</div>
         <div class="sb-sub">BDL · Sourcing Ops</div>
       </div>
-      <button class="sb-collapse" title="Collapse / expand the sidebar" onclick="document.body.classList.toggle('sb-min')">⟨</button>
+      <button class="sb-collapse" title="Collapse / expand the sidebar" onclick="toggleSidebar()"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 3L5 8l5 5"/></svg></button>
     </div>
     <nav class="sb-nav">
-      <div class="sb-sec">Operate</div>
-      <button class="nav-item active" data-pane="action" onclick="nav('action')">
+      <div class="sb-sec">Today</div>
+      <button class="nav-item g-op active" data-pane="action" onclick="nav('action')" title="Action Centre">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2.2" fill="currentColor" stroke="none"/></svg>
-        Action Centre <span class="nav-badge hot" id="nb-action">–</span>
+        <span class="nav-t">Action Centre</span> <span class="nav-badge hot" id="nb-action">–</span>
       </button>
-      <button class="nav-item" data-pane="sessions" onclick="nav('sessions')">
+      <button class="nav-item g-op" data-pane="sessions" onclick="nav('sessions')" title="Sourcing sessions">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg>
-        Sourcing sessions <span class="live-dot" id="navLive"></span>
+        <span class="nav-t">Sourcing sessions</span> <span class="live-dot" id="navLive"></span>
       </button>
-      <button class="nav-item" data-pane="tasks" onclick="nav('tasks')">
+      <button class="nav-item g-op" data-pane="tasks" onclick="nav('tasks')" title="Tasks">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5.5 3h7a1 1 0 011 1v9a1 1 0 01-1 1h-7a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M6.8 6.5h4M6.8 9h4M2.6 5.5v6"/></svg>
-        Tasks <span class="nav-badge" id="nb-tasks">–</span>
+        <span class="nav-t">Tasks</span> <span class="nav-badge" id="nb-tasks">–</span>
       </button>
-      <div class="sb-sec">Pre-Pipeline</div>
-      <button class="nav-item" data-pane="inbox" onclick="nav('inbox')">
+      <div class="sb-sec">Find</div>
+      <button class="nav-item g-find" data-pane="inbox" onclick="nav('inbox')" title="Review Queue">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 9l2-6h8l2 6v4H2V9z"/><path d="M2 9h4l1 2h2l1-2h4"/></svg>
-        Review Inbox <span class="nav-badge" id="nb-inbox">–</span>
+        <span class="nav-t">Review Queue</span> <span class="nav-badge" id="nb-inbox">–</span>
       </button>
-      <button class="nav-item" data-pane="ideas" onclick="nav('ideas')">
+      <button class="nav-item g-find" data-pane="ideas" onclick="nav('ideas')" title="Ideas & Ranking">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5a4.5 4.5 0 00-2.5 8.2V12h5v-2.3A4.5 4.5 0 008 1.5z"/><path d="M6.5 14h3"/></svg>
-        Ideas &amp; Ranking <span class="nav-badge" id="nb-ideas">–</span>
+        <span class="nav-t">Ideas &amp; Ranking</span> <span class="nav-badge" id="nb-ideas">–</span>
       </button>
-      <button class="nav-item" data-pane="seasons" onclick="nav('seasons')">
+      <button class="nav-item g-find" data-pane="seasons" onclick="nav('seasons')" title="Seasonality">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6h12M5 1.5v3M11 1.5v3"/></svg>
-        Seasonality <span class="nav-badge" id="nb-seasons"></span>
+        <span class="nav-t">Seasonality</span> <span class="nav-badge" id="nb-seasons"></span>
       </button>
-      <div class="sb-sec">Active</div>
-      <button class="nav-item" data-pane="pipeline" onclick="nav('pipeline')">
+      <div class="sb-sec">Build</div>
+      <button class="nav-item g-build" data-pane="pipeline" onclick="nav('pipeline')" title="Pipeline">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="3" width="3.4" height="10" rx="1"/><rect x="6.3" y="3" width="3.4" height="7" rx="1"/><rect x="11.1" y="3" width="3.4" height="4.5" rx="1"/></svg>
-        Pipeline <span class="nav-badge" id="nb-pipeline">–</span>
+        <span class="nav-t">Pipeline</span> <span class="nav-badge" id="nb-pipeline">–</span>
       </button>
-      <button class="nav-item" data-pane="archive" onclick="nav('archive')">
+      <button class="nav-item g-build" data-pane="archive" onclick="nav('archive')" title="Archive">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="3.5" rx="1"/><path d="M3.5 6.5V13h9V6.5M6.5 9.5h3"/></svg>
-        Archive <span class="nav-badge" id="nb-archive">–</span>
+        <span class="nav-t">Archive</span> <span class="nav-badge" id="nb-archive">–</span>
       </button>
-      <button class="nav-item" data-pane="guide" onclick="nav('guide')">
+      <div class="sb-sec">Help</div>
+      <button class="nav-item g-help" data-pane="guide" onclick="nav('guide')" title="How it works">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.2"/><path d="M6.3 6.1a1.8 1.8 0 113 1.3c-.5.4-.8.7-.8 1.3"/><circle cx="8.5" cy="11.4" r=".7" fill="currentColor" stroke="none"/></svg>
-        How it works
+        <span class="nav-t">How it works</span>
       </button>
-      <div class="sb-sec">Configure</div>
-      <button class="nav-item" data-pane="settings" onclick="nav('settings')">
+      <button class="nav-item g-help" data-pane="settings" onclick="nav('settings')" title="Settings">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.4"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M12.4 3.6L11 5M5 11l-1.4 1.4"/></svg>
-        Settings
+        <span class="nav-t">Settings</span>
       </button>
     </nav>
+    <button class="sb-expand" title="Expand the sidebar" onclick="toggleSidebar()"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3l5 5-5 5"/></svg></button>
     <div class="sb-foot" style="cursor:default">
       <div class="sb-avatar" id="sbAvatar">B</div>
       <div>
@@ -1564,7 +1773,7 @@ td{font-size:13px}
         <span class="tb-kbd">/</span>
       </div>
       <div class="tb-spacer"></div>
-      <span class="tb-saved" id="saveChip" style="cursor:pointer" title="Everything is saved in this browser automatically — click to download a backup file" onclick="exportData()"><span class="dot"></span>v52.0 · saves locally</span>
+      <span class="tb-saved" id="saveChip" style="cursor:pointer" title="Everything is saved in this browser automatically — click to download a backup file" onclick="exportData()"><span class="dot"></span>v0.1 · saves locally</span>
       <button class="btn" id="sessBtn" title="Time your sourcing — counts the ideas and reviews you do while it runs" onclick="toggleSession()">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5"/></svg>
         Start session
@@ -1729,77 +1938,167 @@ function promptModal(title, label, placeholder, cb, initial){
   inp.onkeydown = e=>{ if(e.key==='Enter'){ const v=inp.value.trim(); closeModal('mPrompt'); cb(v); } };
 }
 
-/* ════════════ SOURCING SESSION TRACKER ════════════ */
-let session = null;   // {start, ideasAtStart, reviewedAtStart, greensAtStart}
-let sessionTick = null;
+/* ════════════ SOURCING SESSION TRACKER ════════════
+   Two kinds of session — fresh sourcing, or working the ideas she already has. Everything the
+   session counts comes from the event log, so nothing is typed in twice. An inactivity guard
+   stops a forgotten session from inflating the hours KPI. */
+const SESSION_TYPES = { fresh:{label:'Fresh sourcing', hint:'Finding new ideas — storefronts, keywords, the review queue'}, working:{label:'Working existing ideas', hint:'Validating, pricing components, progressing and rejecting what you already have'} };
+const idleWarnMin = () => ((SETTINGS.sessions||{}).idleWarn)||45, idleEndMin = () => ((SETTINGS.sessions||{}).idleEnd)||50;
+let session = null;   // {id, type, start, lastActive}
+let sessionTick = null, idleTick = null;
 let sessionLog = null;
 function initSessionLog(){ if(!sessionLog) sessionLog=[]; return sessionLog; }
 function ideasCapturedCount(){ return ideas.filter(i=>!['Moved to Pipeline','Dropped','Archived'].includes(i.status)).length; }
 function reviewedCount(){ return inbox.filter(i=>i.status==='completed').length; }
 function greensCount(){ return ideas.filter(i=>i.score!=null && !i.killed && bandOf(i)==='green').length; }
-function toggleSession(){ session ? endSession() : startSession(); }
-function startSession(){ saveState();
-  session = { id: nid(), start: Date.now(), ideasAtStart: ideasCapturedCount(), reviewedAtStart: reviewedCount(), greensAtStart: greensCount() };
-  document.getElementById('sessBtn').classList.add('live');
-  document.getElementById('sessBtn').innerHTML = '<span class="rec-dot"></span>End session';
+function toggleSession(){ session ? endSession() : sessionChooser(); }
+function sessionChooser(){ resetJkBtn();
+  document.getElementById('jkTitle').textContent = 'Start a sourcing session';
+  document.getElementById('jkBody').innerHTML = `
+    <div class="sess-choose">
+      ${Object.keys(SESSION_TYPES).map(t=>`<button class="sess-choice sc-${t}" onclick="startSession('${t}');closeModal('mJack')">
+        <div class="scc-t">${SESSION_TYPES[t].label}</div><div class="scc-s">${SESSION_TYPES[t].hint}</div></button>`).join('')}
+    </div>
+    <div class="lock-note">Both count towards the monthly hours target. The split is shown so you can see where the time went.</div>`;
+  document.getElementById('jkConfirm').style.display = 'none';
+  document.getElementById('jkCancel').textContent = 'Not now';
+  openModal('mJack');
+}
+function startSession(type){ saveState();
+  if(session) return;
+  type = SESSION_TYPES[type] ? type : 'fresh';
+  session = { id: nid(), type, start: Date.now(), lastActive: Date.now() };
+  paintSessionButton();
   document.getElementById('sessBar').style.display='flex';
   document.body.classList.add('in-session');
-  renderSessionBar();          // build the bar DOM once
-  // tick the clock text only (cheap); duration is always derived from the timestamp,
-  // so even if the tab sleeps for hours the elapsed time stays correct on resume.
+  renderSessionBar();
   sessionTick = setInterval(tickSessionClock, 1000);
-  toast('Session started — timing your sourcing');
-  if(currentPane()==='sessions') renderSessions();
+  idleTick = setInterval(checkIdle, 30000);
+  toast(SESSION_TYPES[type].label+' — session started');
+  const cp = currentPane();
+  if(cp==='sessions') renderSessions();
+  if(cp==='action') renderAction();
+  const comp = document.getElementById('mComposer'); if(comp && comp.classList.contains('open') && composerId){ const i=ideas.find(x=>x.id===composerId); if(i) renderComposerHead(i); }
+}
+function paintSessionButton(){
+  const btn = document.getElementById('sessBtn'); if(!btn) return;
+  if(session){ btn.classList.add('live'); btn.innerHTML = '<span class="rec-dot"></span>End session'; }
+  else { btn.classList.remove('live'); btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5"/></svg> Start session'; }
+}
+// Everything the session did, read straight off the event log.
+function tallyEvents(evs){
+  const t = { ideas:0, reviewed:0, rejected:0, greens:0, ranked:0, moved:0, progressed:0, jack:0, launched:0 };
+  evs.forEach(e=>{
+    if(e.type==='ideas') t.ideas++;
+    else if(e.type==='reviewed'){ t.reviewed++; if(/rejected/i.test(e.label||'')) t.rejected++; }
+    else if(e.type==='shortlist') t.greens++;
+    else if(e.type==='ranked') t.ranked++;
+    else if(e.type==='moved') t.moved++;
+    else if(e.type==='stage') t.progressed++;
+    else if(e.type==='jack') t.jack++;
+    else if(e.type==='launches') t.launched++;
+    else if(e.type==='drop') t.rejected++;
+  });
+  return t;
 }
 function sessionStats(){
+  if(!session) return null;
   const mins = Math.max(0, Math.round((Date.now()-session.start)/60000));
-  return { mins,
-    ideas: Math.max(0, ideasCapturedCount()-session.ideasAtStart),
-    reviewed: Math.max(0, reviewedCount()-session.reviewedAtStart),
-    greens: Math.max(0, greensCount()-session.greensAtStart) };
+  return Object.assign({ mins, type: session.type }, tallyEvents(EVENTS.filter(e=>e.sessionId===session.id)));
 }
+function fmtMins(m){ m=Math.max(0,Math.round(m)); const h=Math.floor(m/60), r=m%60; return h? `${h}h ${r}m` : `${r}m`; }
 function sessionClock(){
-  const secs = Math.floor((Date.now()-session.start)/1000);
-  return `${String(Math.floor(secs/3600)).padStart(2,'0')}:${String(Math.floor(secs/60)%60).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}`;
+  const secs = Math.max(0, Math.floor((Date.now()-session.start)/1000));
+  const h=Math.floor(secs/3600), m=Math.floor(secs/60)%60, sec=secs%60;
+  return (h? h+':' : '') + (h? String(m).padStart(2,'0') : String(m)) + ':' + String(sec).padStart(2,'0');
 }
 function tickSessionClock(){
   if(!session) return;
   const el = document.getElementById('sbClock'); if(el) el.textContent = sessionClock();
+  const el2 = document.getElementById('slcClock'); if(el2) el2.textContent = sessionClock();
 }
 function renderSessionBar(){
   if(!session) return;
-  const s = sessionStats();
-  const rate = s.mins>=1 ? (s.ideas/(s.mins/60)).toFixed(1) : '—';
+  const st = sessionStats();
   document.getElementById('sessBar').innerHTML = `
-    <div class="sb-live"><span class="rec-dot"></span>Sourcing session</div>
+    <div class="sb-live"><span class="rec-dot"></span>${SESSION_TYPES[session.type].label}</div>
     <div class="sb-clock" id="sbClock">${sessionClock()}</div>
     <div class="sb-stats">
-      <span class="sb-stat"><b>${s.ideas}</b> ideas</span>
-      <span class="sb-stat"><b>${s.reviewed}</b> reviewed</span>
-      <span class="sb-stat"><b>${s.greens}</b> greens</span>
-      <span class="sb-stat"><b>${rate}</b> ideas/hr</span>
+      <span class="sb-stat"><b>${st.ideas}</b> ideas</span>
+      <span class="sb-stat"><b>${st.reviewed}</b> reviewed</span>
+      <span class="sb-stat"><b>${st.greens}</b> greens</span>
+      <span class="sb-stat"><b>${st.progressed+st.moved}</b> progressed</span>
     </div>
     <div class="tb-spacer"></div>
     <button class="btn btn-sm" onclick="nav('sessions')">Overview</button>
     <button class="btn btn-sm" onclick="endSession()">End session</button>`;
 }
-// when the tab regains focus after being backgrounded, resync clock + counts immediately
-if(typeof document!=='undefined' && document.addEventListener){
-  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && session){ renderSessionBar(); if(currentPane()==='sessions') renderSessions(); } });
+/* inactivity: anything she does in the app counts as activity; 45 min of nothing asks, 50 min ends it
+   and trims the idle tail so the hours KPI only ever counts real time */
+function noteActivity(){ if(session){ session.lastActive = Date.now(); const b=document.getElementById('idleBanner'); if(b && b.dataset.auto!=='1') b.remove(); } }
+function checkIdle(){
+  if(!session) return;
+  const idleMin = (Date.now() - (session.lastActive||session.start)) / 60000;
+  if(idleMin >= idleEndMin()){ endSession({auto:true, trimTo: session.lastActive||session.start}); return; }
+  if(idleMin >= idleWarnMin() && !document.getElementById('idleBanner')){
+    const b = document.createElement('div'); b.id='idleBanner'; b.className='idle-banner';
+    b.innerHTML = `<span>No activity for ${Math.round(idleMin)} minutes — still sourcing?</span><button class="btn btn-sm btn-pri" onclick="stillHere()">Yes, I'm still sourcing</button><button class="btn btn-sm" onclick="endSession()">End session</button>`;
+    document.body.appendChild(b);
+  }
 }
-function endSession(){ saveState();
-  const s = sessionStats();
-  clearInterval(sessionTick); sessionTick=null;
-  if(s.mins>=1 || s.ideas>0) initSessionLog().unshift({id:session.id, date:TODAY.toISOString(), mins:s.mins, ideas:s.ideas, reviewed:s.reviewed, greens:s.greens});
+function stillHere(){ if(session) session.lastActive = Date.now(); const b=document.getElementById('idleBanner'); if(b) b.remove(); toast('Carry on — session still running'); }
+function endSession(opts){ saveState();
+  if(!session) return;
+  opts = opts||{};
+  const endAt = opts.trimTo || Date.now();
+  const st = sessionStats();
+  const mins = Math.max(0, Math.round((endAt - session.start)/60000));
+  clearInterval(sessionTick); sessionTick=null; clearInterval(idleTick); idleTick=null;
+  const b=document.getElementById('idleBanner'); if(b) b.remove();
+  const entry = {id:session.id, date:new Date(session.start).toISOString(), mins, type:session.type,
+    ideas:st.ideas, reviewed:st.reviewed, rejected:st.rejected, greens:st.greens, ranked:st.ranked, moved:st.moved, progressed:st.progressed, jack:st.jack, launched:st.launched,
+    note:'', autoEnded:!!opts.auto};
+  if(mins>=1 || st.ideas>0 || st.reviewed>0 || st.progressed>0) initSessionLog().unshift(entry);
   session = null;
-  const btn=document.getElementById('sessBtn'); btn.classList.remove('live');
-  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5"/></svg> Start session';
+  paintSessionButton();
   document.getElementById('sessBar').style.display='none';
   document.body.classList.remove('in-session');
-  toast(`Session logged — ${s.mins} min · ${s.ideas} ideas · ${s.reviewed} reviewed`);
   const cp = currentPane();
   if(cp==='action') renderAction();
   if(cp==='sessions') renderSessions();
+  if(opts.auto){ toast('Session ended automatically after '+idleEndMin()+' min of no activity — '+fmtMins(mins)+' counted'); return; }
+  sessionSummary(entry);
+}
+function sessionSummary(entry){ resetJkBtn();
+  const cell = (v,l,c) => `<div class="ss-cell"><div class="v" ${c?`style="color:${c}"`:''}>${v}</div><div class="l">${l}</div></div>`;
+  document.getElementById('jkTitle').textContent = 'Session summary · '+fmtMins(entry.mins);
+  document.getElementById('jkBody').innerHTML = `
+    <div class="ss-type">${SESSION_TYPES[entry.type].label} · ${fmtMins(entry.mins)} counted towards this month's hours</div>
+    <div class="ss-grid">
+      ${cell(entry.ideas,'ideas added')}${cell(entry.reviewed,'ASINs reviewed')}${cell(entry.rejected,'rejected')}${cell(entry.greens,'greens found','var(--gt)')}
+      ${cell(entry.ranked,'ideas ranked')}${cell(entry.moved,'moved to sourcing')}${cell(entry.progressed,'stage moves')}${cell(entry.jack,'validation decisions','var(--pt)')}
+    </div>
+    <div class="fld" style="margin-top:12px"><div class="fld-l">What did you do? <span class="td-sub">optional — one line is plenty</span></div>
+      <input class="set-input" id="ssNote" style="width:100%" placeholder="e.g. swept three storefronts, priced the wax burner components"></div>`;
+  document.getElementById('jkConfirm').textContent = 'Done';
+  document.getElementById('jkConfirm').onclick = ()=>{ const v=(document.getElementById('ssNote')||{}).value||''; const e=initSessionLog().find(x=>x.id===entry.id); if(e) e.note=v.trim(); closeModal('mJack'); saveState(); if(currentPane()==='sessions') renderSessions(); };
+  document.getElementById('jkCancel').style.display='none';
+  openModal('mJack');
+  setTimeout(()=>{ const n=document.getElementById('ssNote'); if(n) n.focus(); }, 80);
+}
+function sessionEditMins(id){
+  const e = initSessionLog().find(x=>x.id===id); if(!e) return;
+  promptModal('Correct session length', 'Minutes this session should count', String(e.mins), (v)=>{
+    const n = parseInt(v); if(isNaN(n)||n<0||n>720){ toast('Enter minutes between 0 and 720'); return; }
+    e.mins = n; e.edited = true; saveState(); renderSessions(); toast('Session corrected — '+fmtMins(n));
+  }, String(e.mins));
+}
+if(typeof document!=='undefined' && document.addEventListener){
+  ['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev, noteActivity, {passive:true}));
+}
+// when the tab regains focus after being backgrounded, resync clock + counts immediately
+if(typeof document!=='undefined' && document.addEventListener){
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && session){ renderSessionBar(); if(currentPane()==='sessions') renderSessions(); } });
 }
 function resetJkBtn(){ const c=document.getElementById('jkConfirm'); if(c){ c.className='btn btn-pri'; c.style.display=''; } const x=document.getElementById('jkCancel'); if(x) x.style.display=''; }
 function confirmModal(title, body, btnLabel, cb, danger){
@@ -2024,17 +2323,23 @@ function taskCard(t){
 function renderSeasons(){ saveState();
   const now = TODAY;
   const events = SEASONS.filter(e=> new Date(e.date).getFullYear()===seasonYear);
+  // "Source by" is a DEADLINE: sourcing has to be finished that far ahead so there's time to validate, buy,
+  // receive, prep, ship to Amazon and be checked in before demand starts. Big seasons get a longer lead.
+  const minLead = name => /christmas/i.test(name) ? 17 : /black friday|halloween|easter|valentine|mother|father|back to school|summer/i.test(name) ? 13 : 13;
+  const tagged = name => { const def = SEASON_DEFS.find(d=>d.id!=='other' && name.toLowerCase().includes(d.label.toLowerCase().replace("'s day",""))); return def ? ideas.filter(i=>i.seasonal==='yes' && i.season===def.id && !['Dropped','Archived'].includes(i.status)).length : 0; };
   const rows = events.map(e=>{
     const d = new Date(e.date);
+    const lead = Math.max(e.lead||0, minLead(e.name));
     const daysTo = Math.round((d - now)/86400000);
-    const sourceBy = new Date(d); sourceBy.setDate(sourceBy.getDate() - e.lead*7);
+    const sourceBy = new Date(d); sourceBy.setDate(sourceBy.getDate() - lead*7);
     const daysToSource = Math.round((sourceBy - now)/86400000);
     let status, cls;
     if(daysTo < 0){ status='Passed'; cls='se-passed'; }
-    else if(daysToSource <= 0){ status='Source now'; cls='se-now'; }
-    else if(daysToSource <= SETTINGS.queue.seasonSoonDays){ status='Starting soon'; cls='se-soon'; }
+    else if(daysToSource < 0){ status='Too late for this year'; cls='se-passed'; }
+    else if(daysToSource <= 56){ status='Source now'; cls='se-now'; }
+    else if(daysToSource <= 56+SETTINGS.queue.seasonSoonDays){ status='Starting soon'; cls='se-soon'; }
     else { status='Upcoming'; cls='se-up'; }
-    return {...e, d, daysTo, sourceBy, daysToSource, status, cls};
+    return {...e, lead, d, daysTo, sourceBy, daysToSource, status, cls, ideasTagged: tagged(e.name)};
   });
   // upcoming first (soonest first), passed sink to the bottom
   const upcoming = rows.filter(r=>r.daysTo>=0).sort((a,b)=>a.d-b.d);
@@ -2054,19 +2359,19 @@ function renderSeasons(){ saveState();
         </div>
         <span class="se-status ${e.cls}">${e.status}</span>
       </div>
-      <div class="se-date">${fmtLong(e.d)} ${seasonYear} · <b>${e.daysTo<0?'passed':e.daysTo+' days away'}</b></div>
+      <div class="se-date">${fmtLong(e.d)} ${seasonYear} · <b>${e.daysTo<0?'passed':e.daysTo+' days away'}</b>${e.ideasTagged?` · <span style="color:var(--acc-t)">${e.ideasTagged} idea${e.ideasTagged===1?'':'s'} tagged</span>`:''}</div>
       <div class="se-note">${esc(e.note)}</div>
       <div class="se-foot">
         <span class="se-cat">${esc(e.cat)}</span>
-        <span class="se-lead">${e.daysTo<0?'—':e.daysToSource<=0?'Source window open':'Start sourcing by '+fmtLong(e.sourceBy)}</span>
+        <span class="se-lead">${e.daysTo<0?'—':e.daysToSource<0?'Sourcing needed by '+fmtLong(e.sourceBy)+' — missed for this year':e.daysToSource===0?'Source by today':'Source by '+fmtLong(e.sourceBy)+' · '+e.daysToSource+' days left'}</span>
       </div>
     </div>`;
 
   document.getElementById('pane-seasons').innerHTML = `
     <div class="page-head">
-      <div><div class="eyebrow">Pre-Pipeline · Seasonal sourcing</div>
+      <div><div class="eyebrow">Find · forward planning</div>
         <h1 class="page-title">Seasonality</h1>
-        <div class="page-sub">What's coming up — source ahead so you're ready in time. Lead time is built into each event.</div></div>
+        <div class="page-sub">What should we be working on <b>now</b> for the next season? Each date is a deadline — sourcing done by then leaves time to validate, buy, receive, prep and get checked in at Amazon before demand starts. A sourcing aid, not a target.</div></div>
       <div class="page-head-actions" style="display:flex;gap:8px;align-items:center">
         <div class="yr-toggle">
           <button class="yr-btn ${seasonYear===2026?'on':''}" onclick="seasonYear=2026;renderSeasons()">2026</button>
@@ -2075,6 +2380,18 @@ function renderSeasons(){ saveState();
         <button class="btn btn-pri" onclick="seasonAdd()">+ Add event</button>
       </div>
     </div>
+    ${(()=>{ const nowRows = upcoming.filter(r=>r.status==='Source now').sort((a,b)=>a.daysToSource-b.daysToSource);
+      const missed = upcoming.filter(r=>r.status==='Too late for this year');
+      return `<div class="se-now">
+        <div class="se-now-h">Work on now <span class="card-count">${nowRows.length} season${nowRows.length===1?'':'s'} in the sourcing window</span></div>
+        ${nowRows.length ? `<div class="se-now-grid">${nowRows.map(e=>`<div class="se-now-card">
+            <div class="se-now-t">${e.emoji} ${esc(e.name)}</div>
+            <div class="se-now-d"><b style="color:${e.daysToSource<=14?'var(--rt)':e.daysToSource<=28?'var(--at)':'var(--gt)'}">${e.daysToSource} days</b> to get sourcing done · by ${fmtLong(e.sourceBy)}</div>
+            <div class="se-now-s">${e.ideasTagged?`${e.ideasTagged} idea${e.ideasTagged===1?'':'s'} tagged`:'no ideas tagged yet'} · demand ${fmtLong(e.d)}</div>
+          </div>`).join('')}</div>`
+          : `<div class="se-now-empty">Nothing in its sourcing window right now${soon?` — ${soon} starting soon`:''}. Next up: ${next?esc(next.name)+' (source by '+fmtLong(next.sourceBy)+')':'—'}.</div>`}
+        ${missed.length?`<div class="se-now-missed">Missed for this year: ${missed.map(e=>esc(e.name)).join(' · ')} — they roll to next year's window.</div>`:''}
+      </div>`; })()}
     <div class="rq-stats">
       <div class="rq-stat ${sourceNow?'is-bad':''}"><span class="rq-s-v">${sourceNow}</span><span class="rq-s-l">source now</span></div>
       <div class="rq-stat ${soon?'is-warn':''}"><span class="rq-s-v">${soon}</span><span class="rq-s-l">starting soon</span></div>
@@ -2151,101 +2468,98 @@ function seasonSave(id){ saveState();
 }
 function renderSessions(){ saveState();
   const log = initSessionLog();
-  const w = weeklyRollup();
   const live = session ? sessionStats() : null;
-  const allTimeMins = log.reduce((t,x)=>t+x.mins,0);
-  const allTimeIdeas = log.reduce((t,x)=>t+x.ideas,0);
+  const m = monthRollup();
+  const mp = monthPaceInfo();
+  const hoursK = SETTINGS.kpis.find(k=>k.id==='hours') || {target:32, unit:'h'};
+  const hrs = Math.round(m.mins/60*10)/10;
+  const hState = kpiState(hoursK);
+  const allTimeMins = log.reduce((t,x)=>t+(x.mins||0),0);
+  const allTimeIdeas = log.reduce((t,x)=>t+(x.ideas||0),0);
   const avgRate = allTimeMins>0 ? (allTimeIdeas/(allTimeMins/60)) : 0;
-  const maxIdeas = Math.max(1, ...log.slice(0,12).map(x=>x.ideas));
+  const maxMins = Math.max(30, ...log.slice(0,14).map(x=>x.mins||0));
+  const tierC = {done:'var(--gt)', green:'var(--gt)', blue:'var(--blue)', amber:'var(--at)', red:'var(--rt)', grey:'var(--t3)'}[hState.tier];
 
   document.getElementById('pane-sessions').innerHTML = `
     <div class="page-head">
-      <div><div class="eyebrow">Operate · productivity</div>
+      <div><div class="eyebrow">Operate · sourcing time</div>
         <h1 class="page-title">Sourcing sessions</h1>
-        <div class="page-sub">Time your sourcing, see how much you get done, and track your rate over time.</div></div>
-      <div class="page-head-actions">
-        ${session?`<button class="btn" onclick="endSession();renderSessions()">End session</button>`:''}
-      </div>
+        <div class="page-sub">Start a session when you sit down to source. It times itself and counts what you do — nothing to type.</div></div>
+      <div class="page-head-actions">${session?`<button class="btn" onclick="endSession()">End session</button>`:''}</div>
     </div>
 
     ${session ? `
-      <div class="sess-live-card">
+      <div class="sess-live-card sl-${session.type}">
         <div class="slc-top">
-          <div class="slc-live"><span class="rec-dot"></span>Session in progress</div>
+          <div><div class="slc-live"><span class="rec-dot"></span>${SESSION_TYPES[session.type].label} · in progress</div>
+            <div class="slc-hint">${SESSION_TYPES[session.type].hint}</div></div>
           <div class="slc-clock" id="slcClock">${sessionClock()}</div>
         </div>
         <div class="slc-stats">
-          <div class="slc-stat"><div class="v">${live.ideas}</div><div class="l">ideas captured</div></div>
+          <div class="slc-stat"><div class="v">${live.ideas}</div><div class="l">ideas added</div></div>
           <div class="slc-stat"><div class="v">${live.reviewed}</div><div class="l">ASINs reviewed</div></div>
           <div class="slc-stat"><div class="v" style="color:var(--gt)">${live.greens}</div><div class="l">greens found</div></div>
-          <div class="slc-stat"><div class="v">${live.mins>=1?(live.ideas/(live.mins/60)).toFixed(1):'—'}</div><div class="l">ideas / hour</div></div>
+          <div class="slc-stat"><div class="v">${live.ranked}</div><div class="l">ideas ranked</div></div>
+          <div class="slc-stat"><div class="v" style="color:var(--acc-t)">${live.moved+live.progressed}</div><div class="l">progressed</div></div>
+          <div class="slc-stat"><div class="v" style="color:var(--rt)">${live.rejected}</div><div class="l">rejected</div></div>
         </div>
-        <div class="slc-note">Timing stays accurate even across an all-day session — the clock re-syncs from the real start time whenever you come back to the tab. End the session when you're done and it logs automatically.</div>
+        <div class="slc-note">Counts update as you work anywhere in the app. ${idleWarnMin()} minutes of no activity and it will ask if you're still here; ${idleEndMin()} and it ends itself so idle time never counts.</div>
       </div>
     ` : `
-      <div class="sess-start-card" onclick="startSession();renderSessions()">
-        <div class="ssc-ic">▶</div>
-        <div><div class="ssc-t">Start a sourcing session</div>
-        <div class="ssc-s">The timer counts your ideas, reviews and greens automatically as you work across the Inbox and Ideas pages.</div></div>
+      <div class="sess-start-row">
+        ${Object.keys(SESSION_TYPES).map(t=>`<div class="sess-start-card ssc-${t}" onclick="startSession('${t}')">
+          <div class="ssc-ic">▶</div>
+          <div><div class="ssc-t">${SESSION_TYPES[t].label}</div><div class="ssc-s">${SESSION_TYPES[t].hint}</div></div>
+        </div>`).join('')}
       </div>
     `}
 
-    ${(()=>{ const wk=weeklyRollup(); const hrs=Math.round(wk.mins/60*10)/10;
-      const tgt=SETTINGS.weekly, ideasWk=wk.ideas, valWk=wk.greens;
-      const bar=(a,t)=>{const p=t?Math.min(100,Math.round(a/t*100)):0;
-        return `<div class="wk-bar"><div style="width:${p}%;background:${p>=100?'var(--green)':p>=70?'var(--amber)':'var(--red)'}"></div></div><div class="wk-pct">${p}%</div>`;};
-      return `<div class="sec-label" style="margin-top:16px">Weekly targets <span class="line"></span><button class="btn btn-sm" style="padding:2px 9px" onclick="nav('settings');setSec='general';renderSettings()">Edit</button></div>
-      <div class="wk-grid">
-        <div class="wk-card"><div class="wk-h">Sourcing hours</div><div class="wk-v">${hrs}<small>/${tgt.hours}</small></div>${bar(hrs,tgt.hours)}</div>
-        <div class="wk-card"><div class="wk-h">Ideas generated</div><div class="wk-v">${ideasWk}<small>/${tgt.ideas}</small></div>${bar(ideasWk,tgt.ideas)}</div>
-        <div class="wk-card"><div class="wk-h">Greens found</div><div class="wk-v">${valWk}<small>/${tgt.validated}</small></div>${bar(valWk,tgt.validated)}</div>
-        <div class="wk-card"><div class="wk-h">Reviews cleared</div><div class="wk-v">${wk.reviewed}</div><div class="wk-sub">ASINs decided this week</div></div>
-      </div>`; })()}
-    <div class="sec-label" style="margin-top:18px">This week <span class="line"></span>
-      ${w.trend!=null?`<span class="wk-trend ${w.trend>=0?'up':'down'}">${w.trend>=0?'▲':'▼'} ${Math.abs(w.trend)}% vs last week</span>`:''}</div>
-    ${(()=>{ const rateTone = w.rate>=6?'good':w.rate>=4.5?'ok':'low';
-      const rateColor = {good:'var(--gt)',ok:'var(--acc-t)',low:'var(--at)'}[rateTone];
-      const greenPct = w.ideas?Math.round(w.greens/w.ideas*100):0;
-      const insight = w.sessions===0 ? 'No sessions logged this week yet — start one to begin tracking.'
-        : w.trend!=null && w.trend>=10 ? `Your rate is up ${w.trend}% on last week — you're sourcing faster.`
-        : w.trend!=null && w.trend<=-10 ? `Your rate dropped ${Math.abs(w.trend)}% this week — shorter or less focused sessions.`
-        : greenPct>=40 ? `Strong week — ${greenPct}% of your ideas scored green.`
-        : `Steady week at ${w.rate.toFixed(1)} ideas/hour — ${greenPct}% hit green.`;
-      return `<div class="sess-week-grid">
-        <div class="swg-metric" style="border-left:3px solid ${rateColor};border-radius:0 9px 9px 0"><div class="v" style="color:${rateColor}">${w.rate.toFixed(1)}</div><div class="l">ideas / hour</div><div class="sub">your sourcing rate</div></div>
-        <div class="swg-metric"><div class="v">${w.sessions}</div><div class="l">sessions</div><div class="sub">${Math.round(w.mins/60*10)/10} hours total</div></div>
-        <div class="swg-metric"><div class="v">${w.ideas}</div><div class="l">ideas captured</div><div class="sub">${w.reviewed} ASINs reviewed</div></div>
-        <div class="swg-metric" style="border-left:3px solid ${greenPct>=40?'var(--green)':'var(--b3)'};border-radius:0 9px 9px 0"><div class="v" style="color:var(--gt)">${w.greens}</div><div class="l">greens found</div><div class="sub">${greenPct}% of ideas</div></div>
-        ${w.best? `<div class="swg-metric" style="border-left:3px solid var(--accent);border-radius:0 9px 9px 0"><div class="v" style="color:var(--acc-t)">${(w.best.ideas/(w.best.mins/60||1)).toFixed(1)}</div><div class="l">best session</div><div class="sub">${fmtDate(w.best.date)} · ${w.best.ideas} ideas in ${w.best.mins}m</div></div>`:''}
+    <div class="sec-label" style="margin-top:16px">${mp.label} <span class="line"></span><span class="card-count">day ${mp.day} of ${mp.days}</span></div>
+    <div class="sess-month">
+      <div class="sm-hours">
+        <div class="sm-big" style="color:${tierC}">${fmtKpi(hoursK,hrs)}<span class="of">/${hoursK.target}h</span></div>
+        <div class="sm-label">sourcing hours · <b style="color:${tierC}">${hState.label}</b> · expected ${fmtKpi(hoursK,hState.exp)}h by today</div>
+        <div class="sm-bar"><div class="sm-fill fresh" style="width:${Math.min(100, m.freshMins/60/hoursK.target*100)}%"></div><div class="sm-fill working" style="width:${Math.min(100, m.workingMins/60/hoursK.target*100)}%"></div><div class="sm-pace" style="left:${Math.round(mp.pace*100)}%"></div></div>
+        <div class="sm-split"><span class="sp-fresh">● ${fmtKpi(hoursK,m.freshMins/60)}h fresh sourcing</span><span class="sp-working">● ${fmtKpi(hoursK,m.workingMins/60)}h working ideas</span><span class="sp-pace">│ where today sits</span></div>
       </div>
-      <div class="sess-insight"><span class="si-dot" style="background:${rateColor}"></span>${insight}</div>`; })()}
+      <div class="sm-grid">
+        <div class="sm-cell"><div class="v">${m.sessions}</div><div class="l">sessions</div></div>
+        <div class="sm-cell"><div class="v">${m.ideas}</div><div class="l">ideas added</div></div>
+        <div class="sm-cell"><div class="v" style="color:var(--gt)">${m.greens}</div><div class="l">greens</div></div>
+        <div class="sm-cell"><div class="v">${m.reviewed}</div><div class="l">reviewed</div></div>
+        <div class="sm-cell"><div class="v" style="color:var(--acc-t)">${(m.progressed||0)+(log.filter(x=>sameMonth(x.date)).reduce((t,x)=>t+(x.moved||0),0))}</div><div class="l">progressed</div></div>
+        <div class="sm-cell"><div class="v">${m.mins>0?(m.ideas/(m.mins/60)).toFixed(1):'—'}</div><div class="l">ideas / hour</div></div>
+      </div>
+    </div>
 
     <div class="sec-label" style="margin-top:18px">Session history <span class="line"></span></div>
     <div class="card">
       ${log.length? `<div class="sess-hist">
-        ${log.slice(0,12).map(x=>{ const r = x.mins>=1?(x.ideas/(x.mins/60)):0;
-          const gp = x.ideas? Math.round(x.greens/x.ideas*100) : 0;
-          const thisWeek = daysIn(x.date) <= 7;
-          return `<div class="sh-row" style="cursor:pointer" title="View session activity" onclick="sessionDetail(${x.id||0})">
-            <div class="sh-date" style="${thisWeek?'color:var(--acc-t)':''}">${fmtDate(x.date)}</div>
-            <div class="sh-dur">${x.mins} min</div>
-            <div class="sh-bar"><div class="sh-fill" style="width:${Math.round(x.ideas/maxIdeas*100)}%;background:${r>=6?'var(--green)':r>=4.5?'var(--accent)':'var(--amber)'}"></div></div>
+        ${log.slice(0,14).map(x=>{
+          const ty = SESSION_TYPES[x.type||'fresh'];
+          return `<div class="sh-row">
+            <div class="sh-date">${fmtDate(x.date)}<div class="sh-time">${new Date(x.date).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div></div>
+            <span class="sh-type st-${x.type||'fresh'}">${ty.label}</span>
+            <div class="sh-dur" title="Click to correct" onclick="sessionEditMins(${x.id||0})">${fmtMins(x.mins||0)}${x.edited?' <i>edited</i>':''}${x.autoEnded?' <i>auto-ended</i>':''}</div>
+            <div class="sh-bar"><div class="sh-fill ${x.type==='working'?'working':'fresh'}" style="width:${Math.round((x.mins||0)/maxMins*100)}%"></div></div>
             <div class="sh-chips">
-              <span><b>${x.ideas}</b> ideas</span>
-              <span><b>${x.reviewed}</b> reviewed</span>
-              <span style="color:var(--gt)"><b>${x.greens}</b> greens</span>
-              <span class="gp-chip ${gp>=40?'gp-hi':gp>=20?'gp-mid':'gp-lo'}">${gp}% green</span>
-              <span class="sh-rate"><b>${r.toFixed(1)}</b>/hr</span>
+              <span><b>${x.ideas||0}</b> ideas</span>
+              <span><b>${x.reviewed||0}</b> reviewed</span>
+              <span style="color:var(--gt)"><b>${x.greens||0}</b> greens</span>
+              <span><b>${(x.progressed||0)+(x.moved||0)}</b> progressed</span>
+              ${x.rejected?`<span style="color:var(--rt)"><b>${x.rejected}</b> rejected</span>`:''}
+              <button class="sh-more" onclick="sessionDetail(${x.id||0})">activity</button>
             </div>
+            ${x.note?`<div class="sh-note">${esc(x.note)}</div>`:''}
           </div>`;}).join('')}
-      </div>` : `<div class="empty"><div class="empty-t">No sessions logged yet</div><div class="empty-s">Start your first session — it'll appear here with your rate and totals.</div></div>`}
+      </div>` : `<div class="empty"><div class="empty-t">No sessions yet</div><div class="empty-s">Start one above when you sit down to source — it appears here with what you got done.</div></div>`}
     </div>
 
     <div class="sess-alltime">
       All-time · ${log.length} sessions · ${Math.round(allTimeMins/60*10)/10} hours · ${allTimeIdeas} ideas · avg <b>${avgRate.toFixed(1)}</b> ideas/hour
     </div>`;
 
-  if(session){ clearInterval(sessionTick); sessionTick = setInterval(()=>{ const c=document.getElementById('slcClock'); if(c) c.textContent=sessionClock(); tickSessionClock(); }, 1000); }
+  if(session){ clearInterval(sessionTick); sessionTick = setInterval(tickSessionClock, 1000); }
 }
 function sessionDetail(id){ resetJkBtn();
   const evs = EVENTS.filter(e=>e.sessionId===id);
@@ -2257,6 +2571,17 @@ function sessionDetail(id){ resetJkBtn();
   document.getElementById('jkConfirm').onclick = ()=>closeModal('mJack');
   document.getElementById('jkCancel').style.display = 'none';   // read-only modal — one dismiss button is enough
   openModal('mJack');
+}
+function monthRollup(ref){
+  const log = initSessionLog().filter(x=>sameMonth(x.date, ref));
+  const sum = a => a.reduce((t,x)=>({mins:t.mins+(x.mins||0), ideas:t.ideas+(x.ideas||0), reviewed:t.reviewed+(x.reviewed||0), greens:t.greens+(x.greens||0), progressed:t.progressed+(x.progressed||0), rejected:t.rejected+(x.rejected||0)}),{mins:0,ideas:0,reviewed:0,greens:0,progressed:0,rejected:0});
+  const m = sum(log);
+  m.freshMins = log.filter(x=>(x.type||'fresh')==='fresh').reduce((t,x)=>t+(x.mins||0),0);
+  m.workingMins = log.filter(x=>x.type==='working').reduce((t,x)=>t+(x.mins||0),0);
+  if(session){ const live = Math.max(0, Math.round((Date.now()-session.start)/60000)); m.mins += live; if((session.type||'fresh')==='fresh') m.freshMins += live; else m.workingMins += live; }
+  m.sessions = log.length + (session?1:0);
+  m.rate = m.mins>0 ? m.ideas/(m.mins/60) : 0;
+  return m;
 }
 function weeklyRollup(){
   const log = initSessionLog(); const wk = log.filter(x=> daysIn(x.date) < 7);
@@ -2290,10 +2615,10 @@ let READ_ONLY = false;      // set when another tab owns the write lock
 let saveHealthy = true;
 
 function snapshotState(){
-  return {schema:SCHEMA_VERSION, app:'bdl-ub', appVersion:'v52.0', savedAt:new Date().toISOString(), rev:++_rev,
+  return {schema:SCHEMA_VERSION, app:'bdl-ub', appVersion:'v0.1', savedAt:new Date().toISOString(), rev:++_rev,
     ideas, pipeline, inbox, tasks, storefronts, seasons:SEASONS, archive, events:EVENTS,
     sessionLog:sessionLog||[], session, tkDraft, flags:FLAGS, archivedStageLogs:(window.__archivedStageLogs||[]),
-    settings:SETTINGS, rankQs:RANK_QS, uid, taskQuick};
+    settings:SETTINGS, rankQs:RANK_QS, qsVersion:QS_VERSION, kpiVersion:KPI_VERSION, uid, taskQuick};
 }
 function pruneHistory(){
   // keep the payload bounded so we can never hit the storage quota
@@ -2409,7 +2734,18 @@ function applyState(s){
       SETTINGS[k] = incoming;
     }
   });
-  if(nQs){ RANK_QS.length=0; RANK_QS.push(...nQs); }
+  if(!((s.kpiVersion||1) >= KPI_VERSION)){
+    // older KPI set (nine targets, weekly hours): replace with the three monthly targets, keep custom ones
+    const custom = (SETTINGS.kpis||[]).filter(k=>/^k\d+$/.test(String(k.id)));
+    SETTINGS.kpis = DEFAULT_KPIS.map(k=>({...k})).concat(custom);
+  }
+  if(nQs){
+    if((s.qsVersion||1) >= QS_VERSION){ RANK_QS.length=0; RANK_QS.push(...nQs); }
+    else {
+      // older question set: keep the new defaults, carry across any custom questions it added
+      nQs.filter(q=>q && typeof q.id==='string' && /^q\d/.test(q.id) && !qById(q.id)).forEach(q=>RANK_QS.push({...q, applies:['bundle','hamper']}));
+    }
+  }
   if(typeof s.uid==='number' && s.uid>uid) uid=s.uid;
   if(nQuick) taskQuick = nQuick;
   if(Array.isArray(s.flags)){ FLAGS.length=0; FLAGS.push(...s.flags); }
@@ -2431,9 +2767,14 @@ function normaliseRecords(){
   ideas.forEach(i=>{
     if(!i.answers || typeof i.answers !== 'object') i.answers = {};
     if(!Array.isArray(i.options)) i.options = [];
+    if(!i.kind && Object.keys(i.answers).length) i.kind = 'bundle';   // scored before the hamper/bundle split
   });
 }
 function restoreSessionUI(){
+  if(session && !session.type) session.type='fresh';
+  if(session && !session.lastActive) session.lastActive = Date.now();
+  if(session){ clearInterval(idleTick); idleTick = setInterval(checkIdle, 30000); }
+  paintSessionButton();
   // a session that was running when the tab closed comes back with its clock intact
   const bar = document.getElementById('sessBar');
   const btn = document.getElementById('sessBtn');
@@ -2676,7 +3017,73 @@ function logEvent(type, label, entityId){
 const sameMonth = (iso, ref) => { const d=new Date(iso), r=ref||TODAY; return d.getFullYear()===r.getFullYear() && d.getMonth()===r.getMonth(); };
 function kpiActual(k, ref){
   // derived from the event log so it resets with the calendar month — a running total would read "above target" forever
+  if(k.id==='hours') return monthHours(ref);
   return EVENTS.filter(e=>e.type===k.id && sameMonth(e.at, ref)).length;
+}
+// Sourcing hours this month = every logged session plus the one running now. Never typed in.
+function monthMins(ref, type){
+  const log = initSessionLog();
+  let mins = log.filter(x=>sameMonth(x.date, ref) && (!type || (x.type||'fresh')===type)).reduce((t,x)=>t+(x.mins||0),0);
+  if(session && sameMonth(new Date(session.start).toISOString(), ref) && (!type || (session.type||'fresh')===type)) mins += Math.max(0, Math.round((Date.now()-session.start)/60000));
+  return mins;
+}
+function monthHours(ref, type){ return Math.round(monthMins(ref, type)/60*10)/10; }
+function monthPaceInfo(ref){
+  const d = ref? new Date(ref) : TODAY;
+  const day = d.getDate(), days = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  return { day, days, pace: day/days, label: d.toLocaleDateString('en-GB',{month:'long'}) };
+}
+function kpiExpected(k, ref){ return k.target * monthPaceInfo(ref).pace; }
+function fmtKpi(k, v){ return k.unit==='h' ? (Math.round(v*10)/10).toString().replace(/\.0$/,'') : String(Math.round(v)); }
+function monthHasActivity(ref){ return EVENTS.some(e=>sameMonth(e.at, ref)) || monthMins(ref)>0; }
+// Ahead / on track / behind, judged against where the calendar says she should be.
+function kpiState(k, ref){
+  const act = kpiActual(k, ref);
+  // whole-number targets are judged against a whole-number expectation — you can't launch 1.48 products
+  const exp = k.unit==='h' ? kpiExpected(k, ref) : Math.round(kpiExpected(k, ref));
+  if(act >= k.target) return {tier:'done', label: act > k.target ? 'Target beaten' : 'Target hit', rank:4, act, exp};
+  if(!monthHasActivity(ref) && act===0) return {tier:'grey', label:'Not started', rank:2, act, exp};
+  const ratio = exp>0 ? act/exp : 1;
+  if(ratio>=1.05) return {tier:'green', label:'Ahead',           rank:3, act, exp};
+  if(ratio>=0.9)  return {tier:'blue',  label:'On track',        rank:2, act, exp};
+  if(ratio>=0.7)  return {tier:'amber', label:'Slightly behind', rank:1, act, exp};
+  return               {tier:'red',   label:'Behind',          rank:0, act, exp};
+}
+// The conveyor belt: what entered, what moved, what's stuck, what's waiting, what left — last 7 days + where everything sits now.
+function pipelineFlow(){
+  const since = Date.now() - 7*86400000;
+  const recent = EVENTS.filter(e=>new Date(e.at).getTime()>=since);
+  const n = t => recent.filter(e=>e.type===t).length;
+  const week = { ideasIn:n('ideas'), movedIn:n('moved'), forward:n('stage'), dropped:n('drop')+n('killrate'), launched:n('launches'), jack:n('jack') };
+  const cols = [{key:'ideas', name:'Ranked ideas', count: ideas.filter(i=>i.status==='Ranked'&&!i.killed).length, stuck:0, waiting:0, sub:'waiting to be worked'}]
+    .concat(STAGES.map(st=>{ const rows=pipeline.filter(p=>p.stage===st.key); return {key:st.key, name:st.name, count:rows.length, stuck:rows.filter(isOver).length, waiting:rows.filter(p=>p.waiting && !waitExpired(p)).length, sub:''}; }));
+  cols.push({key:'launched', name:'Launched', count: EVENTS.filter(e=>e.type==='launches' && sameMonth(e.at)).length, stuck:0, waiting:0, sub:'this month'});
+  const anyMovement = week.ideasIn+week.movedIn+week.forward+week.dropped+week.launched+week.jack > 0;
+  const active = pipeline.length + ideas.filter(i=>i.status==='Ranked').length;
+  const lastMove = EVENTS.filter(e=>['stage','moved','launches','drop','ideas'].includes(e.type)).slice(-1)[0];
+  const daysSinceMove = lastMove ? daysIn(lastMove.at) : null;
+  let health;
+  if(!active && !anyMovement) health = {tone:'quiet', text:'The belt is empty — capture and rank ideas to get it moving'};
+  else if(!anyMovement && daysSinceMove!=null && daysSinceMove>=7) health = {tone:'bad', text:`Nothing has moved in ${daysSinceMove} days — pick the best ranked idea and work it today`};
+  else if(cols.some(c=>c.stuck>0)) health = {tone:'warn', text:`${cols.reduce((t,c)=>t+c.stuck,0)} item${cols.reduce((t,c)=>t+c.stuck,0)===1?'':'s'} over the stage limit — unstick or drop`};
+  else health = {tone:'ok', text:'Moving — keep ideas entering and the best ones progressing'};
+  return { week, cols, health, daysSinceMove };
+}
+// Information, never targets — here so she can see what the numbers look like before targets get set from them.
+function kpiInfo(ref){
+  const ideasM = EVENTS.filter(e=>e.type==='ideas' && sameMonth(e.at, ref)).length;
+  const hrs = monthHours(ref);
+  const since = Date.now() - 90*86400000;
+  const ideas90 = EVENTS.filter(e=>e.type==='ideas' && new Date(e.at).getTime()>=since).length;
+  const launches90 = EVENTS.filter(e=>e.type==='launches' && new Date(e.at).getTime()>=since).length;
+  const backlog = ideas.filter(i=>i.status==='Ranked' && !i.killed).length;
+  const greensWaiting = ideas.filter(i=>i.status==='Ranked' && !i.killed && bandOf(i)==='green').length;
+  return {
+    ideasPerHour: hrs>0 ? Math.round(ideasM/hrs*10)/10 : null,
+    conversion: ideas90>0 ? Math.round(launches90/ideas90*100) : null, ideas90, launches90,
+    backlog, greensWaiting,
+    freshHours: monthHours(ref,'fresh'), workingHours: monthHours(ref,'working')
+  };
 }
 function bumpKpi(id, label){
   if(!KPI_LIVE) return;
@@ -2695,27 +3102,32 @@ function creditBackIdea(i){
   if(i._kKill) unbumpKpi('killrate');
 }
 
+const KPI_VERSION = 2;
 const SETTINGS = {
   linkTemplates: [
     {name:'Amazon UK', key:'amazon', tpl:'https://www.amazon.co.uk/dp/{asin}', short:'AMZ'},
     {name:'Keepa', key:'keepa', tpl:'https://keepa.com/#!product/2-{asin}', short:'KPA'},
     {name:'SellerAmp', key:'sas', tpl:'https://sas.selleramp.com/sas/lookup?asin={asin}', short:'SAS'},
   ],
+  // Three monthly targets, all fed automatically: hours from sourcing sessions, ideas the
+  // moment one is saved, launches when a product is bought AND live. Everything else is
+  // information, not a target. KPI_VERSION bumps when these defaults change.
   kpis: [
-    {id:'ideas', label:'New Ideas', target:8, period:'auto', pane:'ideas', on:true},
-    {id:'reviewed', label:'ASINs Reviewed', target:40, period:'auto', pane:'inbox', on:true},
-    {id:'moved', label:'Moved to Ready to Source', target:6, period:'auto', pane:'pipeline', on:true},
-    {id:'launches', label:'Bundle Launches', target:4, period:'auto', pane:'archive', on:true},
-    {id:'ranked', label:'Ideas Ranked', target:8, period:'auto', pane:'ideas', on:true},
-    {id:'jack', label:'Jack Decisions', target:6, period:'auto', pane:'pipeline', on:true},
-    {id:'shortlist', label:'Green Ideas Found', target:6, period:'auto', pane:'ideas', on:true},
-    {id:'sourced', label:'Products Sourced', target:6, period:'auto', pane:'pipeline', on:true},
-    {id:'killrate', label:'Ideas Killed (brand)', target:5, period:'auto', pane:'ideas', on:true},
+    {id:'hours',    label:'Sourcing hours',    target:32, unit:'h', period:'auto', pane:'sessions', on:true},
+    {id:'ideas',    label:'Ideas captured',    target:10, period:'auto', pane:'ideas',    on:true},
+    {id:'launches', label:'Products launched', target:2,  period:'auto', pane:'archive',  on:true},
+    {id:'reviewed', label:'ASINs reviewed',    target:40, period:'auto', pane:'inbox',    on:false},
+    {id:'moved',    label:'Moved to sourcing', target:6,  period:'auto', pane:'pipeline', on:false},
+    {id:'ranked',   label:'Ideas ranked',      target:8,  period:'auto', pane:'ideas',    on:false},
+    {id:'shortlist',label:'Green ideas found', target:6,  period:'auto', pane:'ideas',    on:false},
+    {id:'sourced',  label:'Products sourced',  target:6,  period:'auto', pane:'pipeline', on:false},
   ],
   ageing: { ready_to_source:7, source:10, jack_validation:3, prepare_to_launch:7, order_purchase:10, launch:5 },
   jackBottleneck: 3,
-  queue: { overdueDays:10, snoozeDays:7, storefrontDays:30, seasonSoonDays:21, sourceWip:6 },
-  weekly: { hours:16, ideas:10, validated:8 },
+  queue: { overdueDays:10, snoozeDays:7, storefrontDays:30, seasonSoonDays:21, sourceWip:6, backlogBig:10 },
+  weekly: { hours:16, ideas:10, validated:8 },   // legacy — replaced by the monthly hours target
+  backupEveryDays: 1,
+  sessions: { idleWarn:45, idleEnd:50 },
   econ: { minMargin: 0.25, minRoi: 0.30, prepAllowance: 0.35, packagingAllowance: 0.25, failBehaviour: 'override' },
   bands: [
     {min:75, label:'Green · shortlist', cls:'bg-green', chip:'var(--gt)'},
@@ -2727,6 +3139,8 @@ const SETTINGS = {
   workspaceName: 'Unique Bundle Tracker',
   rejectionReasons: ['Improve the offer','Better supplier needed','Margin not good enough','Brand/IP concern','Too complex','Not enough differentiation','Weak customer value','Commercially not worth it','Other'],
 };
+const DEFAULT_KPIS = SETTINGS.kpis.map(k=>({...k}));
+
 const bandFor = s => SETTINGS.bands.slice().sort((a,b)=>b.min-a.min).find(b => s >= b.min) || SETTINGS.bands[SETTINGS.bands.length-1];
 const linkFor = (key, asin) => SETTINGS.linkTemplates.find(l=>l.key===key).tpl.replace('{asin}', asin);
 
@@ -2748,62 +3162,52 @@ const stageName = k => STAGES[stageIdx(k)].name;
    Score is always out of 100. N/A questions drop out
    of both the earned and available totals.
    ════════════════════════════════════════════ */
+// Bumped whenever the default questions change. A browser holding an older copy gets the
+// new defaults on load (custom questions it added are carried across).
+const QS_VERSION = 2;
 const RANK_QS = [
-  { id:'brand', order:0, active:true, kill:true,
-    t:'Does the brand already sell this on Amazon?',
-    help:'The only hard kill. If the brand is already active on Amazon, avoid it — IP and account risk. Answering Yes scraps the idea immediately.',
+  { id:'brand', order:0, active:true, kill:true, applies:['bundle'],
+    t:'Does this brand sell on Amazon?',
+    help:'The one hard kill. A brand already active on Amazon means IP and account risk — Yes scraps the idea.',
     type:'yn', weight:0, killOn:'yes' },
 
-  { id:'spm', order:1, active:true, weight:5,
+  { id:'spm', order:1, active:true, weight:5, applies:['bundle'],
     t:'Main product — sales per month',
-    help:'Demand check. 100/mo is the baseline (≈half marks); climbs steadily from there; 600/mo is full marks. N/A for gift/one-off buys drops it from the score.',
+    help:'Demand proof for the base product (Keepa / SellerAmp). 100/mo is half marks, 600+/mo is full. No single base product? Mark N/A.',
     type:'number', unit:'/mo', allowNA:true,
     score:{ kind:'linear', floor:0, floorPts:0, base:100, basePts:50, full:600, fullPts:100 } },
 
-  { id:'value', order:2, active:true, weight:5,
-    t:'Is there clear customer value?',
-    help:'One of the most important. If you wouldn\'t buy it yourself, the idea craters — but it isn\'t blocked, since value can be improved later.',
-    type:'yn', score:{yes:100, no:0} },
+  { id:'search', order:2, active:true, weight:4, weightHamper:5, applies:['bundle','hamper'],
+    t:'Search volume per month (Helium 10)',
+    help:'Under 100 is a red flag. 100–499 low · 500–999 ok · 1,000–4,999 good · 5,000+ full marks.',
+    type:'number', unit:'/mo',
+    score:{ kind:'bands', bands:[[100,0],[500,25],[1000,50],[5000,75]], top:100 },
+    redFlagBelow:100, redFlagText:'Search volume under 100' },
 
-  { id:'complementary', order:3, active:true, weight:5,
-    t:'Are the products complementary?',
-    help:'Do the items obviously belong together? Customers should instantly understand why. Weak fit = weak bundle.',
-    type:'hml', score:{High:100, Medium:75, Low:50} },
-
-  { id:'search', order:4, active:true, weight:4,
-    t:'Search volume (Helium 10)',
-    help:'Related keywords count, not just the exact phrase. 1,000+/mo is strong; under 500 is weak. N/A drops it from the score.',
-    type:'number', unit:'/mo', allowNA:true,
-    score:{ kind:'linear', floor:0, floorPts:0, base:500, basePts:50, full:1000, fullPts:100 } },
-
-  { id:'convenience', order:5, active:true, weight:3,
-    t:'How convenient is the bundle?',
-    help:'A ready-made kit that saves the customer assembling it themselves scores high. The more convenient, the better.',
-    type:'hml', score:{High:100, Medium:75, Low:50} },
-
-  { id:'competitors', order:6, active:true, weight:4,
-    t:'Number of competitor bundle listings',
-    help:'1 is ideal — proves demand without saturation. Up to 3 is fine. Over 3 the market is crowded and the score drops fast. 0 loses a little (unproven).',
+  { id:'competitors', order:3, active:true, weight:3, weightHamper:4, applies:['bundle','hamper'],
+    t:{ bundle:'Competing bundle listings', hamper:'Competing hampers' },
+    help:'Lower is better. 0–1 full marks · 2–3 good · 4 ok · 5–9 crowded · 10+ saturated. Never a kill.',
     type:'number', unit:'listings', allowNA:true,
-    score:{ kind:'competitors', zeroPts:85, fromPts:80, cap:10, capPts:15 } },
+    score:{ kind:'bands', bands:[[2,100],[4,75],[5,50],[10,25]], top:0 } },
 
-  { id:'price', order:7, active:true, weight:3,
-    t:'Finished bundle selling price',
-    help:'The finished bundle price on Amazon — headroom for margin. £15 is the minimum; £50+ is full marks.',
-    type:'currency', allowNA:true,
-    score:{ kind:'linear', floor:0, floorPts:0, base:15, basePts:50, full:50, fullPts:100 } },
+  { id:'price', order:4, active:true, weight:3, applies:['bundle','hamper'],
+    t:'Selling price on Amazon',
+    help:'Under £15.99 is a red flag. £16–29 ok · £30–49 good · £50+ full marks.',
+    type:'currency',
+    score:{ kind:'bands', bands:[[15.99,0],[30,50],[50,75]], top:100 },
+    redFlagBelow:15.99, redFlagText:'Price under £15.99' },
 
-  { id:'improve', order:8, active:true, weight:2,
-    t:'Can you improve it versus competitors?',
-    help:'Yes = full marks. No = very low. N/A (brand-new concept or your own branded product) is neutral and drops from the score.',
+  { id:'improve', order:5, active:true, weight:2, applies:['bundle','hamper'],
+    t:'Can you improve on the competitors?',
+    help:'Yes = full marks. No = very low. N/A if there is nothing to compare against.',
     type:'ynna', score:{yes:100, no:15} },
-
-  { id:'simple', order:9, active:true, weight:1,
-    t:'How simple is it to build and launch?',
-    help:'A 20-item hamper is low simplicity — useful to know for assembly time, but only lightly weighted.',
-    type:'hml', score:{High:100, Medium:75, Low:50} },
 ];
-const activeQs = () => RANK_QS.filter(q=>q.active).sort((a,b)=>a.order-b.order);
+const KINDS = { bundle:'Bundle', hamper:'Hamper' };
+const kindOf = i => i && i.kind ? i.kind : 'bundle';          // legacy ideas answered the bundle set
+const qWeight = (q, kind) => (kind==='hamper' && typeof q.weightHamper==='number') ? q.weightHamper : (q.weight||0);
+const qTitle  = (q, kind) => (q.t && typeof q.t==='object') ? (q.t[kind] || q.t.bundle || '') : (q.t||'');
+const qAllowsNA = q => q.type==='ynna' || !!q.allowNA;
+const activeQs = (kind) => RANK_QS.filter(q=>q.active && (!kind || !Array.isArray(q.applies) || q.applies.includes(kind))).sort((a,b)=>a.order-b.order);
 const qById = id => RANK_QS.find(q=>q.id===id);
 
 // score a single question's answer → 0..100 (or null if it should drop out)
@@ -2822,6 +3226,11 @@ function scoreAnswer(q, a){
       if(n<=s.base){ const t=(n-s.floor)/(s.base-s.floor); return Math.round(s.floorPts+(s.basePts-s.floorPts)*t); }
       const t=(n-s.base)/(s.full-s.base); return Math.round(s.basePts+(s.fullPts-s.basePts)*t);
     }
+    if(s.kind==='bands'){
+      // first band whose limit the value is under wins; otherwise the top score
+      for(const [limit, pts] of s.bands){ if(n < limit) return pts; }
+      return s.top;
+    }
     if(s.kind==='competitors'){
       // 0 = 85 (unproven) · 1 = 100 (ideal) · 2 = 90 · 3 = 80 · then steep drop to 15 at 10+
       const c = Math.round(n);   // whole listings only — decimals would slip between the branches
@@ -2835,31 +3244,81 @@ function scoreAnswer(q, a){
   }
   return null;
 }
-function calcScore(answers){
+function calcScore(answers, kind){
+  kind = kind || 'bundle';
+  const qs = activeQs(kind);
   // hard kill first
-  for(const q of activeQs()){
-    if(q.kill && answers[q.id]===q.killOn) return {score:0, killed:true, killReason:q.t, complete:true};
+  for(const q of qs){
+    if(q.kill && answers[q.id]===q.killOn) return {score:0, killed:true, killReason:qTitle(q,kind), complete:true};
   }
   let earned=0, availAnswered=0, availAll=0, scoredCount=0;
-  const scoredQs = activeQs().filter(q=>!q.kill);
+  const scoredQs = qs.filter(q=>!q.kill);
   scoredQs.forEach(q=>{
     const raw = answers[q.id];
-    const dropped = raw==='na';              // N/A → out of both totals entirely
+    const w = qWeight(q, kind);
+    // N/A only counts where the question allows it — anywhere else it's simply unanswered
+    const dropped = raw==='na' && qAllowsNA(q);
     if(dropped) return;
-    availAll += q.weight;                    // unanswered still count in the build-up denominator
+    availAll += w;
     const pts = scoreAnswer(q, raw);
-    if(pts==null) return;                    // unanswered
-    earned += (pts/100)*q.weight;
-    availAnswered += q.weight;
+    if(pts==null) return;
+    earned += (pts/100)*w;
+    availAnswered += w;
     scoredCount++;
   });
-  const killAnswered = activeQs().filter(q=>q.kill).every(q=>answers[q.id]!=null && answers[q.id]!=='');
-  // complete = every enabled question has a value OR an explicit N/A — blank never counts as done
-  const complete = killAnswered && scoredQs.every(q=>{const a=answers[q.id]; return a!=null && a!=='';}) && scoredCount>0;
+  const killAnswered = qs.filter(q=>q.kill).every(q=>answers[q.id]!=null && answers[q.id]!=='');
+  // complete = every question answered, or N/A where that's allowed — blank never counts as done
+  const complete = killAnswered && scoredQs.every(q=>{const a=answers[q.id]; return a!=null && a!=='' && (a!=='na' || qAllowsNA(q));}) && scoredCount>0;
   return {
-    score: availAnswered? Math.round(earned/availAnswered*100) : null,   // final score (complete basis)
-    provisional: availAll? Math.round(earned/availAll*100) : 0,          // builds from 0 as you answer
+    score: availAnswered? Math.round(earned/availAnswered*100) : null,
+    provisional: availAll? Math.round(earned/availAll*100) : 0,
     killed:false, complete };
+}
+// Warnings that sit on the card and never kill: under-minimum numbers, and a season we're late for.
+function redFlags(i){
+  const out = [];
+  activeQs(kindOf(i)).forEach(q=>{
+    if(typeof q.redFlagBelow!=='number') return;
+    const a = i.answers[q.id]; if(a==null||a===''||a==='na') return;
+    const n = parseFloat(a); if(!isNaN(n) && n < q.redFlagBelow) out.push(q.redFlagText || ('Low '+qTitle(q,kindOf(i))));
+  });
+  if(i.seasonal==='yes' && i.season){ const si = seasonInfo(i.season); if(si && si.tooLate) out.push('Too late for '+si.label+' '+si.year+' — next: source by '+fmtDate(si.nextSourceBy)); }
+  return out;
+}
+
+/* ─── Seasons: forward planning. Demand starts well before the day itself; sourcing has to be
+   done SEASON_LEAD_DAYS before demand starts (source → validate → buy → ship → prep → FBA). ─── */
+const SEASON_LEAD_DAYS = 90;
+function easterSunday(y){ // Anonymous Gregorian algorithm
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i2=Math.floor(c/4),k=c%4,l=(32+2*e+2*i2-h-k)%7,m=Math.floor((a+11*h+22*l)/451);
+  const month=Math.floor((h+l-7*m+114)/31), day=((h+l-7*m+114)%31)+1; return new Date(y, month-1, day);
+}
+function nthSunday(y, month, n){ const d=new Date(y, month, 1); const off=(7-d.getDay())%7; return new Date(y, month, 1+off+(n-1)*7); }
+const SEASON_DEFS = [
+  { id:'christmas',   label:'Christmas',      demand: y=>new Date(y,10,26) },
+  { id:'blackfriday', label:'Black Friday',   demand: y=>new Date(y,10,18) },
+  { id:'halloween',   label:'Halloween',      demand: y=>new Date(y,9,1) },
+  { id:'easter',      label:'Easter',         demand: y=>{ const e=easterSunday(y); e.setDate(e.getDate()-14); return e; } },
+  { id:'valentines',  label:"Valentine's Day", demand: y=>new Date(y,1,1) },
+  { id:'mothersday',  label:"Mother's Day",   demand: y=>{ const e=easterSunday(y); e.setDate(e.getDate()-21-14); return e; } },
+  { id:'fathersday',  label:"Father's Day",   demand: y=>{ const d=nthSunday(y,5,3); d.setDate(d.getDate()-14); return d; } },
+  { id:'summer',      label:'Summer',         demand: y=>new Date(y,5,1) },
+  { id:'backtoschool',label:'Back to School', demand: y=>new Date(y,7,1) },
+  { id:'other',       label:'Other',          demand: null },
+];
+function seasonInfo(id, ref){
+  const def = SEASON_DEFS.find(d=>d.id===id); if(!def) return null;
+  if(!def.demand) return {id, label:def.label, noDate:true};
+  const today = new Date(_midnightOf(ref || new Date()));
+  let y = today.getFullYear();
+  let demand = def.demand(y);
+  // once demand has been running ~5 weeks the occasion is gone — roll to next year
+  if(today > new Date(demand.getTime()+35*86400000)){ y++; demand = def.demand(y); }
+  const sourceBy = new Date(demand.getTime() - SEASON_LEAD_DAYS*86400000);
+  const tooLate = today > sourceBy;
+  const nextDemand = def.demand(y+1), nextSourceBy = new Date(nextDemand.getTime() - SEASON_LEAD_DAYS*86400000);
+  const daysLeft = Math.round((sourceBy - today)/86400000);
+  return {id, label:def.label, year:y, demand, sourceBy, tooLate, daysLeft, nextSourceBy, nextYear:y+1};
 }
 
 /* ─── Ideas ─── */
@@ -2977,6 +3436,11 @@ function waitExpired(p){ return p.waiting && waitEnd(p) <= TODAY; }
 /* ════════════════════════════════════════════
    NAV + SHARED UI
    ════════════════════════════════════════════ */
+function toggleSidebar(){
+  document.body.classList.toggle('sb-min');
+  try{ localStorage.setItem('ub_sb_min', document.body.classList.contains('sb-min')?'1':'0'); }catch(e){}
+}
+try{ if(localStorage.getItem('ub_sb_min')==='1') document.body.classList.add('sb-min'); }catch(e){}
 function nav(pane){
   document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(t=>t.classList.remove('active'));
@@ -3065,7 +3529,7 @@ document.addEventListener('keydown', e=>{
      && !document.querySelector('#mJack.open, #mPrompt.open')
      && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){
     const i = ideas.find(x=>x.id===composerId); if(!i) return;
-    const q = activeQs().find(q=>{ const a=i.answers[q.id]; return a==null||a===''; });
+    const q = i.kind ? activeQs(i.kind).find(q=>{ const a=i.answers[q.id]; return a==null||a===''; }) : null;
     if(!q) return;
     const k = e.key.toLowerCase();
     const map = q.type==='yn' ? {y:'yes', n:'no'}
@@ -3150,7 +3614,7 @@ function buildActions(){
   let lastB = 0; try{ lastB = +localStorage.getItem('ub_last_backup')||0; }catch(e){}
   const oldestData = Math.min(...[...ideas,...inbox].map(x=>new Date(x.created||x.imported||Date.now()).getTime()), Date.now());
   const dataAgeDays = (Date.now()-oldestData)/86400000;
-  if((ideas.length+pipeline.length+inbox.length+tasks.length)>0 && Date.now()-lastB > 7*86400000 && (lastB>0 || dataAgeDays>3))
+  if((ideas.length+pipeline.length+inbox.length+tasks.length)>0 && Date.now()-lastB > SETTINGS.backupEveryDays*86400000 && (lastB>0 || dataAgeDays>=1))
     acts.push({pri:'amber', t:'Back up your tracker', m: (lastB? 'Last backup '+Math.floor((Date.now()-lastB)/86400000)+' days ago. ' : 'No backup yet. ')+'Downloads a .json file — copy it to Drive or email it to yourself. It is the only way to move laptops or recover from a wipe.', go:exportData, btn:'⬇ Backup'});
   // first-run guide — shows until there is any data at all
   // 10. manual — due today goes amber, past due goes red, future stays grey
@@ -3189,67 +3653,44 @@ function animateRings(){
 function renderAction(){ saveState();
   const jq = pipeline.filter(p=>p.stage==='jack_validation' && !p.waiting);
   const acts = buildActions(); _acts = acts;
-  // month pace: fraction of the actual month elapsed
-  const monthPace = TODAY.getDate() / new Date(TODAY.getFullYear(), TODAY.getMonth()+1, 0).getDate();
-  const kpiTier = k => {
-    const act = kpiActual(k);
-    if(EVENTS.length===0 && act===0) return {tier:'grey', label:'Not started', rank:2};   // day 1 is not a failure
-    const attainment = act/k.target;
-    const ratio = attainment / (monthPace || 0.001);
-    if(attainment>=1)    return {tier:'green', label:'Above target', rank:3};
-    if(ratio>=0.95)      return {tier:'blue',  label:'On pace',      rank:2};
-    if(ratio>=0.7)       return {tier:'amber', label:'Slightly behind', rank:1};
-    return                      {tier:'red',   label:'Behind',       rank:0};
-  };
+  const mp = monthPaceInfo();
+  const monthPace = mp.pace;
+  const kpiTier = k => kpiState(k);
+  const KPI_HUE = { hours:'#22D3EE', ideas:'#A78BFF', launches:'#00E5A0', reviewed:'#3B9EFF', moved:'#00E5A0', ranked:'#FFC53D', shortlist:'#4ADE80', sourced:'#FF8A3D' };
   const kpiCard = k => {
-    const act = kpiActual(k);
+    const st = kpiState(k);
+    const act = st.act, exp = st.exp;
     const pct = Math.min(100, Math.round(act/k.target*100));
     const pacePct = Math.round(monthPace*100);
-    const {tier,label} = kpiTier(k);
-    // Each KPI keeps its own identity colour at all times — a card showing 0%
-    // should still look alive. The tier lives in the pill, not in the ring.
-    const KPI_HUE = {
-      ideas:'#22D3EE', reviewed:'#3B9EFF', moved:'#00E5A0', launches:'#A78BFF',
-      ranked:'#FFC53D', jack:'#FF5CC8', shortlist:'#4ADE80', sourced:'#FF8A3D',
-      killrate:'#FF5470'
-    };
-    const fillC = KPI_HUE[k.id] || '#22D3EE';
-    const txtC  = fillC;   // the % inside the ring matches its own hue
-    const attention = tier==='red' || tier==='amber';
-    // ring geometry — bigger so the number inside is actually readable
-    const R=26, C=2*Math.PI*R;
-    const off  = C*(1-pct/100);
-    const poff = C*(1-Math.min(100,pacePct)/100);
-    // how far ahead or behind pace, in points — the thing you actually want to know
-    const gap = pct - pacePct;
-    const gapTxt = tier==='grey' ? 'not started yet'
-                 : gap >= 0 ? `${gap} pts ahead of pace`
-                            : `${Math.abs(gap)} pts behind pace`;
-    return `<div class="kpi kpi-${tier} ${attention?'kpi-hot':'kpi-quiet'}" style="--own:${fillC}" onclick="nav('${k.pane}')">
-      <div class="kpi-top"><span class="kpi-label">${esc(k.label)}</span><span class="kpi-period">${TODAY.toLocaleDateString('en-GB',{month:'long'})}</span></div>
+    const own = KPI_HUE[k.id] || '#22D3EE';
+    const tierC = {done:'var(--green)', green:'var(--green)', blue:'var(--blue)', amber:'var(--amber)', red:'var(--red)', grey:'var(--b3)'}[st.tier];
+    const R=22, C=2*Math.PI*R, off=C*(1-pct/100), poff=C*(1-Math.min(100,pacePct)/100);
+    const diff = act - exp;
+    const gapTxt = st.tier==='grey' ? `expected ${fmtKpi(k,exp)} by today`
+                 : st.tier==='done' ? (act>k.target ? `+${fmtKpi(k,act-k.target)} over target` : 'done for '+mp.label)
+                 : diff>=0 ? `${fmtKpi(k,diff)}${k.unit||''} ahead · expected ${fmtKpi(k,exp)}`
+                           : `${fmtKpi(k,-diff)}${k.unit||''} behind · expected ${fmtKpi(k,exp)}`;
+    const milestone = pct>=100 ? 'm100' : pct>=75 ? 'm75' : pct>=50 ? 'm50' : '';
+    return `<div class="kpi kpi-${st.tier} ${milestone}" style="--own:${own};--tier:${tierC}" onclick="nav('${k.pane}')">
+      <div class="kpi-top"><span class="kpi-label">${esc(k.label)}</span><span class="kpi-st kpi-st-${st.tier}">${st.label}</span></div>
       <div class="kpi-mid">
         <div class="kpi-ring">
-          <svg viewBox="0 0 64 64">
-            <circle cx="32" cy="32" r="${R}" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="7"/>
-            <!-- where you SHOULD be by now -->
-            <circle cx="32" cy="32" r="${R}" fill="none" stroke="var(--b3)" stroke-width="7" stroke-linecap="round"
-              stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${poff.toFixed(1)}"
-              transform="rotate(-90 32 32)" opacity=".85"/>
-            <!-- where you ARE -->
-            <circle cx="32" cy="32" r="${R}" fill="none" stroke="${fillC}" stroke-width="7" stroke-linecap="round"
-              stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"
-              style="--c:${C.toFixed(1)};--o:${off.toFixed(1)}"
-              transform="rotate(-90 32 32)" class="kpi-ring-fill"/>
+          <svg viewBox="0 0 56 56">
+            <circle cx="28" cy="28" r="${R}" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="6"/>
+            <circle cx="28" cy="28" r="${R}" fill="none" stroke="var(--b3)" stroke-width="6" stroke-linecap="round"
+              stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${poff.toFixed(1)}" transform="rotate(-90 28 28)" opacity=".9"/>
+            <circle cx="28" cy="28" r="${R}" fill="none" stroke="${st.tier==='grey'?own:tierC}" stroke-width="6" stroke-linecap="round"
+              stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" style="--c:${C.toFixed(1)};--o:${off.toFixed(1)}"
+              transform="rotate(-90 28 28)" class="kpi-ring-fill"/>
           </svg>
-          <span class="kpi-ring-pct" style="color:${txtC}">${pct}<i>%</i></span>
+          <span class="kpi-ring-pct">${pct>=100?'✓':pct+'<i>%</i>'}</span>
         </div>
         <div class="kpi-nums">
-          <div class="kpi-val">${act}<span class="of">/${k.target}</span></div>
-          <div class="kpi-st kpi-st-${tier}">${label}</div>
-          <div class="kpi-pace ${gap>=0?'ok':'off'}">${gapTxt}</div>
+          <div class="kpi-val">${fmtKpi(k,act)}<span class="of">/${fmtKpi(k,k.target)}${k.unit||''}</span></div>
+          <div class="kpi-pace ${diff>=0||st.tier==='done'?'ok':'off'}">${gapTxt}</div>
         </div>
       </div>
-      <div class="kpi-foot"><span>${Math.max(0,k.target-act)} to go</span>${/^k\d+$/.test(String(k.id))?`<button class="kfoot-btn" title="Count one manually" onclick="event.stopPropagation();kpiPlus('${k.id}')">+1</button>`:''}</div>
+      <div class="kpi-foot"><span>${act>=k.target?'target reached':fmtKpi(k,k.target-act)+(k.unit||'')+' to go'}</span>${/^k\d+$/.test(String(k.id))?`<button class="kfoot-btn" title="Count one manually" onclick="event.stopPropagation();kpiPlus('${k.id}')">+1</button>`:''}</div>
     </div>`;
   };
   const spine = {red:'sp-red', amber:'sp-amber', purple:'sp-purple', blue:'sp-blue', grey:'sp-grey'};
@@ -3282,46 +3723,36 @@ function renderAction(){ saveState();
           <button class="btn" onclick="openImport()">Import a list of ASINs</button>
           <button class="btn" onclick="nav('guide')">How it works</button>
         </div>
-        <div class="wc-foot">Saves automatically on this laptop &middot; back it up weekly from the chip in the top bar</div>
+        <div class="wc-foot">Saves automatically on this laptop &middot; back it up daily from the chip in the top bar</div>
       </div>`:''}
-    <div class="kpi-row">
-      ${(()=>{ const tiers=activeKpis.map(kpiTier);
-        const behind=tiers.filter(t=>t.rank<=1).length, above=tiers.filter(t=>t.rank===3).length;
-        const onp=activeKpis.length-behind-above;
-        const pacePct=Math.round(monthPace*100);
-        const healthy=activeKpis.length-behind;
-        const focus = behind? activeKpis[0] : null;
-        const R2=34, C2=2*Math.PI*R2, o2=C2*(1-monthPace);
-        return `<div class="kpi kpi-sum">
-          <div class="kpi-top"><span class="kpi-label">Month overview</span><span class="kpi-period">August</span></div>
-          <div class="ms-hero">
-            <div class="ms-arc">
-              <svg viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="${R2}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="8"/>
-                <circle cx="40" cy="40" r="${R2}" fill="none" stroke="url(#msg)" stroke-width="8" stroke-linecap="round"
-                  stroke-dasharray="${C2.toFixed(1)}" stroke-dashoffset="${o2.toFixed(1)}"
-                  style="--c:${C2.toFixed(1)};--o:${o2.toFixed(1)}" transform="rotate(-90 40 40)" class="kpi-ring-fill"/>
-                <defs><linearGradient id="msg" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stop-color="#A78BFF"/><stop offset="100%" stop-color="#22D3EE"/>
-                </linearGradient></defs>
-              </svg>
-              <span class="ms-arc-n">${pacePct}<i>%</i></span>
+    ${(()=>{ const info = kpiInfo(); const tiers=activeKpis.map(kpiTier);
+        const behind=tiers.filter(t=>t.rank<=1).length, ahead=tiers.filter(t=>t.rank>=3).length, started=monthHasActivity();
+        const summary = !started ? `${mp.label} hasn't started yet — targets fill in as work happens`
+          : behind===0 ? `Every target on track for ${mp.label}` : `${behind} target${behind===1?'':'s'} behind pace`;
+        return `<div class="pace-strip">
+          <div class="pace-bar"><div class="pace-fill" style="width:${Math.round(mp.pace*100)}%"></div></div>
+          <div class="pace-text"><b>${mp.label}</b> · day ${mp.day} of ${mp.days} · ${Math.round(mp.pace*100)}% through · <span class="${behind&&started?'pace-bad':'pace-ok'}">${summary}</span></div>
+        </div>
+        <div class="kpi-row kpi-row-${activeKpis.length}">${activeKpis.map(kpiCard).join('')}</div>
+        <div class="info-strip">
+          <div class="info-cell"><div class="v">${info.ideasPerHour==null?'—':info.ideasPerHour}</div><div class="l">ideas per sourcing hour</div><div class="s">this month · information only</div></div>
+          <div class="info-cell"><div class="v">${info.conversion==null?'—':info.conversion+'%'}</div><div class="l">idea → launch</div><div class="s">${info.launches90} of ${info.ideas90} ideas · last 90 days</div></div>
+          <div class="info-cell ${info.backlog>=SETTINGS.queue.backlogBig?'hot':''}"><div class="v">${info.backlog}</div><div class="l">ranked ideas waiting</div><div class="s">${info.greensWaiting} green · ${info.backlog>=SETTINGS.queue.backlogBig?'work these before fresh sourcing':'the backlog to work through'}</div></div>
+          <div class="info-cell"><div class="v">${fmtKpi({unit:'h'},info.freshHours)}<span class="of">h</span> · ${fmtKpi({unit:'h'},info.workingHours)}<span class="of">h</span></div><div class="l">fresh sourcing · working ideas</div><div class="s">how this month's hours split</div></div>
+        </div>
+        ${(()=>{ const fl = pipelineFlow(); const w = fl.week;
+          return `<div class="flow">
+            <div class="flow-head">
+              <div class="flow-title">Pipeline flow <span class="flow-health fh-${fl.health.tone}">${esc(fl.health.text)}</span></div>
+              <div class="flow-week"><span>last 7 days</span>
+                <b class="fw-in">+${w.ideasIn} ideas in</b><b class="fw-move">${w.movedIn+w.forward} moved forward</b><b class="fw-jack">${w.jack} decisions</b><b class="fw-drop">${w.dropped} dropped</b><b class="fw-launch">${w.launched} launched</b></div>
             </div>
-            <div class="ms-side">
-              <div class="ms-big">${healthy}<span class="of">/${activeKpis.length}</span></div>
-              <div class="ms-cap">on track this month</div>
-              <div class="ms-legend">
-                <span class="ms-chip ok"><i></i>${above} above</span>
-                <span class="ms-chip mid"><i></i>${onp} on pace</span>
-                <span class="ms-chip bad"><i></i>${behind} behind</span>
-              </div>
-            </div>
-          </div>
-          <div class="kpi-foot"><span>${EVENTS.length===0? 'Fills in as work happens'
-            : focus? 'Focus &rarr; '+esc(focus.label) : 'Every KPI on track'}</span></div>
-        </div>`; })()}
-      ${activeKpis.map(kpiCard).join('')}
-    </div>
+            <div class="flow-cols">${fl.cols.map((c,ix)=>`<div class="flow-col fc-${c.key} ${c.count?'':'fc-empty'}" onclick="nav('${c.key==='ideas'?'ideas':c.key==='launched'?'archive':'pipeline'}')">
+                <div class="fc-n">${c.count}</div>
+                <div class="fc-name">${esc(c.name)}</div>
+                <div class="fc-sub">${c.stuck?`<span class="fc-stuck">${c.stuck} stuck</span>`:''}${c.waiting?`<span class="fc-wait">${c.waiting} waiting</span>`:''}${!c.stuck&&!c.waiting?`<span>${esc(c.sub)||'&nbsp;'}</span>`:''}</div>
+              </div>${ix<fl.cols.length-1?'<div class="flow-arrow">›</div>':''}`).join('')}</div>
+          </div>`; })()}`; })()}
     <div class="act-grid">
       <div>
         ${(()=>{
@@ -3365,19 +3796,18 @@ function renderAction(){ saveState();
               <button class="btn btn-sm btn-purple" onclick="openWorkspace(${p.id})">Open</button>
             </div>`;}).join('') : '<div class="empty"><div class="empty-t">Nothing needs Jack right now</div></div>'}
         </div>
-        <div class="sec-label">This week — sourcing <span class="line"></span><button class="btn btn-sm" style="padding:2px 8px" onclick="nav('sessions')">Full view</button></div>
-        ${(()=>{ const w = weeklyRollup();
-          const trendTxt = w.trend==null? '' : w.trend>=0? `<span style="color:var(--gt)">▲ ${w.trend}% vs last week</span>` : `<span style="color:var(--rt)">▼ ${Math.abs(w.trend)}% vs last week</span>`;
-          return `<div class="card sec" style="padding:13px 15px;cursor:pointer" onclick="nav('sessions')">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px">
-              <div style="font-size:12.5px;font-weight:700">${w.sessions} session${w.sessions===1?'':'s'} · ${Math.round(w.mins/60*10)/10}h${session?' · <span style="color:var(--rt)">live now</span>':''}</div>
-              <div style="font-size:10.5px">${trendTxt}</div>
+        <div class="sec-label">This month — sourcing <span class="line"></span><button class="btn btn-sm" style="padding:2px 8px" onclick="nav('sessions')">Full view</button></div>
+        ${(()=>{ const m = monthRollup();
+          return `<div class="card sec" style="padding:12px 14px;cursor:pointer" onclick="nav('sessions')">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px">
+              <div style="font-size:12.5px;font-weight:700">${m.sessions} session${m.sessions===1?'':'s'} · ${fmtKpi({unit:'h'},m.mins/60)}h${session?' · <span style="color:var(--rt)">live now</span>':''}</div>
+              <div style="font-size:10.5px;color:var(--t3)">${fmtKpi({unit:'h'},m.freshMins/60)}h fresh · ${fmtKpi({unit:'h'},m.workingMins/60)}h working ideas</div>
             </div>
-            <div class="sw-grid" style="grid-template-columns:repeat(2,1fr)">
-              <div class="sw-metric"><div class="v">${w.rate.toFixed(1)}</div><div class="l">ideas / hour</div></div>
-              <div class="sw-metric"><div class="v">${w.ideas}</div><div class="l">ideas captured</div></div>
-              <div class="sw-metric"><div class="v">${w.reviewed}</div><div class="l">ASINs reviewed</div></div>
-              <div class="sw-metric"><div class="v" style="color:var(--gt)">${w.greens}</div><div class="l">greens found</div></div>
+            <div class="sw-grid" style="grid-template-columns:repeat(4,1fr)">
+              <div class="sw-metric"><div class="v">${m.ideas}</div><div class="l">ideas</div></div>
+              <div class="sw-metric"><div class="v">${m.reviewed}</div><div class="l">reviewed</div></div>
+              <div class="sw-metric"><div class="v" style="color:var(--gt)">${m.greens}</div><div class="l">greens</div></div>
+              <div class="sw-metric"><div class="v">${m.progressed||0}</div><div class="l">progressed</div></div>
             </div>
           </div>`; })()}
         <div class="sec-label">Pipeline attention <span class="line"></span></div>
@@ -3585,7 +4015,7 @@ function renderInbox(){ saveState();
   document.getElementById('pane-inbox').innerHTML = `
     <div class="page-head">
       <div><div class="eyebrow">Pre-Pipeline · Review queue</div>
-        <h1 class="page-title">Review Inbox</h1>
+        <h1 class="page-title">Review Queue</h1>
         <div class="page-sub">Open the links, decide — is there an opportunity or not? Keep the queue clear.</div></div>
       <div class="page-head-actions"><button class="btn btn-pri" onclick="addToQueue()">+ Add to queue</button></div>
     </div>
@@ -3764,7 +4194,7 @@ function extractAsin(line){
 function existingLocation(asin){
   const i = ideas.find(x=>x.asin===asin); if(i) return {where:'Idea', title:i.title, status:i.status};
   const p = pipeline.find(x=>x.asin===asin); if(p) return {where:'Pipeline', title:p.title, status:stageName(p.stage)};
-  const r = inbox.find(x=>x.asin===asin && x.status!=='completed'); if(r) return {where:'Review Inbox', title:r.asin, status:r.status};
+  const r = inbox.find(x=>x.asin===asin && x.status!=='completed'); if(r) return {where:'Review Queue', title:r.asin, status:r.status};
   // Already reviewed and rejected? Say so — otherwise every storefront sweep
   // re-imports the same rejects for ever.
   const rj = inbox.find(x=>x.asin===asin && x.status==='completed');
@@ -3916,7 +4346,7 @@ function lbRing(i){
 function lbRow(i, ix, m, total){
   const yn = ynCounts(i);
   const a = i.answers; const f = v => (v!=null&&v!==''&&v!=='na')? Number(v).toLocaleString() : '—';
-  const top = ix===0 && ideaSort==='score' && !ideaFilter.q && !ideaFilter.band && !ideaFilter.source;
+  const top = ix===0 && ideaSort==='score' && !ideaFilter.q && !ideaFilter.band && !ideaFilter.source && bandOf(i)==='green';
   return `<div class="lb-row b-${bandOf(i)} ${top?'lb-top':''}" onclick="openRankDrawer(${i.id})">
     <div class="lb-rank">${top?'👑':'#'+(m[i.id]||ix+1)}</div>
     ${lbRing(i)}
@@ -3926,7 +4356,7 @@ function lbRow(i, ix, m, total){
       <div class="sig-chips" style="margin:7px 0 0">${signalChips(i)}</div>
     </div>
     <div class="lb-stats">
-      <div class="rr-stat"><div class="v">${f(a.spm)}</div><div class="l">SPM/MO</div></div>
+      ${kindOf(i)==='hamper' ? `<div class="rr-stat"><div class="v" style="color:var(--acc-t)">Hamper</div><div class="l">TYPE</div></div>` : `<div class="rr-stat"><div class="v">${f(a.spm)}</div><div class="l">SPM/MO</div></div>`}
       <div class="rr-stat"><div class="v">${f(a.search)}</div><div class="l">SEARCH</div></div>
       <div class="rr-stat"><div class="v">${f(a.competitors)}</div><div class="l">COMP</div></div>
       <div class="rr-stat"><div class="v" style="color:var(--gt)">${a.price&&a.price!=='na'?gbp(a.price):'—'}</div><div class="l">PRICE</div></div>
@@ -3939,7 +4369,7 @@ function lbRow(i, ix, m, total){
   </div>`;
 }
 function wipRow(i){
-  const qs = activeQs();
+  const qs = activeQs(kindOf(i));
   const answered = qs.filter(q=> i.answers[q.id]!=null && i.answers[q.id]!=='').length;
   return `<div class="lb-row b-un" onclick="openRankDrawer(${i.id})">
     <div class="lb-rank">·</div>
@@ -3975,9 +4405,12 @@ function signalChips(i){
   const spm=n(a.spm);
   if(spm!=null){ if(spm>=500)push('sig-good','Strong demand'); else if(spm>=100)push('sig-neutral','Proven demand'); else push('sig-bad','Weak demand'); }
   if(a.brand==='no')push('sig-good','Brand off AMZ'); if(a.brand==='yes')push('sig-bad','Brand on AMZ');
-  if(a.value==='yes')push('sig-good','Clear value'); if(a.value==='no')push('sig-bad','Weak value');
   if(a.improve==='yes')push('sig-neutral','Can improve');
-  return out.slice(0,4).join('') || `<span class="sig-chip sig-neutral"><span class="sd"></span>Not scored</span>`;
+  // what matters most goes first: type, season, warnings — then the signals
+  const lead = [`<span class="sig-chip sig-kind"><span class="sd"></span>${KINDS[kindOf(i)]}</span>`];
+  if(i.seasonal==='yes' && i.season){ const si=seasonInfo(i.season); if(si && si.noDate) lead.push('<span class="sig-chip sig-season"><span class="sd"></span>☼ Seasonal</span>'); else if(si && !si.tooLate) lead.push(`<span class="sig-chip sig-season"><span class="sd"></span>☼ ${esc(si.label)} · source by ${fmtDate(si.sourceBy)}</span>`); }
+  redFlags(i).forEach(t=>lead.push(`<span class="sig-chip sig-bad"><span class="sd"></span>⚠ ${esc(t)}</span>`));
+  return lead.concat(out).slice(0,6).join('');
 }
 function bandOf(i){
   if(i.killed) return 'kill';
@@ -3995,7 +4428,7 @@ function applyIdeaFilters(rows){
 
 function ynCounts(i){
   let pos=0, neg=0;
-  activeQs().filter(q=>!q.kill).forEach(q=>{
+  activeQs(kindOf(i)).filter(q=>!q.kill).forEach(q=>{
     const a=i.answers[q.id]; if(a==null||a===''||a==='na') return;
     const pts=scoreAnswer(q,a); if(pts==null) return;
     if(pts>=75) pos++; else if(pts<50) neg++;
@@ -4040,7 +4473,7 @@ function deleteIdea(id){
 }
 function reallyDeleteIdea(id){
   const i = ideas.find(x=>x.id===id); if(!i) return;
-  archive.dropped.unshift({title:i.title||'Untitled idea', asin:i.asin||null, ideaId:i.id, stage:'Ideas',
+  archive.dropped.unshift({title:i.title||'Untitled idea', asin:i.asin||null, ideaId:i.id, note:i.notes||'', stage:'Ideas',
     reason: i.killed? 'Killed — '+(i.killReason||'brand on Amazon') : 'Deleted from Ideas', date:TODAY.toISOString(), source:i.source});
   logEvent('idea', 'Idea deleted — '+(i.title||i.asin||'untitled'), i.id);
   creditBackIdea(i);
@@ -4134,7 +4567,7 @@ function closeComposer(){
   // drafts persist: only an idea with nothing entered at all is quietly discarded
   const i = ideas.find(x=>x.id===composerId);
   if(i){
-    const r = calcScore(i.answers);
+    const r = calcScore(i.answers, i.kind);
     const started = (i.title||'').trim() || i.asin || Object.keys(i.answers).length>0 || (i.notes||'').trim() || (i.summary||'').trim();
     if(!started){
       ideas.splice(ideas.indexOf(i),1);
@@ -4158,6 +4591,8 @@ function closeComposer(){
 function tryCloseComposer(){ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); closeComposer(); }
 function renderComposerHead(i){
   document.getElementById('cpHead').innerHTML = `
+    ${!session?`<div class="cp-sess-strip"><span>No session running — this idea won't count towards your hours.</span>
+      <button class="btn btn-sm" onclick="startSession('fresh')">Start: fresh sourcing</button><button class="btn btn-sm" onclick="startSession('working')">Start: working ideas</button></div>`:''}
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
       <div class="eyebrow">Idea · created ${fmtDate(i.created)} · ${esc(i.status)}</div>
       <button class="dw-close" onclick="tryCloseComposer()">×</button>
@@ -4202,7 +4637,7 @@ function renderComposerBody(i){
       return `<div class="num-row2">
         <div class="num-wrap2">${q.type==='currency'?'<span class="num-pre2">£</span>':''}
           <input class="num-in2" type="number" inputmode="decimal" value="${naOn||a==null?'':a}" placeholder="0" ${naOn?'disabled':''}
-            oninput="answerQ(${i.id},'${q.id}',this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();focusNextQ();}">
+            oninput="answerQ(${i.id},'${q.id}',this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();commitNumber(${i.id});}">
           ${q.unit?`<span class="num-unit2">${q.unit}</span>`:''}
         </div>
         ${q.allowNA?`<button class="na-btn ${naOn?'on':''}" onclick="answerNA(${i.id},'${q.id}')">N/A</button>`:''}
@@ -4210,8 +4645,35 @@ function renderComposerBody(i){
     }
     return '';
   };
-  const qs = activeQs();
+  const kind = i.kind;
+  const qs = kind ? activeQs(kind) : [];
+  const kindBlock = `<div class="qb kind-q ${kind?'answered':''}">
+      <div class="qb-top"><div class="qb-num">${kind?'✓':'1'}</div><div class="qb-t">Is it a hamper or a bundle?</div></div>
+      <div class="qb-h">Hampers are themed gift boxes with many brands inside. Bundles are built around one main product.</div>
+      <div class="qb-ctl"><div class="seg seg-kind">
+        <button class="${kind==='hamper'?'on-kind':''}" onclick="setKind(${i.id},'hamper')">Hamper</button>
+        <button class="${kind==='bundle'?'on-kind':''}" onclick="setKind(${i.id},'bundle')">Bundle</button>
+      </div>${kind?'':'<div class="qb-wait">Pick one — the right questions appear underneath.</div>'}</div>
+    </div>`;
+  const seasonOpts = SEASON_DEFS.map(d=>`<option value="${d.id}" ${i.season===d.id?'selected':''}>${esc(d.label)}</option>`).join('');
+  const si = (i.seasonal==='yes' && i.season) ? seasonInfo(i.season) : null;
+  const seasonBlock = !kind ? '' : `<div class="qb qb-opt ${i.seasonal?'answered':''}">
+      <div class="qb-top"><div class="qb-num">${i.seasonal?'✓':'☼'}</div><div class="qb-t">Is it seasonal? <span class="qb-optional">optional</span></div></div>
+      <div class="qb-h">Leave it blank if not. Seasonal ideas get a "source by" date — ${SEASON_LEAD_DAYS} days before demand starts.</div>
+      <div class="qb-ctl"><div class="num-row2">
+        <div class="seg">
+          <button class="${i.seasonal==='yes'?'on-hi':''}" onclick="setSeasonal(${i.id},'yes')">Yes</button>
+          <button class="${i.seasonal==='no'?'on-lo':''}" onclick="setSeasonal(${i.id},'no')">No</button>
+        </div>
+        ${i.seasonal==='yes'?`<select class="sel season-sel" onchange="setSeason(${i.id},this.value)"><option value="">Which season?</option>${seasonOpts}</select>`:''}
+      </div>
+      ${si ? (si.noDate ? '' : `<div class="season-note ${si.tooLate?'late':'ok'}">${si.tooLate
+          ? `Too late for ${esc(si.label)} ${si.year} — demand starts ${fmtDate(si.demand)}, sourcing needed by ${fmtDate(si.sourceBy)}. Next window: source by ${fmtDate(si.nextSourceBy)}.`
+          : `${esc(si.label)} ${si.year}: source by <b>${fmtDate(si.sourceBy)}</b> — ${si.daysLeft} days left. Demand starts ${fmtDate(si.demand)}.`}</div>`) : ''}
+      </div>
+    </div>`;
   document.getElementById('cpBody').innerHTML = `
+    ${kindBlock}
     ${i.options.length?`<div class="sec-label">Bundle options <span class="line"></span></div>
       <div class="card sec">${i.options.map((o,ix)=>`
         <div class="set-row"><div><div class="set-row-l">${esc(o.t)} ${o.sel?'<span class="badge bg-blue" style="margin-left:6px"><span class="bd"></span>Working option</span>':''}</div>
@@ -4220,16 +4682,18 @@ function renderComposerBody(i){
       </div>`:''}
     ${qs.map((q,ix)=>{
       const a = i.answers[q.id];
-      const has = a!=null && a!=='';
+      const has = a!=null && a!=='' && (a!=='na' || qAllowsNA(q));
       const killed = q.kill && a===q.killOn;
-      return `<div class="qb ${has&&!killed?'answered':''} ${killed?'killed-q':''}">
+      const flag = (typeof q.redFlagBelow==='number' && has && a!=='na' && parseFloat(a) < q.redFlagBelow) ? q.redFlagText : null;
+      return `<div class="qb ${has&&!killed?'answered':''} ${killed?'killed-q':''} ${flag?'flagged-q':''}">
         <div class="qb-top">
-          <div class="qb-num">${killed?'✕':has?'✓':ix+1}</div>
-          <div class="qb-t">${q.kill?'<span class="cl-req" style="margin-right:6px">KILL</span>':''}${esc(q.t)}</div>
+          <div class="qb-num">${killed?'✕':has?'✓':ix+2}</div>
+          <div class="qb-t">${q.kill?'<span class="cl-req" style="margin-right:6px">KILL</span>':''}${esc(qTitle(q,kind))}</div>
         </div>
         <div class="qb-h">${esc(q.help)}</div>
-        <div class="qb-ctl">${controls(q)}</div>
+        <div class="qb-ctl">${controls(q)}${flag?`<div class="q-flag">⚠ ${esc(flag)} — it still scores, but this is weak</div>`:''}</div>
       </div>`;}).join('')}
+    ${seasonBlock}
     <div class="qb">
       <div class="qb-top"><div class="qb-num">✎</div><div class="qb-t">Notes</div></div>
       <div class="qb-h">Reasoning behind the score — visible at every later stage.</div>
@@ -4237,8 +4701,8 @@ function renderComposerBody(i){
     </div>`;
 }
 function renderComposerFoot(i){
-  const r = calcScore(i.answers);
-  const qs = activeQs();
+  const r = calcScore(i.answers, i.kind);
+  const qs = i.kind ? activeQs(i.kind) : [];
   const answered = qs.filter(q=> i.answers[q.id]!=null && i.answers[q.id]!=='').length;
   // the score BUILDS from 0 as you answer — each answer adds its weighted points
   const live = r.killed? null : (r.complete ? r.score : r.provisional);
@@ -4246,7 +4710,7 @@ function renderComposerFoot(i){
   const col = r.killed?'var(--red)': !lb?'var(--b3)': lb.cls==='bg-green'?'var(--green)': lb.cls==='bg-amber'?'var(--amber)':'var(--red)';
   const canMove = i.score!=null && !r.killed && i.status==='Ranked';
   document.getElementById('cpFoot').innerHTML = `
-    <div class="cp-progressbar"><div style="width:${Math.round(answered/qs.length*100)}%;background:${col}"></div></div>
+    <div class="cp-progressbar"><div style="width:${qs.length?Math.round(answered/qs.length*100):0}%;background:${col}"></div></div>
     <div class="cp-foot-inner">
       <div class="cp-score" style="color:${r.killed?'var(--rt)': !lb?'var(--t4)': lb.cls==='bg-green'?'var(--gt)': lb.cls==='bg-amber'?'var(--at)':'var(--rt)'}">${r.killed?'KILL': answered? live+'%' :'—'}</div>
       <div class="cp-foot-mid">
@@ -4254,9 +4718,9 @@ function renderComposerFoot(i){
           ? '<span class="badge bg-red"><span class="bd"></span>Killed — brand already sells this on Amazon</span>'
           : r.complete?(()=>{const b=bandFor(live);return `<span class="badge ${b.cls}"><span class="bd"></span>${b.label}</span>`;})()
           : answered? `<span class="badge bg-grey"><span class="bd"></span>Building — keeps climbing as you answer</span>`
-          : '<span class="badge bg-grey"><span class="bd"></span>Not yet scored</span>'}
-        <div class="cp-answered">${answered} of ${qs.length} answered${r.complete?' — complete':''}${!r.complete&&answered>=qs.length-3?' · still to answer: '+qs.filter(q=>{const a=i.answers[q.id];return a==null||a==='';}).map(q=>esc(q.t.length>44? q.t.slice(0,44)+'…' : q.t)).join(' · '):''}</div>
-      <div class="cp-answered" style="opacity:.75">keys: <b>y</b>/<b>n</b> · <b>1</b>/<b>2</b>/<b>3</b> for High/Med/Low · <b>Enter</b> next · click a chosen answer again to clear</div>
+          : i.kind ? '<span class="badge bg-grey"><span class="bd"></span>Not yet scored</span>' : '<span class="badge bg-grey"><span class="bd"></span>Hamper or bundle first</span>'}
+        <div class="cp-answered">${i.kind ? `${answered} of ${qs.length} answered${r.complete?' — complete':''}${!r.complete&&answered>=qs.length-3?' · still to answer: '+qs.filter(q=>{const a=i.answers[q.id];return a==null||a==='';}).map(q=>{const t=qTitle(q,i.kind);return esc(t.length>44? t.slice(0,44)+'…' : t);}).join(' · '):''}` : KINDS.bundle+' or '+KINDS.hamper+' — pick one to start'}</div>
+      <div class="cp-answered" style="opacity:.75">keys: <b>y</b>/<b>n</b>/<b>a</b> · <b>Enter</b> next · click a chosen answer again to clear</div>
       </div>
       <button class="btn btn-ghost" style="color:var(--rt)" onclick="discardIdea(${i.id})">Delete idea</button>
       <button class="btn" onclick="tryCloseComposer()">Save &amp; close</button>
@@ -4271,13 +4735,42 @@ function discardIdea(id){
       const q = i.sourceQueueId ? inbox.find(x=>x.id===i.sourceQueueId && x.ideaId===i.id) : null;
       requeued = !!q;
       if(!requeued && ((i.title||'').trim() || Object.keys(i.answers).length))
-        archive.dropped.unshift({title:i.title||'Untitled idea', asin:i.asin||null, ideaId:i.id, stage:'Ideas',
+        archive.dropped.unshift({title:i.title||'Untitled idea', asin:i.asin||null, ideaId:i.id, note:i.notes||'', stage:'Ideas',
           reason: i.killed? 'Killed — '+(i.killReason||'brand on Amazon') : 'Deleted while scoring', date:TODAY.toISOString(), source:i.source});
       restoreQueueItem(i); creditBackIdea(i); ideas.splice(ideas.indexOf(i),1);
     }
     composerId=null; closeModal('mComposer'); renderIdeasIfActive(); updateBadges();
     toast(requeued? 'Discarded — the item is back on the review queue' : 'Deleted — recorded in Archive');
   });
+}
+function setKind(id, kind){ saveState();
+  const i = ideas.find(x=>x.id===id); if(!i) return;
+  if(i.kind===kind) return;
+  i.kind = kind;
+  // answers to questions the other path doesn't ask are dropped so they can't leak into the score
+  const keep = new Set(activeQs(kind).map(q=>q.id));
+  Object.keys(i.answers).forEach(k=>{ if(!keep.has(k)) delete i.answers[k]; });
+  recomputeIdea(i);
+  renderComposerHead(i); renderComposerBody(i); renderComposerFoot(i);
+  renderIdeasIfActive(); updateBadges();
+  setTimeout(focusNextQ, 60);
+}
+function setSeasonal(id, v){ saveState();
+  const i = ideas.find(x=>x.id===id); if(!i) return;
+  i.seasonal = (i.seasonal===v) ? null : v;          // click again to clear — it's optional
+  if(i.seasonal!=='yes') i.season = null;
+  renderComposerBody(i); renderComposerFoot(i); renderIdeasIfActive();
+}
+function setSeason(id, v){ saveState();
+  const i = ideas.find(x=>x.id===id); if(!i) return;
+  i.season = v || null;
+  renderComposerBody(i); renderIdeasIfActive();
+}
+function commitNumber(id){
+  // Enter in a number field: re-render so the question reads as answered, then move on
+  const i = ideas.find(x=>x.id===id); if(!i) return;
+  renderComposerBody(i); renderComposerFoot(i);
+  focusNextQ();
 }
 function answerNA(id, qid){
   // real toggle, read at click time — and a full body re-render, since no typing focus is at stake on an N/A click
@@ -4306,12 +4799,12 @@ function answerQ(id, qid, val){
   }
 }
 function focusNextQ(){
-  const nxt = document.querySelector('#cpBody .qb:not(.answered):not(.killed-q) .seg button, #cpBody .qb:not(.answered):not(.killed-q) .num-in2');
+  const nxt = document.querySelector('#cpBody .qb:not(.answered):not(.killed-q):not(.qb-opt) .seg button, #cpBody .qb:not(.answered):not(.killed-q):not(.qb-opt) .num-in2');
   if(nxt){ nxt.focus(); const qb = nxt.closest('.qb'); if(qb) qb.scrollIntoView({block:'center', behavior:'smooth'}); }
 }
 function setNote(id,v){ ideas.find(x=>x.id===id).notes=v; saveState(); }
 function recomputeIdea(i){
-  const r = calcScore(i.answers);
+  const r = calcScore(i.answers, i.kind);
   i.killed = r.killed; i.killReason = r.killReason||null;
   // a score is only REAL once the questionnaire is complete (or killed) — no more "84 + needs scoring"
   i.score = r.killed? 0 : (r.complete? r.score : null);
@@ -4622,7 +5115,7 @@ function wsFoot(p, pr){
     <button class="btn btn-danger btn-sm" onclick="dropProduct(${p.id})">Drop…</button>`;
   const canMove = pr.done===pr.total && !p.blocked;
   const nextStage = STAGES[stageIdx(p.stage)+1];
-  const moveLabel = p.stage==='source' ? 'Move to Jack Validation' : p.stage==='launch' ? 'Mark Launched & Archive' : nextStage ? 'Move to '+nextStage.name : '';
+  const moveLabel = p.stage==='source' ? 'Move to Jack Validation' : p.stage==='launch' ? (p._launched?'Archive launched product':'Mark Launched & Archive') : nextStage ? 'Move to '+nextStage.name : '';
   return `
     <span class="badge ${st.cls}"><span class="bd"></span>${st.label}</span>
     <span class="td-sub">${pr.done}/${pr.total} required tasks</span>
@@ -4783,9 +5276,19 @@ function wsHist(p){
     </div>`;
 }
 /* workspace actions */
+// Launched = stock bought AND listing live. The second tick fires the KPI; unticking hands it back.
+const LAUNCH_TICKS = ['Stock bought — order placed','Listing live on Amazon'];
+function checkLaunched(p){
+  if(!p || p.stage!=='launch') return;
+  const ticks = p.tasks.filter(t=>LAUNCH_TICKS.includes(t.t));
+  const both = ticks.length===2 && ticks.every(t=>t.done);
+  if(both && !p._launched){ p._launched=true; p.launchedAt=new Date().toISOString(); bumpKpi('launches','Launched — '+p.title); toast('Launched 🎉 — counted for '+monthPaceInfo().label+'. Archive it when you\'re ready.'); }
+  else if(!both && p._launched){ p._launched=false; p.launchedAt=null; unbumpKpi('launches'); toast('Launch un-counted'); }
+}
 function toggleTask(pid,i){ const p=pipeline.find(x=>x.id===pid); const t=p.tasks[i];
   if(t.na) return; t.done=!t.done;
   if(t.done) p.hist.unshift(['Completed task — '+t.t,CURRENT_USER,0,new Date().toISOString()]);
+  checkLaunched(p);
   renderWorkspace(); refreshPanes(); }
 function markNA(pid,i){
   const p=pipeline.find(x=>x.id===pid);
@@ -4889,10 +5392,10 @@ function moveForward(pid){
     logStageExit(p, 'launched');
     window.__archivedStageLogs = (window.__archivedStageLogs||[]).concat(p.stageLog||[]);
     p.hist.unshift(['Marked launched — moved to Archive',CURRENT_USER,0,new Date().toISOString()]);
-    archive.launched.unshift({title:p.title, asin:p.asin||'', ideaId:p.ideaId||null, pipeId:p.id, date:TODAY.toISOString(), launchDate:p.launchDate||null, orderRefs:p.orderRefs||null, margin:Math.round(econFor(p).margin*100)+'%', roi:Math.round(econFor(p).roi*100)+'%', source:p.source});
+    archive.launched.unshift({title:p.title, asin:p.asin||'', ideaId:p.ideaId||null, pipeId:p.id, note:p.note||'', date:TODAY.toISOString(), launchDate:p.launchDate||p.launchedAt||null, orderRefs:p.orderRefs||null, margin:Math.round(econFor(p).margin*100)+'%', roi:Math.round(econFor(p).roi*100)+'%', source:p.source});
     pipeline.splice(pipeline.indexOf(p),1);
-    bumpKpi('launches', 'Launched — '+p.title);
-    closeDrawer(); nav('pipeline'); toast(p.asin? 'Launched 🎉 — archived and launch KPI updated' : 'Launched 🎉 — archived, but no final ASIN was recorded'); return;
+    if(!p._launched) bumpKpi('launches', 'Launched — '+p.title);   // normally already counted by the two launch ticks
+    closeDrawer(); nav('pipeline'); toast(p.asin? 'Archived 🎉 — it\'s in the launched list' : 'Archived 🎉 — but no final ASIN was recorded'); return;
   }
   if(p.stage==='source' && p.components.length && !econFor(p).pass){
     const fb = SETTINGS.econ.failBehaviour||'override';
@@ -4915,7 +5418,7 @@ function stageSeedTasks(stage){
     jack_validation:[['Summary prepared for review',1],['Economics attached',1],['Risks recorded',1]],
     prepare_to_launch:[['Listing created in Seller Central',1],['Images created / uploaded',1],['Bundle content & title finalised',1],['Final ASIN generated',1],['Amazon accepted the listing (no errors/flags)',1],['Listing live-ready',1]],
     order_purchase:[['Listing confirmed accepted by Amazon',1],['All required components ordered',1],['Order references added',1],['Expected arrival dates recorded',1],['Components received',1],['Components checked',1],['Stock assembled / prepped',1],['FBA shipment created',1]],
-    launch:[['Listing is live',1],['Final ASIN recorded',1],['Final Amazon link recorded',1],['Stock dispatched to Amazon',1],['Launch date recorded',1]],
+    launch:[['Stock bought — order placed',1],['Listing live on Amazon',1],['Final ASIN recorded',0],['Launch date recorded',0]],
   };
   return mkTasks(seeds[stage].map(x=>[x[0],x[1],0]));
 }
@@ -4983,7 +5486,7 @@ function confirmDrop(pid){
   if(!dropReason){ toast('Pick a reason first'); return; }
   const p = pipeline.find(x=>x.id===pid);
   const note = document.getElementById('dropNote')?.value?.trim();
-  archive.dropped.unshift({title:p.title, asin:p.asin||null, ideaId:p.ideaId||null, pipeId:p.id, stage:stageName(p.stage), reason: note? dropReason+' — '+note : dropReason, date:TODAY.toISOString(), source:p.source});
+  archive.dropped.unshift({title:p.title, asin:p.asin||null, ideaId:p.ideaId||null, pipeId:p.id, note:p.note||'', stage:stageName(p.stage), reason: note? dropReason+' — '+note : dropReason, date:TODAY.toISOString(), source:p.source});
   logEvent('drop', p.title+' dropped — '+dropReason, p.id);
   pipeline.splice(pipeline.indexOf(p),1);
   closeModal('mJack'); closeDrawer(); refreshPanes();
@@ -5078,6 +5581,19 @@ function reallyRevive(ix){
   toast('Revived as a draft idea — re-score it');
   nav('ideas'); openRankDrawer(id, true);
 }
+// What happened to it, in plain words: killed at scoring, rejected at scoring, or abandoned after work was spent.
+function archOutcome(a){
+  const r = String(a.reason||'');
+  if(/^Killed/i.test(r)) return {label:'Killed — brand on Amazon', cls:'bg-red'};
+  if(a.stage==='Ideas') return {label:'Rejected at scoring', cls:'bg-amber'};
+  if(a.stage==='Jack Validation' && /reject|no\b/i.test(r)) return {label:'Rejected by Jack', cls:'bg-purple'};
+  return {label:'Abandoned', cls:'bg-grey'};
+}
+function archNote(a){
+  if(a.note) return a.note;
+  const i = a.ideaId!=null ? ideas.find(x=>x.id===a.ideaId) : null;
+  return i && i.notes ? i.notes : '';
+}
 function renderArchive(){ saveState();
   const aeA = document.activeElement;
   const caretA = (aeA && aeA.id==='archSearch') ? aeA.selectionStart : null;
@@ -5142,20 +5658,25 @@ function renderArchive(){ saveState();
       <input class="filter-input" id="archSearch" style="margin-left:auto;width:220px" placeholder="Search the archive…" value="${esc(archQ)}" oninput="archQ=this.value;renderArchive()">
     </div>
     <div class="card">
-      ${archTab==='launched'?(()=>{ const rows=archive.launched.filter(aq); return rows.length? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Bundle</th><th>Final ASIN</th><th>Launched</th><th>Est. margin</th><th>Est. ROI</th><th>Source</th></tr></thead><tbody>
+      ${archTab==='launched'?(()=>{ const rows=archive.launched.filter(aq); return rows.length? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Product</th><th>Outcome</th><th>Final ASIN</th><th>Live since</th><th>Archived</th><th>Est. margin</th><th>Est. ROI</th><th>Source</th><th>Notes</th></tr></thead><tbody>
         ${rows.map(a=>`<tr style="cursor:default"><td class="td-title">${esc(a.title)}</td>
+          <td><span class="badge bg-green"><span class="bd"></span>Launched</span></td>
           <td>${a.asin?`<a class="asin-pill" href="${linkFor('amazon',a.asin)}" target="_blank">${a.asin}</a>`:'<span class="td-sub">—</span>'}</td>
-          <td class="mono" style="font-size:11.5px;color:var(--t2)">${fmtDate(a.date)}</td>
+          <td style="font-size:11.5px;color:var(--t2)">${a.launchDate?fmtDate(a.launchDate):'—'}</td>
+          <td style="font-size:11.5px;color:var(--t2)">${fmtDate(a.date)}</td>
           <td>${pct(a.margin)}</td><td>${pct(a.roi)}</td>
-          <td><span class="pill-src">${esc(a.source)}</span></td></tr>`).join('')}</tbody></table></div>`
-        : emptyArch('No launches yet','Products you mark Launched land here with their real margins and ROI.'); })():''}
-      ${archTab==='dropped'?(()=>{ const rows=archive.dropped.map((a,ix)=>({a,ix})).filter(o=>aq(o.a)); return rows.length? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Product</th><th>Dropped at stage</th><th>Reason</th><th>Date</th><th>Source</th><th></th></tr></thead><tbody>
-        ${rows.map(({a,ix})=>`<tr style="cursor:default"><td class="td-title">${esc(a.title)}</td>
-          <td><span class="badge bg-red"><span class="bd"></span>${esc(a.stage)}</span></td>
-          <td class="td-sub">${esc(a.reason)}</td>
-          <td class="mono" style="font-size:11.5px;color:var(--t2)">${fmtDate(a.date)}</td>
           <td><span class="pill-src">${esc(a.source)}</span></td>
-          <td><button class="pca-btn" style="padding:5px 11px" title="Bring this back as a fresh idea" onclick="reviveDropped(${ix})">↻ Retry</button></td></tr>`).join('')}</tbody></table></div>`
+          <td class="td-sub" style="max-width:260px">${esc(archNote(a))||'—'}</td></tr>`).join('')}</tbody></table></div>`
+        : emptyArch('No launches yet','Products you mark Launched land here with their real margins and ROI.'); })():''}
+      ${archTab==='dropped'?(()=>{ const rows=archive.dropped.map((a,ix)=>({a,ix})).filter(o=>aq(o.a)); return rows.length? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Product</th><th>Outcome</th><th>Stage reached</th><th>Why</th><th>When</th><th>Source</th><th>Notes</th><th></th></tr></thead><tbody>
+        ${rows.map(({a,ix})=>{ const o=archOutcome(a); return `<tr style="cursor:default"><td class="td-title">${esc(a.title)}</td>
+          <td><span class="badge ${o.cls}"><span class="bd"></span>${o.label}</span></td>
+          <td class="td-sub">${esc(a.stage)}</td>
+          <td class="td-sub">${esc(a.reason)}</td>
+          <td style="font-size:11.5px;color:var(--t2)">${fmtDate(a.date)}</td>
+          <td><span class="pill-src">${esc(a.source)}</span></td>
+          <td class="td-sub" style="max-width:240px">${esc(archNote(a))||'—'}</td>
+          <td><button class="pca-btn" style="padding:5px 11px" title="Bring this back as a fresh idea" onclick="reviveDropped(${ix})">↻ Retry</button></td></tr>`;}).join('')}</tbody></table></div>`
         : emptyArch('Nothing dropped'+(archQ?' matches':''),'Dropped products are kept here with their reason so dead ends are never re-tread.'); })():''}
       ${archTab==='reviews'?(()=>{ const rows=inbox.filter(i=>i.status==='completed').filter(r=>!archQ||((r.asin||'')+' '+(r.searchLabel||'')+' '+(r.batch||'')+' '+(r.note||'')).toLowerCase().includes(archQ.toLowerCase())); return rows.length? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Item</th><th>Batch</th><th>Outcome</th><th>Completed by</th><th></th></tr></thead><tbody>
         ${rows.map(r=>`<tr style="cursor:default">
@@ -5173,127 +5694,170 @@ function renderArchive(){ saveState();
    HOW IT WORKS — the in-app guide
    ════════════════════════════════════════════ */
 function renderGuide(){
+  const hoursK = SETTINGS.kpis.find(k=>k.id==='hours')||{target:32}, ideasK = SETTINGS.kpis.find(k=>k.id==='ideas')||{target:10}, launchK = SETTINGS.kpis.find(k=>k.id==='launches')||{target:2};
+  const A = SETTINGS.ageing;
+  const sec = (id, title, body) => `<section class="g-sec" id="g-${id}"><h2 class="g-h2">${title}</h2>${body}</section>`;
+  const toc = [['what','What this is for'],['day','Your day'],['idea','Adding an idea'],['queue','Review Queue'],['ideas','Ideas & Ranking'],['sessions','Sourcing sessions'],['pipeline','Pipeline'],['kpis','KPIs'],['archive','Archive'],['seasons','Seasonality'],['tasks','Tasks'],['update','What to update'],['backup','Backups'],['keys','Keyboard'],['help','Help']];
   document.getElementById('pane-guide').innerHTML = `
     <div class="page-head">
       <div><div class="eyebrow">Everything you need to know</div>
         <h1 class="page-title">How it works</h1>
-        <div class="page-sub">Nothing here needs memorising — come back any time. If something doesn't make sense, that's worth telling Jack.</div></div>
+        <div class="page-sub">Nothing here needs memorising — it's here whenever you need it. If something doesn't make sense, that's worth telling Jack (the ⚑ button top right).</div></div>
     </div>
+    <div class="g-toc">${toc.map(t=>`<a href="#g-${t[0]}" onclick="event.preventDefault();document.getElementById('g-${t[0]}').scrollIntoView({behavior:'smooth',block:'start'})">${t[1]}</a>`).join('')}</div>
 
-    <div class="g-loop">
-      <div class="g-step"><div class="g-n">1</div><div><b>Find</b><span>Add every idea worth a look — good, bad or maybe. Volume is the point.</span></div></div>
-      <div class="g-arrow">→</div>
-      <div class="g-step"><div class="g-n">2</div><div><b>Score</b><span>Answer 10 quick questions. The app works out a score out of 100.</span></div></div>
-      <div class="g-arrow">→</div>
-      <div class="g-step"><div class="g-n">3</div><div><b>Pick</b><span>Move the strongest into the pipeline. The score advises — you decide.</span></div></div>
-      <div class="g-arrow">→</div>
-      <div class="g-step"><div class="g-n">4</div><div><b>Build</b><span>Work the six stages: source it, agree it with Jack, buy it, launch it.</span></div></div>
-    </div>
-
-    <div class="g-grid">
+    ${sec('what','What this app is for', `
       <div class="g-card g-wide">
-        <h3>Your day, roughly</h3>
-        <div class="g-day">
-          <div><b>Start</b><p>Open <b>Action Centre</b>. It lists what needs doing, worst first. If it's quiet, that's a good sign — go sourcing.</p></div>
-          <div><b>While sourcing</b><p>Hit <b>Start session</b> in the top bar so your hours count. Drop finds into the <b>Review Inbox</b> as you go — paste as many as you like at once.</p></div>
-          <div><b>Then</b><p>Clear the queue: open the links, decide <b>✓ Idea</b> or <b>✕ No</b>. Nothing should sit more than ${SETTINGS.queue.overdueDays} days.</p></div>
-          <div><b>End of day</b><p>Score anything still unscored, and move products along in the <b>Pipeline</b>. End your session so the hours are logged.</p></div>
+        <p>This is the Unique Bundle tracker — where every bundle or hamper idea lives from the moment you spot it to the day it's live on Amazon. It replaces the spreadsheet. The whole business behind it is simple even though the moving parts aren't:</p>
+        <div class="g-chain"><span>Time &amp; effort</span>›<span>Find opportunities</span>›<span>Add them</span>›<span>Rank them</span>›<span>Work the best</span>›<span>Drop the bad ones fast</span>›<span>Keep the good ones moving</span>›<span>Launch</span></div>
+        <p><b>The one rule:</b> the pipeline should never be static. Something should always be entering, something should always be moving. Launches are the <i>output</i> of all the steps before them, so the app measures the steps, not just the finish line.</p>
+        <p>Everything saves itself in this browser as you go. You never need to press save.</p>
+      </div>`)}
+
+    ${sec('day','Your day, roughly', `
+      <div class="g-card g-wide"><div class="g-day">
+        <div><b>Start</b><p>Open <b>Action Centre</b>. The three monthly targets are at the top, the pipeline flow underneath, and below that a list of what needs doing, worst first. If the list is quiet, that's a good sign — go sourcing.</p></div>
+        <div><b>Sit down to source</b><p>Press <b>Start session</b> (top bar) and pick <b>Fresh sourcing</b> or <b>Working existing ideas</b>. That's how your hours count — nothing else to fill in.</p></div>
+        <div><b>While sourcing</b><p>Paste finds into the <b>Review Queue</b> as you go — as many as you like at once. Decide each one with Y / N / S. Anything worth a look becomes an idea and gets its quick questions.</p></div>
+        <div><b>Work the backlog</b><p>Open <b>Ideas &amp; Ranking</b>, take the best unworked idea, move it to Ready to Source and work its checklist. When the Action Centre says you have a pile of ranked ideas waiting, this comes before fresh sourcing.</p></div>
+        <div><b>End of day</b><p>Move anything that's ready in the <b>Pipeline</b>, then <b>End session</b>. A short summary pops up — add one line about what you did if you like. Once a day, click the <b>Saved</b> chip to download a backup.</p></div>
+      </div></div>`)}
+
+    ${sec('idea','Adding an idea', `
+      <div class="g-grid">
+        <div class="g-card g-wide">
+          <h3>Three ways in — all lead to the same place</h3>
+          <ul class="g-list">
+            <li><b>+ Add Idea</b> (top bar) — you spotted something. Type a name, paste the ASIN or Amazon link if there is one.</li>
+            <li><b>Review Queue → Y</b> — a queued ASIN becomes an idea with the ASIN already filled in.</li>
+            <li><b>Quick add</b> box at the top of Ideas &amp; Ranking — type and press Enter.</li>
+          </ul>
+          <h3 style="margin-top:12px">The questions</h3>
+          <p>First question: <b>Hamper or Bundle?</b> Pick one and the right questions appear — the app works out the score itself.</p>
+          <div class="g-two">
+            <div><b class="g-k">Bundle · 6 questions</b><ol class="g-list"><li>Does this brand sell on Amazon? — <b>Yes kills it</b> (IP / account risk)</li><li>Main product — sales per month (Keepa or SellerAmp)</li><li>Search volume per month (Helium 10)</li><li>Competing bundle listings</li><li>Selling price</li><li>Can you improve on the competitors?</li></ol></div>
+            <div><b class="g-k">Hamper · 4 questions</b><ol class="g-list"><li>Search volume per month (Helium 10)</li><li>Competing hampers</li><li>Selling price</li><li>Can you improve on the competitors?</li></ol><p style="margin-top:6px">Hampers have no kill question — a brand inside the box isn't a problem; contents can change.</p></div>
+          </div>
+          <p><b>Red flags</b> — search volume under 100, or a price under £15.99, show a ⚠ on the idea. They still score (low), so the idea sinks on its own; nothing is deleted.</p>
+          <p><b>Seasonal?</b> is optional — leave it blank unless it is. If you say yes and pick the season, the card shows the date sourcing needs to be done by (90 days before demand starts), and warns if it's already too late for this year.</p>
+          <p><b>Keys:</b> <b>y</b>/<b>n</b>/<b>a</b> answer, <b>Enter</b> moves to the next question. Name + ASIN + the questions and you're done — under a minute.</p>
+          <p><b>Score:</b> green = strong, amber = maybe, red = weak. The score advises; you decide what to work. "Save &amp; close" keeps it as a draft; "→ Ready to Source" puts it straight into the pipeline.</p>
         </div>
-      </div>
+      </div>`)}
 
-      <div class="g-card">
-        <h3>The pages</h3>
-        <ul class="g-list">
-          <li><b>Action Centre</b> — what needs doing today, plus your monthly targets.</li>
-          <li><b>Sourcing sessions</b> — the timer, your hours and your weekly targets.</li>
-          <li><b>Tasks</b> — your own to-do list. Anything can carry a link and a due date.</li>
-          <li><b>Review Inbox</b> — the queue of ASINs and links waiting for a yes/no, plus storefronts you sweep monthly.</li>
-          <li><b>Ideas &amp; Ranking</b> — every idea, best score first.</li>
-          <li><b>Seasonality</b> — UK dates with how far ahead you need to source for each.</li>
-          <li><b>Pipeline</b> — the six stages, from sourcing through to launch.</li>
-          <li><b>Archive</b> — what launched, what got dropped and why.</li>
-          <li><b>Settings</b> — targets, scoring questions and thresholds. Safe to explore.</li>
-        </ul>
-      </div>
+    ${sec('queue','Review Queue', `
+      <div class="g-card g-wide">
+        <p><b>What it is:</b> the front door. Every ASIN or link you find while sourcing goes here so the Ideas list only holds things worth scoring.</p>
+        <p><b>What feeds it:</b> <b>Import ASINs</b> (paste ASINs, Amazon, Keepa or SellerAmp links — one per line, duplicates are skipped automatically), <b>+ Add to queue</b> for a single one, and the <b>storefront watchlist</b>, which re-flags a saved storefront every ${SETTINGS.queue.storefrontDays} days for another sweep.</p>
+        <p><b>Working it:</b> the first tile is selected. Press <b>O</b> to open its links (Amazon, Keepa, SellerAmp), then <b>Y</b> = make it an idea, <b>N</b> = no (it's recorded in the Archive so nobody re-checks it), <b>S</b> = snooze ${SETTINGS.queue.snoozeDays} days. Arrow keys move between tiles. No mouse needed.</p>
+        <p>Anything older than ${SETTINGS.queue.overdueDays} days turns red and appears on the Action Centre. Keep the queue short — it's a to-do, not a store.</p>
+      </div>`)}
 
-      <div class="g-card g-warn">
-        <h3>⚠ Backing up — the important bit</h3>
-        <p>Everything saves automatically, but <b>only in this browser on this laptop</b>. If browser data gets cleared, it's gone.</p>
-        <p><b>Once a week</b>, click the green <b>Saved</b> chip in the top bar. It downloads one file to your Downloads folder. Copy that file somewhere safe — Drive, Dropbox, or email it to yourself. The app will remind you.</p>
-      </div>
+    ${sec('ideas','Ideas &amp; Ranking', `
+      <div class="g-card g-wide">
+        <p>One leaderboard, best first. Green ideas sit at the top with a <b>→ Ready to Source</b> button. Drafts with unanswered questions sit separately until you finish them.</p>
+        <p><b>The backlog rule:</b> ranked ideas that nobody has started working are your backlog. When there are ${SETTINGS.queue.backlogBig} or more, the Action Centre tells you to work those before finding more. Fresh sourcing doesn't stop — it just drops to a few hours until the pile is worked down. The targets don't change; only the advice does.</p>
+        <p><b>Working an idea</b> means moving it to Ready to Source, then Source: price each component, check the margin, send it to Jack — or reject it with a reason. A decision either way is progress. Rejected ideas still count as ideas captured; finding them was the work.</p>
+      </div>`)}
 
-      <div class="g-card g-wide g-move">
-        <h3>💻 Moving to a new laptop</h3>
-        <div class="g-steps">
-          <div><span class="g-sn">1</span>On the <b>old</b> laptop: click the <b>Saved</b> chip in the top bar (or Settings → Data &amp; backups → Export). A file lands in Downloads.</div>
-          <div><span class="g-sn">2</span>Copy that file to the new laptop — email, Drive, USB stick, however's easiest.</div>
-          <div><span class="g-sn">3</span>On the <b>new</b> laptop: open the tracker link, go to <b>Settings → Data &amp; backups → Import</b>, pick the file.</div>
-          <div><span class="g-sn">4</span>It shows you what's in the file before restoring. Confirm, and everything is exactly as you left it.</div>
+    ${sec('sessions','Sourcing sessions', `
+      <div class="g-grid">
+        <div class="g-card g-wide">
+          <p><b>Two kinds.</b> <b>Fresh sourcing</b> — finding new ideas. <b>Working existing ideas</b> — validating, pricing, progressing, rejecting what you already have. Both count towards the monthly hours target; the split is shown so it's clear where the time went.</p>
+          <p><b>Nothing to type.</b> The clock runs itself. Ideas added, ASINs reviewed, greens found, stage moves and rejections are counted from what you do in the app while the session runs.</p>
+          <p><b>Forgot to end it?</b> After ${SETTINGS.sessions.idleWarn} minutes of no activity a banner asks "still sourcing?". After ${SETTINGS.sessions.idleEnd} minutes it ends itself and only counts the time up to your last activity — so a session left running overnight can't inflate your hours.</p>
+          <p><b>Ending one</b> shows a summary of what you got done and an optional one-line note. Got the length wrong? Click the duration on any row in Session history to correct it.</p>
+          <p>If you add an idea with no session running, the idea form offers a one-click start so the time counts.</p>
         </div>
-        <p style="margin:12px 0 0;color:var(--t3);font-size:12.5px">Take the backup on the <b>last day</b> you use the old laptop, so nothing is missed. Keep the file until you've checked the new one looks right.</p>
-      </div>
+      </div>`)}
 
-      <div class="g-card">
-        <h3>Scoring, briefly</h3>
-        <p>Ten questions. The first is the only one that can kill an idea outright — if the brand already sells it on Amazon, it's not worth the risk.</p>
-        <p>Some questions have an <b>N/A</b> button when they genuinely don't apply; those drop out of the maths rather than scoring zero. An idea only counts as ranked once every question has an answer.</p>
-        <p><b>${(SETTINGS.bands.find(b=>b.cls==='bg-green')||{min:75}).min}%+</b> is the shortlist. But the score only advises — if something scores 68% and you believe in it, say so.</p>
-      </div>
-
-      <div class="g-card">
-        <h3>Keyboard shortcuts</h3>
-        <table class="g-keys">
-          <tr><td><kbd>/</kbd></td><td>jump to search</td></tr>
-          <tr><td><kbd>Esc</kbd></td><td>close whatever's open</td></tr>
-          <tr><td><kbd>y</kbd> <kbd>n</kbd></td><td>answer Yes / No while scoring</td></tr>
-          <tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></td><td>High / Medium / Low</td></tr>
-          <tr><td><kbd>Enter</kbd></td><td>next question, or save a quick-add</td></tr>
-          <tr><td colspan="2" style="padding-top:9px;color:var(--t3)"><b>In the Review Inbox</b> — no mouse needed:</td></tr>
-          <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>move between items</td></tr>
-          <tr><td><kbd>Y</kbd></td><td>make it an idea</td></tr>
-          <tr><td><kbd>N</kbd></td><td>no — clear it</td></tr>
-          <tr><td><kbd>S</kbd></td><td>snooze it</td></tr>
-          <tr><td><kbd>O</kbd></td><td>open its links in new tabs</td></tr>
+    ${sec('pipeline','Pipeline', `
+      <div class="g-card g-wide">
+        <p>Six fixed stages. Each has a short checklist; the required ticks gate the move to the next stage. Days in stage are shown on every card, and a stage over its limit turns the card red and lands on the Action Centre.</p>
+        <table class="g-keys g-stages">
+          <tr><td><b>Ready to Source</b></td><td>validated in ranking, queued to begin · limit ${A.ready_to_source} days</td></tr>
+          <tr><td><b>Source</b></td><td>find and price every component, check margin and ROI · limit ${A.source} days</td></tr>
+          <tr><td><b>Jack Validation</b></td><td>Jack's yes/no before money is committed · limit ${A.jack_validation} days — message him, then record his answer here</td></tr>
+          <tr><td><b>Prepare to Launch</b></td><td>listing, images, title, Amazon accepts it · limit ${A.prepare_to_launch} days</td></tr>
+          <tr><td><b>Order / Purchase</b></td><td>buy, receive, check, prep the stock · limit ${A.order_purchase} days</td></tr>
+          <tr><td><b>Launch</b></td><td>tick <b>Stock bought</b> and <b>Listing live on Amazon</b> — the second tick counts the launch. Then archive it.</td></tr>
         </table>
-        <p style="margin-top:10px">Clicked the wrong answer? Click it again to clear it.</p>
-      </div>
+        <p style="margin-top:10px"><b>Waiting</b> on a supplier or a delivery? Use <b>Set waiting</b> with a date — the stage clock pauses and the card shows what it's waiting for. <b>Drop</b> a product at any stage with a reason; it goes to the Archive and can be revived later.</p>
+        <p>A bundle typically takes 6–9 weeks from idea to live. That's normal — what matters is that it keeps moving.</p>
+      </div>`)}
 
-      <div class="g-card g-wide">
-        <h3>If something looks wrong</h3>
-        <div class="g-faq">
-          <div><b>"Everything's gone!"</b><p>Check you're on the usual link and the usual browser — the tracker only sees data saved at that exact address. If it's still empty, import your last backup.</p></div>
-          <div><b>"Read-only" banner</b><p>The tracker is open in another tab or window. Close the other one, or click <b>use this tab instead</b>.</p></div>
-          <div><b>The chip says NOT SAVING</b><p>Browser storage is full. Export a backup immediately, then close some tabs and reload.</p></div>
-          <div><b>A product is stuck at Jack Validation</b><p>That's the point — it needs Jack. Message him, then record what he says using the buttons on that product.</p></div>
-          <div><b>I scored something wrong</b><p>Open the idea and change the answer. Scores recalculate instantly. Nothing is locked.</p></div>
-          <div><b>I deleted something by mistake</b><p>Look in <b>Archive</b> — dropped ideas and rejected queue items are kept, with a Retry / Requeue button.</p></div>
+    ${sec('kpis','KPIs — what the numbers mean', `
+      <div class="g-grid">
+        <div class="g-card g-wide">
+          <p>Three monthly targets. They reset on the 1st and are judged against how far through the month we are — so on the 15th you're expected to be about halfway. <b>Ahead / On track / Behind</b> is about pace, not the raw number.</p>
+          <table class="g-keys g-stages">
+            <tr><td><b>Sourcing hours · ${hoursK.target}h</b></td><td>every session, both kinds. Counted automatically from the session clock.</td></tr>
+            <tr><td><b>Ideas captured · ${ideasK.target}</b></td><td>counts the moment an idea is saved with a name. Rejected, killed or archived later — it still counts; it was found.</td></tr>
+            <tr><td><b>Products launched · ${launchK.target}</b></td><td>counts when both launch ticks are done: stock bought and listing live. A hamper and a bundle count the same.</td></tr>
+          </table>
+          <p style="margin-top:10px"><b>Information, not targets:</b> ideas per sourcing hour, idea → launch conversion (last 90 days), ranked ideas waiting, and the fresh / working hours split. They're there so real numbers build up before anyone decides what "good" looks like.</p>
+          <p><b>Pipeline flow</b> is the part to actually watch: what entered this week, what moved forward, what's stuck, what's waiting, what was dropped, what launched. Zero launches with things moving is fine. Zero launches with nothing moving is the problem.</p>
         </div>
-      </div>
-    </div>
+      </div>`)}
 
-    <div class="g-foot">Built for the 30-day trial · anything confusing, clunky or missing is worth flagging to Jack — that's what the trial is for.</div>`;
+    ${sec('archive','Archive', `
+      <div class="g-card g-wide">
+        <p>Nothing is deleted — it's archived with the story. <b>Launched</b>: final ASIN, live date, estimated margin and ROI, source, notes. <b>Dropped / Rejected</b>: the outcome (killed at scoring, rejected at scoring, rejected by Jack, or abandoned after work was spent), the stage it reached, why, when, and any notes. <b>Completed reviews</b>: every queue decision, so an ASIN you said no to is never re-checked by accident. Anything dropped can be revived with one click.</p>
+      </div>`)}
+
+    ${sec('seasons','Seasonality', `
+      <div class="g-card g-wide">
+        <p>Seasonal products have to be sourced long before the season — source → validate → buy → receive → prep → send to Amazon → checked in → ready for demand. The Seasonality page answers one question: <b>what should we be working on now for the next season?</b> Each season shows the date sourcing must be done by (${SEASON_LEAD_DAYS} days before demand starts) and whether that window is open, closing, or already gone for this year. It's a sourcing aid, not a target.</p>
+      </div>`)}
+
+    ${sec('tasks','Tasks', `
+      <div class="g-card g-wide">
+        <p>A simple to-do list for things that don't fit anywhere else — a link to check later, a supplier to chase. Add your own, paste a list, set a due date or make one recurring. A task with a link can be pushed straight into the Review Queue. Nothing here is generated automatically; pipeline checklists live inside each product instead.</p>
+      </div>`)}
+
+    ${sec('update','What to update — and what to leave alone', `
+      <div class="g-grid">
+        <div class="g-card"><h3>You keep these moving</h3><ul class="g-list"><li>Review Queue decisions</li><li>New ideas and their questions</li><li>Pipeline checklists, stage moves, waiting dates</li><li>Component costs and supplier links in Source</li><li>Jack's answer at Jack Validation</li><li>The two launch ticks</li><li>Sessions — start and end</li></ul></div>
+        <div class="g-card"><h3>You don't need to touch</h3><ul class="g-list"><li>KPI numbers — they fill themselves in</li><li>Session counts — automatic</li><li>Scores — calculated from the answers</li><li>Days in stage, overdue flags, backlog warnings</li><li>Settings — Jack owns targets, stages and rules</li><li>The Archive — things arrive there on their own</li></ul></div>
+      </div>`)}
+
+    ${sec('backup','Backing up — the important bit', `
+      <div class="g-card g-warn g-wide">
+        <p>Everything saves automatically, but <b>only in this browser on this laptop</b>. Clear browsing data, use a private window, or switch browsers and it's gone.</p>
+        <p><b>Once a day</b>, click the green <b>Saved</b> chip in the top bar. It downloads one file. Send it to Jack — that's the off-site copy, and it's how he sees your pipeline. The Action Centre reminds you when one is due.</p>
+        <p><b>New laptop?</b> Export on the old one, open the tracker on the new one, Settings → Import backup. Everything comes back exactly as it was.</p>
+        <p>Always open the tracker from the same bookmark, in the same browser. One tab at a time — a second tab goes read-only on purpose.</p>
+      </div>`)}
+
+    ${sec('keys','Keyboard', `
+      <div class="g-card g-wide"><table class="g-keys">
+        <tr><td><b>/</b></td><td>search everything</td></tr>
+        <tr><td colspan="2" style="padding-top:8px;color:var(--t3)"><b>In the Review Queue</b></td></tr>
+        <tr><td><b>↑ ↓</b></td><td>move between tiles</td></tr>
+        <tr><td><b>O</b></td><td>open the links</td></tr>
+        <tr><td><b>Y</b> / <b>N</b> / <b>S</b></td><td>idea · no · snooze</td></tr>
+        <tr><td colspan="2" style="padding-top:8px;color:var(--t3)"><b>In the idea questions</b></td></tr>
+        <tr><td><b>y</b> / <b>n</b> / <b>a</b></td><td>yes · no · N/A</td></tr>
+        <tr><td><b>Enter</b></td><td>next question</td></tr>
+        <tr><td><b>Esc</b></td><td>close</td></tr>
+      </table></div>`)}
+
+    ${sec('help','Help', `
+      <div class="g-card g-wide">
+        <p>Something confusing, ugly or broken? Press the <b>⚑</b> button in the top bar, or send Jack a screenshot with one line on what you expected. Fixes ship the same day — refresh and check the version number in the top right went up. Your data is never touched by an update.</p>
+      </div>`)}
+    <div class="g-foot">Unique Bundle Tracker · Phase 1 · local save</div>`;
 }
-
-/* ════════════════════════════════════════════
-   SETTINGS
-   ════════════════════════════════════════════ */
 let setSec = 'general';
 function renderSettings(){ saveState();
-  const secs = [['general','General'],['links','External Links'],['ranking','Ranking & Scoring'],['stages','Pipeline Stages'],['econ','Economics Rules'],['kpis','Action Centre & KPIs'],['reasons','Reasons & Statuses']];
+  const secs = [['general','General'],['kpis','KPIs & targets'],['sessions','Sourcing sessions'],['ranking','Ranking questions'],['stages','Pipeline stages'],['econ','Economics rules'],['reasons','Lists & reasons'],['links','External links'],['data','Data & backups']];
   const body = {
     general: `<div class="card">
       <div class="set-row"><div><div class="set-row-l">Workspace name</div><div class="set-row-d">Shown in the sidebar</div></div><input class="set-input wide" value="${esc(SETTINGS.workspaceName)}" onchange="setWorkspaceName(this.value)"></div>
       <div class="set-row"><div><div class="set-row-l">Timezone</div></div><span class="td-sub">Europe/London 🔒</span></div>
       <div class="set-row"><div><div class="set-row-l">Currency</div></div><span class="td-sub">GBP 🔒</span></div>
-      <div class="set-row"><div><div class="set-row-l">Week</div><div class="set-row-d">KPI weeks run Monday to Sunday</div></div><span class="td-sub">Mon–Sun 🔒</span></div>
+      <div class="set-row"><div><div class="set-row-l">KPI period</div><div class="set-row-d">Targets are monthly — reset on the 1st, paced by calendar days</div></div><span class="td-sub">Calendar month 🔒</span></div>
       <div class="set-row"><div><div class="set-row-l">Default landing page</div></div><span class="td-sub">Action Centre 🔒</span></div>
-    </div>
-    <div class="sec-label" style="margin-top:16px">Data &amp; backups <span class="line"></span></div>
-    <div class="card">
-      <div class="set-row"><div><div class="set-row-l">Export backup</div><div class="set-row-d">Downloads everything as one file — for moving laptops, or just to be safe</div></div><button class="btn btn-sm btn-pri" onclick="exportData()">⬇ Export</button></div>
-      <div class="set-row"><div><div class="set-row-l">Import backup</div><div class="set-row-d">Restores a backup file exactly as it was — replaces what's currently here</div></div><button class="btn btn-sm" onclick="importData()">⬆ Import</button></div>
-      <div class="set-row"><div><div class="set-row-l">Moving to a new laptop</div><div class="set-row-d">Step-by-step instructions are on the How it works page</div></div><button class="btn btn-sm" onclick="nav('guide')">Open guide</button></div>
-      <div class="set-row"><div><div class="set-row-l">Where data lives</div><div class="set-row-d">Saved automatically in this browser on this laptop. Clearing browser data wipes it — keep a weekly backup.</div></div></div>
     </div>
     <div class="sec-label" style="margin-top:16px">Queue &amp; timing rules <span class="line"></span></div>
     <div class="card">
@@ -5303,12 +5867,6 @@ function renderSettings(){ saveState();
         <div style="display:flex;gap:6px;align-items:center"><input class="set-input" style="width:56px" value="${SETTINGS.queue.snoozeDays}" onchange="setQueue('snoozeDays',this)"><span class="td-sub">days</span></div></div>
       <div class="set-row"><div><div class="set-row-l">Storefront check cadence</div><div class="set-row-d">How often saved storefronts flag for an inspiration check</div></div>
         <div style="display:flex;gap:6px;align-items:center"><input class="set-input" style="width:56px" value="${SETTINGS.queue.storefrontDays}" onchange="setQueue('storefrontDays',this)"><span class="td-sub">days</span></div></div>
-      <div class="set-row"><div><div class="set-row-l">Sourcing hours — weekly target</div><div class="set-row-d">Protected time for finding opportunities, tracked by the session timer</div></div>
-        <div style="display:flex;gap:6px;align-items:center"><input class="set-input" style="width:56px" value="${SETTINGS.weekly.hours}" onchange="setWeekly('hours',this)"><span class="td-sub">hours</span></div></div>
-      <div class="set-row"><div><div class="set-row-l">Ideas — weekly target</div><div class="set-row-d">New ideas captured per week</div></div>
-        <div style="display:flex;gap:6px;align-items:center"><input class="set-input" style="width:56px" value="${SETTINGS.weekly.ideas}" onchange="setWeekly('ideas',this)"><span class="td-sub">ideas</span></div></div>
-      <div class="set-row"><div><div class="set-row-l">Greens — weekly target</div><div class="set-row-d">Ideas scoring in the shortlist band per week</div></div>
-        <div style="display:flex;gap:6px;align-items:center"><input class="set-input" style="width:56px" value="${SETTINGS.weekly.validated}" onchange="setWeekly('validated',this)"><span class="td-sub">greens</span></div></div>
       <div class="set-row"><div><div class="set-row-l">Seasonality — “starting soon” window</div><div class="set-row-d">How far before the sourcing window opens an event turns amber</div></div>
         <div style="display:flex;gap:6px;align-items:center"><input class="set-input" style="width:56px" value="${SETTINGS.queue.seasonSoonDays}" onchange="setQueue('seasonSoonDays',this)"><span class="td-sub">days</span></div></div>
     </div>`,
@@ -5326,12 +5884,12 @@ function renderSettings(){ saveState();
               <button class="ord-btn" ${ix===arr.length-1?'disabled':''} onclick="moveQ('${q.id}',1)">▼</button>
             </div>
             <div style="min-width:0">
-              <div class="set-row-l">${q.kill?'<span class="cl-req" style="margin-right:4px">KILL</span>':''}${esc(q.t)} <span class="qtype">${qTypeLabel(q)}</span></div>
+              <div class="set-row-l">${q.kill?'<span class="cl-req" style="margin-right:4px">KILL</span>':''}${esc(qTitle(q,'bundle'))}${(q.t&&typeof q.t==='object'&&q.t.hamper&&q.t.hamper!==q.t.bundle)?' <span class="td-sub">/ '+esc(q.t.hamper)+'</span>':''} <span class="qtype">${qTypeLabel(q)}</span> ${(q.applies||['bundle','hamper']).map(k=>`<span class="q-applies">${KINDS[k]||k}</span>`).join('')}</div>
               <div class="set-row-d">${esc(q.help)}</div>
             </div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
-            ${q.kill?'<span class="td-sub">not scored</span>':`<span class="td-sub">weight</span><input class="set-input" style="width:56px" value="${q.weight}" onchange="q_w('${q.id}',this.value)">`}
+            ${q.kill?'<span class="td-sub">not scored</span>':`<span class="td-sub">weight</span><input class="set-input" style="width:56px" value="${q.weight}" onchange="q_w('${q.id}',this.value)">${(q.applies||[]).includes('hamper')&&(q.applies||[]).includes('bundle')?`<span class="td-sub">hamper</span><input class="set-input" style="width:56px" value="${qWeight(q,'hamper')}" onchange="q_w('${q.id}',this.value,'hamper')">`:''}`}
             <button class="btn btn-sm ${q.active?'':'btn-ghost'}" onclick="q_toggle('${q.id}')">${q.active?'On':'Off'}</button>
             ${/^q\d+$/.test(q.id)?`<button class="btn btn-sm btn-ghost" title="Edit wording" onclick="q_edit('${q.id}')">✎</button>
               <button class="btn btn-sm btn-ghost" style="color:var(--rt)" title="Delete this custom question" onclick="q_del('${q.id}')">✕</button>`
@@ -5369,19 +5927,45 @@ function renderSettings(){ saveState();
           <option value="block" ${SETTINGS.econ.failBehaviour==='block'?'selected':''}>Block progression</option>
         </select></div>
     </div>`,
-    kpis: `<div class="lock-note">Targets are monthly — the business doesn't run in tidy weekly cycles, so a heavy sourcing week shouldn't read as "behind". The nine built-in KPIs count automatically from the work you record in the app; custom KPIs you add get a +1 button on their Action Centre card. Toggle any KPI off to hide it.</div>
-      <div class="card">${SETTINGS.kpis.map(k=>`
-        <div class="set-row" style="${k.on?'':'opacity:.55'}">
-          <div style="flex:1"><div class="set-row-l">${esc(k.label)}</div><div class="set-row-d">${TODAY.toLocaleDateString('en-GB',{month:'long'})} · currently ${kpiActual(k)} of ${k.target}${/^k\d+$/.test(String(k.id))?' · custom — counts via its +1 button':' · counts automatically'}</div></div>
+    kpis: `<div class="lock-note">Three monthly targets, all counted automatically — hours from sourcing sessions, ideas the moment they're saved, launches when a product is bought and live. Progress is judged against how far through the month we are. Everything else below is information, not a target.</div>
+      <div class="card">${SETTINGS.kpis.filter(k=>k.on).map(k=>{ const st=kpiState(k); return `
+        <div class="set-row">
+          <div style="flex:1"><div class="set-row-l">${esc(k.label)}</div><div class="set-row-d">${monthPaceInfo().label} · ${fmtKpi(k,st.act)} of ${fmtKpi(k,k.target)}${k.unit||''} · ${st.label.toLowerCase()} · expected ${fmtKpi(k,st.exp)} by today${/^k\d+$/.test(String(k.id))?' · custom — counts via its +1 button':''}</div></div>
           <div style="display:flex;gap:8px;align-items:center">
-            <span class="td-sub">target</span><input class="set-input" style="width:56px" value="${k.target}" onchange="kpiEdit('${k.id}','target',this.value)">
-            <button class="btn btn-sm ${k.on?'':'btn-ghost'}" onclick="kpiToggle('${k.id}')">${k.on?'Shown':'Hidden'}</button>
-            <button class="btn btn-sm btn-ghost" style="color:var(--rt)" onclick="kpiRemove('${k.id}')" title="Remove">✕</button>
+            <span class="td-sub">monthly target</span><input class="set-input" style="width:60px" value="${k.target}" onchange="kpiEdit('${k.id}','target',this.value)">
+            <button class="btn btn-sm" onclick="kpiToggle('${k.id}')">Shown</button>
+            ${/^k\d+$/.test(String(k.id))?`<button class="btn btn-sm btn-ghost" style="color:var(--rt)" onclick="kpiRemove('${k.id}')" title="Remove">✕</button>`:''}
           </div>
+        </div>`;}).join('')}
+      </div>
+      <div class="sec-label" style="margin-top:16px">Information shown, not targeted <span class="line"></span></div>
+      <div class="card">
+        <div class="set-row"><div><div class="set-row-l">Ideas per sourcing hour · Idea → launch conversion · Hours split</div><div class="set-row-d">Always on the Action Centre so the real numbers build up before any of them become a target.</div></div></div>
+        <div class="set-row"><div><div class="set-row-l">Backlog warning</div><div class="set-row-d">When this many ranked ideas are waiting, the Action Centre says to work those before fresh sourcing</div></div>
+          <div style="display:flex;gap:6px;align-items:center"><input class="set-input" style="width:56px" value="${SETTINGS.queue.backlogBig}" onchange="setQueue('backlogBig',this)"><span class="td-sub">ideas</span></div></div>
+      </div>
+      <div class="sec-label" style="margin-top:16px">Hidden KPIs <span class="line"></span><span class="card-count">switch on to show as a target</span></div>
+      <div class="card">${SETTINGS.kpis.filter(k=>!k.on).map(k=>`
+        <div class="set-row" style="opacity:.7">
+          <div style="flex:1"><div class="set-row-l">${esc(k.label)}</div><div class="set-row-d">currently ${kpiActual(k)} this month · counts automatically</div></div>
+          <div style="display:flex;gap:8px;align-items:center"><span class="td-sub">target</span><input class="set-input" style="width:56px" value="${k.target}" onchange="kpiEdit('${k.id}','target',this.value)"><button class="btn btn-sm btn-ghost" onclick="kpiToggle('${k.id}')">Hidden</button></div>
         </div>`).join('')}
-        <div class="set-row"><button class="btn btn-sm" onclick="kpiAdd()">+ Add KPI</button>
-          <span class="td-sub" style="margin-left:auto">${SETTINGS.kpis.filter(k=>k.on).length} shown on Action Centre</span></div>
+        <div class="set-row"><button class="btn btn-sm" onclick="kpiAdd()">+ Add a custom KPI</button><span class="td-sub" style="margin-left:auto">${SETTINGS.kpis.filter(k=>k.on).length} shown on the Action Centre</span></div>
       </div>`,
+    sessions: `<div class="lock-note">Two kinds of session — <b>fresh sourcing</b> and <b>working existing ideas</b>. Both count towards the monthly hours target; the split is shown so it's clear where time went. Nothing about a session is typed in: the clock runs itself and the counts come from what happens in the app.</div>
+      <div class="card">
+        <div class="set-row"><div><div class="set-row-l">Ask "still sourcing?" after</div><div class="set-row-d">Minutes with no activity in the app before the banner appears</div></div>
+          <div style="display:flex;gap:6px;align-items:center"><input class="set-input" style="width:56px" value="${SETTINGS.sessions.idleWarn}" onchange="setSessionRule('idleWarn',this)"><span class="td-sub">min</span></div></div>
+        <div class="set-row"><div><div class="set-row-l">End the session automatically after</div><div class="set-row-d">Idle time is trimmed off, so a forgotten session never inflates the hours</div></div>
+          <div style="display:flex;gap:6px;align-items:center"><input class="set-input" style="width:56px" value="${SETTINGS.sessions.idleEnd}" onchange="setSessionRule('idleEnd',this)"><span class="td-sub">min</span></div></div>
+        <div class="set-row"><div><div class="set-row-l">Correcting a session</div><div class="set-row-d">Click the length on any row in Session history to fix it</div></div><button class="btn btn-sm" onclick="nav('sessions')">Open sessions</button></div>
+      </div>`,
+    data: `        <div class="card">
+      <div class="set-row"><div><div class="set-row-l">Export backup</div><div class="set-row-d">Downloads everything as one file — for moving laptops, or just to be safe</div></div><button class="btn btn-sm btn-pri" onclick="exportData()">⬇ Export</button></div>
+      <div class="set-row"><div><div class="set-row-l">Import backup</div><div class="set-row-d">Restores a backup file exactly as it was — replaces what's currently here</div></div><button class="btn btn-sm" onclick="importData()">⬆ Import</button></div>
+      <div class="set-row"><div><div class="set-row-l">Moving to a new laptop</div><div class="set-row-d">Step-by-step instructions are on the How it works page</div></div><button class="btn btn-sm" onclick="nav('guide')">Open guide</button></div>
+      <div class="set-row"><div><div class="set-row-l">Where data lives</div><div class="set-row-d">Saved automatically in this browser on this laptop. Clearing browser data wipes it — back up daily while the tracker lives only here.</div></div></div>
+    </div>`,
     reasons: `<div class="card">
       <div class="set-row"><div><div class="set-row-l">Jack rejection reasons</div><div class="set-row-d">${SETTINGS.rejectionReasons.join(' · ')}</div></div><button class="btn btn-sm" onclick="editList('rejectionReasons','Jack rejection reasons')">Edit</button></div>
       <div class="set-row"><div><div class="set-row-l">Idea source types</div><div class="set-row-d">${SETTINGS.sourceTypes.join(' · ')}</div></div><button class="btn btn-sm" onclick="editList('sourceTypes','Idea source types')">Edit</button></div>
@@ -5395,7 +5979,7 @@ function renderSettings(){ saveState();
         <div class="page-sub">Adjust the process without developer changes. The core stage order stays protected.</div></div>
     </div>
     <div class="set-grid">
-      <div class="set-nav">${secs.map(s=>`<button class="set-nav-item ${setSec===s[0]?'active':''}" onclick="setSec='${s[0]}';renderSettings()"><span class="set-nav-ic">${({general:'⚙',links:'🔗',ranking:'📊',stages:'⇄',econ:'£',kpis:'◎',reasons:'☰'})[s[0]]||'·'}</span>${s[1]}</button>`).join('')}</div>
+      <div class="set-nav">${secs.map(s=>`<button class="set-nav-item ${setSec===s[0]?'active':''}" onclick="setSec='${s[0]}';renderSettings()"><span class="set-nav-ic">${({general:'⚙',links:'↗',ranking:'≡',stages:'⇄',econ:'£',kpis:'◎',reasons:'☰',sessions:'◷',data:'⬇'})[s[0]]||'·'}</span>${s[1]}</button>`).join('')}</div>
       <div>${body}</div>
     </div>`;
 }
@@ -5405,7 +5989,7 @@ function editLinkTpl(i, el){ saveState();
 }
 const activeQsAll = () => RANK_QS.slice().sort((a,b)=>a.order-b.order);
 function qTypeLabel(q){
-  return {yn:'Yes / No', ynna:'Yes / No / N/A', hml:'High / Med / Low', number:'Number'+(q.allowNA?' · N/A':''), currency:'£ Currency'}[q.type]||q.type;
+  return {yn:'Yes / No', ynna:'Yes / No / N/A', hml:'High / Med / Low', number:'Number'+(q.allowNA?' · N/A':''), currency:'£ Currency'+(q.allowNA?' · N/A':'')}[q.type]||q.type;
 }
 function kpiPlus(id){ saveState(); const k=SETTINGS.kpis.find(x=>x.id===id); if(!k) return; bumpKpi(id, '+1 — '+k.label); renderAction(); }
 function setWorkspaceName(v){ saveState(); v=(v||'').trim(); if(!v){ renderSettings(); return; } SETTINGS.workspaceName=v; document.getElementById('sbName').textContent=v; toast('Saved'); }
@@ -5418,6 +6002,7 @@ function editList(key, title){ saveState();
   }, SETTINGS[key].join(', '));
 }
 function setQueue(key, el){ saveState(); const n=parseInt(el.value); if(isNaN(n)||n<1){ toast('Enter a number of days'); renderSettings(); return; } SETTINGS.queue[key]=n; toast('Saved'); }
+function setSessionRule(f,el){ saveState(); const n=parseInt(el.value); if(isNaN(n)||n<5||n>240){ toast('Enter minutes between 5 and 240'); renderSettings(); return; } SETTINGS.sessions[f]=n; if(f==='idleWarn' && SETTINGS.sessions.idleEnd<=n) SETTINGS.sessions.idleEnd=n+5; renderSettings(); toast('Saved'); }
 function setWeekly(key, el){ saveState(); const n=parseFloat(el.value); if(isNaN(n)||n<0){ toast('Enter a number'); renderSettings(); return; } SETTINGS.weekly[key]=n; toast('Weekly target saved'); }
 function setEcon(key, el, pct){ saveState(); const n=parseFloat(el.value); if(isNaN(n)||n<0){ toast('Enter a number 0 or above'); renderSettings(); return; } SETTINGS.econ[key]= pct? n/100 : n; toast('Saved'); }
 function setAgeing(key, el){ saveState(); const n=parseInt(el.value); if(isNaN(n)||n<1){ toast('Enter days above 0'); renderSettings(); return; } SETTINGS.ageing[key]=n; toast('Threshold saved'); }
@@ -5432,7 +6017,7 @@ function recomputeAllQuiet(){
   KPI_LIVE = was;
   syncPipelineScores();
 }
-function q_w(id, v){ const q=qById(id); const n=parseFloat(v); if(isNaN(n)||n<0){ toast('Weight must be 0 or more'); renderSettings(); return; } q.weight=n; recomputeAllQuiet(); renderSettings(); toast('Weight saved — scores updated'); }
+function q_w(id, v, kind){ const q=qById(id); const n=parseFloat(v); if(isNaN(n)||n<0){ toast('Weight must be 0 or more'); renderSettings(); return; } if(kind==='hamper') q.weightHamper=n; else q.weight=n; recomputeAllQuiet(); renderSettings(); toast('Weight saved — scores updated'); }
 function kpiEdit(id,f,v){ saveState(); const k=SETTINGS.kpis.find(x=>x.id===id); const n=parseFloat(v); if(isNaN(n)||n<=0){ toast('Target must be above 0'); renderSettings(); return; } k[f]=n; toast('KPI target saved'); }
 function kpiToggle(id){ saveState(); const k=SETTINGS.kpis.find(x=>x.id===id); k.on=!k.on; renderSettings(); toast(k.on?'Shown on Action Centre':'Hidden'); }
 function kpiRemove(id){ const ix=SETTINGS.kpis.findIndex(x=>x.id===id); if(ix<0)return;
@@ -5480,7 +6065,7 @@ function addQuestion(){ saveState();
   if(!t) return;
   promptModal('Answer type', 'One of: yn · ynna · hml · number · currency', 'yn', (ty)=>{
   const type = (ty||'yn').trim();
-  const q = {id:'q'+nid(), order:(RANK_QS.reduce((m,x)=>Number.isFinite(x.order)&&x.order>m?x.order:m,-1))+1, active:true, weight:3, t, help:'Custom question.', type};
+  const q = {id:'q'+nid(), order:(RANK_QS.reduce((m,x)=>Number.isFinite(x.order)&&x.order>m?x.order:m,-1))+1, active:true, weight:3, t, help:'Custom question.', type, applies:['bundle','hamper']};
   if(type==='yn') q.score={yes:100,no:0};
   else if(type==='ynna') q.score={yes:100,no:15};
   else if(type==='hml') q.score={High:100,Medium:75,Low:50};
