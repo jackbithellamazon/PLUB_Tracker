@@ -1747,6 +1747,39 @@ body.sb-min .sb2 .sn-live{position:absolute;top:2px;right:4px;margin:0} body.sb-
 body.sb-min .sb2 .sn-foot{justify-content:center;padding:10px 0}
 /* old sidebar rules must not leak */
 .sb2 .sb-sec,.sb2 .sb-logo,.sb2 .sb-foot,.sb2 .sb-expand,.sb2 .sb-collapse{display:none}
+
+/* welcome card: one compact strip, not a billboard */
+.welcome{padding:11px 14px!important;border-radius:12px!important;margin-bottom:10px}
+.wc-head{gap:10px;margin-bottom:8px} .wc-mark{width:30px;height:30px;font-size:11px;border-radius:9px}
+.wc-t{font-size:13px!important;margin-bottom:1px!important} .wc-sub{font-size:11.5px!important}
+.wc-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px!important;margin:6px 0 8px!important}
+.wc-step{padding:7px 9px!important;border-radius:9px} .wc-step b{font-size:12px} .wc-step small{font-size:10.5px;line-height:1.35} .wc-n{width:18px;height:18px;font-size:10px;margin-bottom:3px}
+.wc-acts .btn{height:auto} .wc-foot{margin-top:6px!important;padding-top:6px;font-size:10.5px!important}
+
+/* ── importing: drop zone + preview ── */
+.drop-zone{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(3,3,4,.78);backdrop-filter:blur(3px)}
+.drop-zone.on{display:flex;animation:dzIn .14s cubic-bezier(.4,0,.2,1)}
+@keyframes dzIn{from{opacity:0}to{opacity:1}}
+.dz-card{pointer-events:none;text-align:center;padding:34px 46px;border-radius:18px;border:2px dashed var(--accent2);background:color-mix(in srgb,var(--accent2) 8%,var(--s1))}
+.dz-ic{width:46px;height:46px;margin:0 auto 12px;border-radius:14px;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#030304}
+.dz-ic svg{width:24px;height:24px}
+.dz-t{font-size:16px;font-weight:800;letter-spacing:-.3px} .dz-s{font-size:12px;color:var(--t3);margin-top:4px}
+.imp-file{font-size:11px;color:var(--t4);margin-bottom:9px}
+.imp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.imp-cell{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:9px 10px}
+.imp-cell .v{font-size:20px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums;line-height:1}
+.imp-cell .l{font-size:10.5px;color:var(--t3);margin-top:3px}
+.imp-sample{background:var(--s1);border:1px solid var(--b1);border-radius:11px;padding:9px 11px;margin-bottom:10px}
+.imp-sample-h{font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--t4);margin-bottom:6px}
+.imp-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11.5px;border-top:1px solid var(--b1)}
+.imp-row:first-of-type{border-top:none}
+.imp-kind{font-size:8.5px;font-weight:800;letter-spacing:.6px;padding:2px 5px;border-radius:5px;flex:none}
+.k-asin{background:var(--gd);color:var(--gt)} .k-link{background:color-mix(in srgb,var(--accent2) 16%,transparent);color:var(--accent2)}
+.imp-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t2)}
+.imp-note{color:var(--at);font-size:10.5px;max-width:35%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.imp-more{font-size:10.5px;color:var(--t4);padding-top:5px}
+.imp-safe{font-size:11.5px;line-height:1.6;color:var(--t2);background:var(--gd);border:1px solid var(--gb);border-radius:10px;padding:9px 12px}
+.imp-safe b{color:var(--gt)}
 </style>
 </head>
 <body>
@@ -2278,7 +2311,8 @@ function renderTasks(){ saveState();
         <h1 class="page-title">Tasks</h1>
         <div class="page-sub">Your to-do list. Add anything with a link and context — it stays on the list until you tick it off.</div></div>
       <div class="page-head-actions">
-        <button class="btn btn-sm" onclick="taskImport()">⇪ Import a list</button>
+        <button class="btn btn-sm" onclick="pickImportFile()" title="Open a work list Jack sent you (.json) — or just drag the file onto the page">⬆ Import a list</button>
+        <button class="btn btn-sm" onclick="taskImport()" title="Paste rows straight from a sheet, one per line">Paste rows</button>
         <button class="btn btn-pri btn-sm" onclick="tkCapture();tkOpen=!tkOpen;renderTasks()">${tkOpen?'✕ Close':'＋ New task'}</button>
       </div>
     </div>
@@ -2996,21 +3030,23 @@ function exportData(){
 // Used for packs built from the old sheet and for combining two people's exports.
 function mergeState(s){
   const added = {inbox:0, tasks:0, ideas:0, pipeline:0, skipped:0};
-  const haveAsin = new Set(inbox.filter(r=>r.asin).map(r=>r.asin));
-  const haveUrl  = new Set(inbox.filter(r=>r.searchUrl).map(r=>r.searchUrl));
+  // Identity is the item PLUS its note: the same research link can appear twice with two
+  // different notes ("Christmas" vs "hamper — no competitors"), and those are two jobs.
+  const key = r => (r.asin || r.searchUrl || '') + '||' + (r.note||'').trim();
+  const have = new Set(inbox.map(key));
   const ideaAsins = new Set(ideas.filter(i=>i.asin).map(i=>i.asin));
   (s.inbox||[]).forEach(r=>{
     if(!r || typeof r!=='object') return;
-    if((r.asin && (haveAsin.has(r.asin)||ideaAsins.has(r.asin))) || (r.searchUrl && haveUrl.has(r.searchUrl))){ added.skipped++; return; }
+    if(have.has(key(r)) || (r.asin && ideaAsins.has(r.asin))){ added.skipped++; return; }
     const c = Object.assign({}, r, {id:nid()});
     if(!c.imported) c.imported = TODAY.toISOString();
     if(!c.status) c.status = 'active';
     inbox.push(c); added.inbox++;
-    if(c.asin) haveAsin.add(c.asin); if(c.searchUrl) haveUrl.add(c.searchUrl);
+    have.add(key(c));
   });
   (s.tasks||[]).forEach(t=>{
     if(!t || typeof t!=='object') return;
-    if(tasks.some(x=>x.title===t.title && (x.url||null)===(t.url||null))){ added.skipped++; return; }
+    if(tasks.some(x=>x.title===t.title && (x.url||null)===(t.url||null) && (x.brief||'')===(t.brief||''))){ added.skipped++; return; }
     tasks.push(Object.assign({}, t, {id:nid(), to:CURRENT_USER, from:CURRENT_USER, unread:null, notes:Array.isArray(t.notes)?t.notes:[]})); added.tasks++;
   });
   (s.ideas||[]).forEach(i=>{
@@ -3035,26 +3071,115 @@ function runMerge(s){
   logEvent('backup','Imported and added — '+added.inbox+' queue · '+added.tasks+' tasks · '+added.ideas+' ideas');
   toast(`Added ${added.inbox} to the queue · ${added.tasks} task${added.tasks===1?'':'s'}${added.ideas?' · '+added.ideas+' ideas':''}${added.skipped?' · '+added.skipped+' already here, skipped':''}`);
   if(added.inbox && currentPane()!=='inbox') nav('inbox');
+  else if(added.tasks && currentPane()!=='tasks') nav('tasks');
 }
-function importData(){
+// One file → one dialog. Used by the picker, the drop zone and the buttons.
+function readImportFile(f){
+  if(!f) return;
+  if(!/\.json$/i.test(f.name||'')){ toast("That isn't a tracker file — it should end in .json"); return; }
+  const rd = new FileReader();
+  rd.onerror = ()=> toast("Couldn't read that file — try downloading it again");
+  rd.onload = ()=>{
+    resetJkBtn();
+    let s; try{ s = JSON.parse(rd.result); }catch(e){ toast("That file isn't a tracker file — it can't be read"); return; }
+    if(!s || s.app!=='bdl-ub'){ toast("That file isn't from this tracker"); return; }
+    showImportDialog(s, f.name);
+  };
+  rd.readAsText(f);
+}
+function pickImportFile(){
   const inp = document.createElement('input'); inp.type='file'; inp.accept='.json,application/json';
-  inp.onchange = ()=>{
-    const f = inp.files[0]; if(!f) return;
-    const rd = new FileReader();
-    rd.onload = ()=>{
-      resetJkBtn();
-      let s; try{ s = JSON.parse(rd.result); }catch(e){ toast("That file isn't a valid backup"); return; }
-      if(!s || s.app!=='bdl-ub'){ toast("That file isn't a UB Tracker backup"); return; }
+  inp.onchange = ()=> readImportFile(inp.files[0]);
+  inp.click();
+}
+function importData(){ pickImportFile(); }
+/* ── drop a file anywhere in the app ── */
+let _dragDepth = 0;
+function _dropZone(){
+  let z = document.getElementById('dropZone');
+  if(!z){ z = document.createElement('div'); z.id='dropZone'; z.className='drop-zone';
+    z.innerHTML = `<div class="dz-card"><div class="dz-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7.5 8.5L12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg></div>
+      <div class="dz-t">Drop the file to add it</div><div class="dz-s">A work list or a backup from the tracker (.json)</div></div>`;
+    document.body.appendChild(z); }
+  return z;
+}
+if(typeof window!=='undefined'){
+  window.addEventListener('dragenter', e=>{ if(!e.dataTransfer || Array.from(e.dataTransfer.types||[]).indexOf('Files')<0) return; e.preventDefault(); _dragDepth++; _dropZone().classList.add('on'); });
+  window.addEventListener('dragover', e=>{ if(e.dataTransfer && Array.from(e.dataTransfer.types||[]).indexOf('Files')>=0) e.preventDefault(); });
+  window.addEventListener('dragleave', e=>{ _dragDepth=Math.max(0,_dragDepth-1); if(!_dragDepth){ const z=document.getElementById('dropZone'); if(z) z.classList.remove('on'); } });
+  window.addEventListener('drop', e=>{
+    if(!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+    e.preventDefault(); _dragDepth=0; const z=document.getElementById('dropZone'); if(z) z.classList.remove('on');
+    readImportFile(e.dataTransfer.files[0]);
+  });
+}
+function showImportDialog(s, fileName){
       const n = o => (o||[]).length;
       const incoming = n(s.ideas)+' ideas · '+n(s.pipeline)+' in pipeline · '+n(s.inbox)+' in queue · '+n(s.tasks)+' tasks';
       const current  = ideas.length+' ideas · '+pipeline.length+' in pipeline · '+inbox.length+' in queue · '+tasks.length+' tasks';
       if(s.mergePack){
-        document.getElementById('jkTitle').textContent = s.packTitle ? esc(s.packTitle) : 'Add to the tracker?';
+        const inb = s.inbox||[], tks = s.tasks||[];
+        const TL = {asin:'ASINs to check', keepa:'Keepa searches', h10:'Helium 10', storefront:'storefronts', general:'other'};
+        const byType = {}; tks.forEach(t=>{ const k=t.type||'general'; byType[k]=(byType[k]||0)+1; });
+        const topTypes = Object.entries(byType).sort((a,b)=>b[1]-a[1]).slice(0,3);
+        const asins = inb.filter(r=>r.asin).length, links = inb.filter(r=>r.searchUrl).length;
+        const done = inb.filter(r=>r.status==='completed').length, todo = inb.length-done;
+        const withNotes = inb.filter(r=>r.note).length + tks.filter(t=>t.brief).length;
+        const alreadyT = tks.filter(t=>tasks.some(x=>x.title===t.title && (x.url||null)===(t.url||null) && (x.brief||'')===(t.brief||''))).length;
+        const already = inb.filter(r=>(r.asin && (inbox.some(x=>x.asin===r.asin)||ideas.some(i=>i.asin===r.asin))) || (r.searchUrl && inbox.some(x=>x.searchUrl===r.searchUrl))).length + alreadyT;
+        const sample = inb.filter(r=>r.status!=='completed').slice(0,5);
+        const cell = (v,l,c) => `<div class="imp-cell"><div class="v" ${c?`style="color:${c}"`:''}>${v}</div><div class="l">${l}</div></div>`;
+        // a tasks-only pack — the usual case for a work list from Jack
+        if(tks.length && !inb.length){
+          const inProc = tks.filter(t=>t.status==='in_process').length;
+          const tSample = tks.slice(0,5);
+          document.getElementById('jkTitle').textContent = s.packTitle ? esc(s.packTitle) : 'Add these tasks?';
+          document.getElementById('jkBody').innerHTML = `
+            <div class="imp-file">${esc(fileName||'work list')}</div>
+            <div class="imp-grid">
+              ${cell(tks.length,'tasks','var(--gt)')}
+              ${topTypes.map(([k,v])=>cell(v, TL[k]||k)).join('')}
+            </div>
+            <div class="imp-sample">
+              <div class="imp-sample-h">First few, so you can see what lands</div>
+              ${tSample.map(t=>`<div class="imp-row"><span class="imp-kind ${t.type==='asin'?'k-asin':'k-link'}">${esc((t.type||'general').toUpperCase())}</span><span class="imp-name">${esc(t.title)}</span>${t.brief?`<span class="imp-note">${esc(t.brief)}</span>`:''}</div>`).join('')}
+              ${tks.length>tSample.length?`<div class="imp-more">…and ${tks.length-tSample.length} more</div>`:''}
+            </div>
+            <div class="imp-safe">
+              <b>These are added to your Tasks — nothing you already have is touched.</b>
+              <br>Each one opens its link, and anything with finds can be sent to your Review Queue.
+              ${inProc?`<br>${inProc} ${inProc===1?'is':'are'} already in progress.`:''}
+              ${alreadyT?`<br>${alreadyT} ${alreadyT===1?'is':'are'} already on your list — ${alreadyT===1?'it':'they'}'ll be skipped.`:''}
+              ${withNotes?`<br>Notes from the sheet come with them.`:''}
+            </div>`;
+          document.getElementById('jkConfirm').textContent = 'Add '+(tks.length-alreadyT)+' task'+((tks.length-alreadyT)===1?'':'s');
+          document.getElementById('jkConfirm').className = 'btn btn-pri';
+          document.getElementById('jkCancel').textContent = 'Cancel';
+          document.getElementById('jkCancel').style.display = '';
+          document.getElementById('jkConfirm').onclick = ()=>runMerge(s);
+          openModal('mJack');
+          return;
+        }
+        document.getElementById('jkTitle').textContent = s.packTitle ? esc(s.packTitle) : 'Add this list to your tracker?';
         document.getElementById('jkBody').innerHTML = `
-          <div class="fld"><div class="fld-l">This file adds</div><div style="font-size:13.5px;font-weight:600;color:var(--gt)">${n(s.inbox)} queue items · ${n(s.tasks)} tasks${n(s.ideas)?' · '+n(s.ideas)+' ideas':''}</div></div>
-          <div class="lock-note">Nothing you already have is touched. Anything already in the tracker is skipped.</div>`;
-        document.getElementById('jkConfirm').textContent = 'Add to tracker';
+          <div class="imp-file">${esc(fileName||'work list')}</div>
+          <div class="imp-grid">
+            ${cell(todo,'to work through','var(--gt)')}${cell(asins,'ASINs')}${cell(links,'searches &amp; links')}${cell(n(s.tasks),'tasks')}
+          </div>
+          <div class="imp-sample">
+            <div class="imp-sample-h">First few, so you can see what lands</div>
+            ${sample.map(r=>`<div class="imp-row"><span class="imp-kind ${r.asin?'k-asin':'k-link'}">${r.asin?'ASIN':'LINK'}</span><span class="imp-name">${esc(r.asin || r.searchLabel || 'Item')}</span>${r.note?`<span class="imp-note">${esc(r.note)}</span>`:''}</div>`).join('')}
+            ${inb.length>sample.length?`<div class="imp-more">…and ${inb.length-sample.length} more</div>`:''}
+          </div>
+          <div class="imp-safe">
+            <b>Nothing you already have is touched.</b> These are <i>added</i> to your Review Queue.
+            ${already?`<br>${already} of them ${already===1?'is':'are'} already in your tracker — ${already===1?'it':'they'}'ll be skipped.`:''}
+            ${done?`<br>${done} ${done===1?'was':'were'} already decided on the sheet, so ${done===1?'it goes':'they go'} straight to the Archive.`:''}
+            ${withNotes?`<br>Notes from the sheet come with them.`:''}
+          </div>`;
+        document.getElementById('jkConfirm').textContent = 'Add '+todo+' to my queue';
         document.getElementById('jkConfirm').className = 'btn btn-pri';
+        document.getElementById('jkCancel').textContent = 'Cancel';
         document.getElementById('jkCancel').style.display = '';
         document.getElementById('jkConfirm').onclick = ()=>runMerge(s);
         openModal('mJack');
@@ -3089,10 +3214,6 @@ function importData(){
         toast('Restored — everything is back exactly as it was');
       };
       openModal('mJack');
-    };
-    rd.readAsText(f);
-  };
-  inp.click();
 }
 function releaseLock(){ const l=lockRead(); if(l && l.id===TAB_ID){ try{ localStorage.removeItem(LOCK_KEY); }catch(e){} } }
 window.addEventListener('beforeunload', ()=>{ flushSave(); releaseLock(); });
@@ -3819,7 +3940,8 @@ function renderAction(){ saveState();
         </div>
         <div class="wc-acts">
           <button class="btn btn-pri" onclick="nav('ideas');setTimeout(()=>{const q=document.getElementById('qaTitle');if(q)q.focus();},80)">Add your first idea</button>
-          <button class="btn" onclick="openImport()">Import a list of ASINs</button>
+          <button class="btn" onclick="openImport()">Paste a list of ASINs</button>
+          <button class="btn" onclick="pickImportFile()">⬆ Import a work list</button>
           <button class="btn" onclick="nav('guide')">How it works</button>
         </div>
         <div class="wc-foot">Saves automatically on this laptop &middot; back it up daily from the chip in the top bar</div>
@@ -4116,7 +4238,7 @@ function renderInbox(){ saveState();
       <div><div class="eyebrow">Pre-Pipeline · Review queue</div>
         <h1 class="page-title">Review Queue</h1>
         <div class="page-sub">Open the links, decide — is there an opportunity or not? Keep the queue clear.</div></div>
-      <div class="page-head-actions"><button class="btn btn-pri" onclick="addToQueue()">+ Add to queue</button></div>
+      <div class="page-head-actions"><button class="btn" onclick="pickImportFile()" title="Add a work list Jack sent you (.json)">⬆ Import a list</button><button class="btn" onclick="openImport()">Paste ASINs</button><button class="btn btn-pri" onclick="addToQueue()">+ Add to queue</button></div>
     </div>
     <div class="rq-stats">
       <div class="rq-stat"><span class="rq-s-v">${active.length}</span><span class="rq-s-l">in queue</span></div>
@@ -5847,7 +5969,8 @@ function renderGuide(){
     ${sec('queue','Review Queue', `
       <div class="g-card g-wide">
         <p><b>What it is:</b> the front door. Every ASIN or link you find while sourcing goes here so the Ideas list only holds things worth scoring.</p>
-        <p><b>What feeds it:</b> <b>Import ASINs</b> (paste ASINs, Amazon, Keepa or SellerAmp links — one per line, duplicates are skipped automatically), <b>+ Add to queue</b> for a single one, and the <b>storefront watchlist</b>, which re-flags a saved storefront every ${SETTINGS.queue.storefrontDays} days for another sweep.</p>
+        <p><b>A list from Jack?</b> Save the file he sends you, then <b>drag it anywhere onto the tracker</b> (or Tasks → <b>⬆ Import a list</b>). It lands on your <b>Tasks</b> page — each one opens its link, and anything you find can be pushed straight into this queue with <b>+ Send finds to review queue</b>. You'll see exactly what's about to be added first, and nothing you already have is touched.</p>
+        <p><b>What feeds it:</b> <b>Paste ASINs</b> (paste ASINs, Amazon, Keepa or SellerAmp links — one per line, duplicates are skipped automatically), <b>+ Add to queue</b> for a single one, and the <b>storefront watchlist</b>, which re-flags a saved storefront every ${SETTINGS.queue.storefrontDays} days for another sweep.</p>
         <p><b>Working it:</b> the first tile is selected. Press <b>O</b> to open its links (Amazon, Keepa, SellerAmp), then <b>Y</b> = make it an idea, <b>N</b> = no (it's recorded in the Archive so nobody re-checks it), <b>S</b> = snooze ${SETTINGS.queue.snoozeDays} days. Arrow keys move between tiles. No mouse needed.</p>
         <p>Anything older than ${SETTINGS.queue.overdueDays} days turns red and appears on the Action Centre. Keep the queue short — it's a to-do, not a store.</p>
       </div>`)}

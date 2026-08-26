@@ -1,12 +1,12 @@
 # UB / PL Sourcing Tracker — Phase 1 (local save)
 
-One page, two trackers. **Unique Bundles** (the team) and **Private Label** (Jack), side by side under one URL. All data stays in the browser it was typed into — no database, no accounts, nothing leaves the machine. Phase 1 of the rollout plan.
+One page, two trackers plus a combined pipeline view. **Unique Bundles** (the team) and **Private Label** (Jack), side by side under one URL. All data stays in the browser it was typed into — no database, no accounts, nothing leaves the machine. Phase 1 of the rollout plan.
 
 ## Files — push all four to the repo root
 
 | File | What it is |
 |---|---|
-| `index.html` | The shell — tab bar, loads the two apps |
+| `index.html` | The PLUB shell — tab bar, loads the two apps, and the merged **Pipeline** tab (reads both apps' data in this browser) |
 | `ub.html` | Unique Bundle Tracker (localStorage, key `ub_tracker_v1`) |
 | `pl.html` | PL Sourcing in local mode (localStorage, key `pl_sourcing_v1`) |
 | `README.md` | This file |
@@ -60,3 +60,27 @@ These same backup files are what Phase 2 imports into the Supabase build. Keep t
 - **Launched** = stock bought + listing live (two ticks).
 - **Seasonality** as forward planning: each season shows the sourcing deadline and whether the window is open.
 - Compact layout, collapsible sidebar, Review Queue (was Review Inbox), archive outcomes and notes, restructured Settings, full staff guide, no more slashed-zero font.
+
+## v0.1 (same day, later) — shell + PL
+
+- **PLUB** top bar: 40px, new mark, three tabs — Unique Bundles · Private Label · **Pipeline**.
+- **Merged Pipeline tab**: both apps on one board in plain stages (Ranked ideas → Sourcing → Validating → Samples → Ordered / stock → Ready to launch → Launching → Launched this month). Cards are colour-tagged UB / PL, show days in stage, stuck (over the stage limit) and waiting. Click a card to open it in its app. It reads whatever each app has saved *in this browser* — on Jack's laptop that's PL plus whatever UB export he's imported.
+- **Private Label re-skinned** in UB's language: same ground, type, left sidebar, top bar, cards and chips. PL logic untouched. Dark only.
+- **Sidebar rebuilt from scratch** on both apps: colour-coded duotone icons, badges only when there's a count, live session timer, collapse to a rail (remembered).
+- **Import adds, never wipes**: Settings → Import backup → "Add to tracker" / "Add to what's here instead".
+- **Settings → Delete & reset**: remove an import batch, clear the queue / completed reviews / ideas / sessions / tasks, wipe (backup downloads first) — every delete has Undo.
+
+## Importing a work list (for Becki)
+
+Jack sends a `.json` file. Two ways in, both safe:
+
+1. **Drag the file anywhere onto the tracker.** A drop zone appears; let go.
+2. Or **Tasks → ⬆ Import a list**.
+
+A panel shows exactly what's about to be added — how many tasks, broken down by type (ASINs to check, Keepa searches, storefronts), with the first few by name — before anything happens.
+
+They land on the **Tasks** page. Each one opens its link ("Open keepa filter ↗"), carries Jack's note, and has **+ Send finds to review queue** so anything worth scoring goes straight into the Review Queue. Tick it off when it's done.
+
+Nothing already on the list is touched — the file is *added*. Anything already there is skipped. Jobs already marked done on Jack's sheet are left out of the file entirely, so the list is only what still needs doing.
+
+If it goes wrong: **Settings → Data & backups → Delete & reset → Undo the last delete**.

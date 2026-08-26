@@ -3,52 +3,75 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>UB / PL Sourcing Tracker</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2322D3EE'/%3E%3Cstop offset='1' stop-color='%23A78BFF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='42' font-family='Inter,Arial' font-size='28' font-weight='800' fill='%23030304' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+<title>PLUB · Sourcing Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23A78BFF'/%3E%3Cstop offset='1' stop-color='%2322D3EE'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='url(%23g)'/%3E%3Crect x='14' y='30' width='36' height='18' rx='5' fill='%23030304' opacity='.85'/%3E%3Crect x='20' y='20' width='24' height='12' rx='4' fill='%23030304' opacity='.5'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:#030304;color:#EDEDF2;
-  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden}
-.bar{position:fixed;inset:0 0 auto 0;height:48px;display:flex;align-items:center;gap:14px;
-  padding:0 14px;background:#030304;border-bottom:1px solid #17171C;z-index:10}
-.mark{display:flex;align-items:center;gap:9px;user-select:none}
-.mark .dot{width:22px;height:22px;border-radius:7px;flex:none;
-  background:linear-gradient(135deg,#22D3EE,#A78BFF);
-  display:flex;align-items:center;justify-content:center;
-  font-size:12px;font-weight:800;color:#030304}
-.mark b{font-size:13px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
-.mark span{font-size:11px;color:#6E6E7A;white-space:nowrap}
-.tabs{display:flex;gap:4px;margin-left:6px;background:#0C0C10;border:1px solid #1B1B22;
-  border-radius:11px;padding:3px}
-.tab{appearance:none;border:none;background:none;cursor:pointer;color:#9A9AA6;
-  font:600 12.5px/1 'Inter',sans-serif;padding:8px 16px;border-radius:8px;
-  display:flex;align-items:center;gap:8px;transition:color .15s cubic-bezier(.4,0,.2,1),background .15s cubic-bezier(.4,0,.2,1),transform .1s cubic-bezier(.4,0,.2,1)}
+:root{--bg:#030304;--s1:#0A0A0C;--s2:#0F0F12;--s3:#17171B;--b1:#1E1E24;--b2:#2A2A31;--b3:#3A3A43;--t1:#F5F5F8;--t2:#C6C7D0;--t3:#9698A4;--t4:#787A87;
+ --cyan:#22D3EE;--violet:#A78BFF;--green:#00E5A0;--amber:#FFC53D;--red:#FF5470;--pink:#FF5CC8;--blue:#3B9EFF;--orange:#FF8A3D}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;font-size:13px}
+/* ── bar ── */
+.bar{position:fixed;inset:0 0 auto 0;height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg);border-bottom:1px solid #15151A;z-index:10}
+.mark{display:flex;align-items:center;gap:8px;user-select:none;padding-right:4px}
+.mark .tile{width:24px;height:24px;border-radius:7px;flex:none;background:linear-gradient(135deg,var(--violet),var(--cyan));display:flex;align-items:center;justify-content:center}
+.mark .tile svg{width:15px;height:15px}
+.mark b{font-size:13.5px;font-weight:800;letter-spacing:-.4px;white-space:nowrap;background:linear-gradient(90deg,#C4B2FF,#7FE9F5);-webkit-background-clip:text;background-clip:text;color:transparent}
+.mark span{font-size:10.5px;color:var(--t4);white-space:nowrap;margin-left:2px}
+.tabs{display:flex;gap:2px;background:#0B0B0E;border:1px solid #1A1A20;border-radius:10px;padding:2px}
+.tab{appearance:none;border:none;background:none;cursor:pointer;color:#9A9AA6;font:600 12px/1 'Inter',sans-serif;padding:7px 12px;border-radius:8px;display:flex;align-items:center;gap:7px;transition:color .15s cubic-bezier(.4,0,.2,1),background .15s cubic-bezier(.4,0,.2,1),transform .1s cubic-bezier(.4,0,.2,1)}
 .tab:active{transform:scale(.96)}
-.tab i{width:8px;height:8px;border-radius:50%;font-style:normal;flex:none;background:#3A3A44;transition:background .15s}
-.tab.on{color:#FFFFFF;background:#17171E}
-.tab.on.ub i{background:#22D3EE}
-.tab.on.pl i{background:#A78BFF}
-.right{margin-left:auto;display:flex;align-items:center;gap:10px}
-.chip{font:600 11px/1 ui-monospace,'SF Mono',monospace;color:#8A8A96;background:#0C0C10;
-  border:1px solid #1B1B22;border-radius:7px;padding:5px 9px;white-space:nowrap}
-.chip b{color:#22D3EE;font-weight:700}
-.stage{position:fixed;inset:48px 0 0 0}
-iframe{position:absolute;inset:0;width:100%;height:100%;border:none;background:#030304;display:none}
+.tab i{width:7px;height:7px;border-radius:50%;font-style:normal;flex:none;background:#34343D;transition:background .15s}
+.tab.on{color:#fff;background:#17171E}
+.tab.on.ub i{background:var(--cyan)} .tab.on.pl i{background:var(--violet)} .tab.on.pipe i{background:var(--green)}
+.tab .n{font-size:9.5px;font-weight:800;padding:1px 5px;border-radius:999px;background:#1E1E26;color:var(--t3);display:none} .tab .n.show{display:inline-block}
+.right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.chip{font:600 10.5px/1 'Inter',sans-serif;color:#8A8A96;background:#0B0B0E;border:1px solid #1A1A20;border-radius:7px;padding:5px 8px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.chip b{color:var(--cyan);font-weight:800}
+/* ── stage ── */
+.stage{position:fixed;inset:40px 0 0 0}
+iframe{position:absolute;inset:0;width:100%;height:100%;border:none;background:var(--bg);display:none}
 iframe.show{display:block;animation:frameIn .18s cubic-bezier(.4,0,.2,1)}
 @keyframes frameIn{from{opacity:0}to{opacity:1}}
+/* ── merged pipeline ── */
+#pipe{position:absolute;inset:0;display:none;overflow:auto;padding:18px 22px 40px}
+#pipe.show{display:block;animation:frameIn .18s cubic-bezier(.4,0,.2,1)}
+.p-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.p-eyebrow{font-size:9.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;background:linear-gradient(135deg,var(--violet),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:3px}
+.p-title{font-size:21px;font-weight:800;letter-spacing:-.6px;line-height:1.1}
+.p-sub{font-size:12px;color:var(--t3);margin-top:3px}
+.p-summary{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.p-pill{font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);display:flex;gap:6px;align-items:center}
+.p-pill i{width:7px;height:7px;border-radius:50%;font-style:normal} .p-pill.ub i{background:var(--cyan)} .p-pill.pl i{background:var(--violet)} .p-pill.stuck{color:#FF8FA3;border-color:rgba(255,84,112,.45);background:rgba(255,84,112,.12)} .p-pill.wait{color:#FFDC85;border-color:rgba(255,197,61,.45);background:rgba(255,197,61,.12)}
+.p-wrap{overflow-x:auto;padding-bottom:8px}
+.p-cols{display:grid;grid-template-columns:repeat(8,minmax(150px,1fr));gap:8px;min-width:1240px}
+.p-col{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:9px 9px 8px;border-top:2px solid var(--b2);min-height:140px}
+.p-col-h{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.p-col-h b{font-size:11.5px;font-weight:800;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-col-h .c{font-size:10.5px;font-weight:800;color:var(--t3);background:var(--s3);border:1px solid var(--b2);border-radius:999px;padding:1px 7px;font-variant-numeric:tabular-nums}
+.p-col.c-ideas{border-top-color:var(--violet)} .p-col.c-sourcing{border-top-color:var(--cyan)} .p-col.c-validating{border-top-color:var(--pink)} .p-col.c-samples{border-top-color:var(--blue)} .p-col.c-ordered{border-top-color:var(--orange)} .p-col.c-ready{border-top-color:var(--amber)} .p-col.c-launching{border-top-color:#4ADE80} .p-col.c-launched{border-top-color:var(--green);background:color-mix(in srgb,var(--green) 6%,var(--s1))}
+.p-card{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:8px 9px;margin-bottom:6px;cursor:pointer;transition:border-color .14s,transform .08s}
+.p-card:hover{border-color:var(--b3)} .p-card:active{transform:scale(.985)}
+.p-card.stuck{border-color:rgba(255,84,112,.5)}
+.p-card .t{font-size:12px;font-weight:700;line-height:1.3;color:var(--t1);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.p-card .m{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}
+.app-chip{font-size:9px;font-weight:800;letter-spacing:.6px;padding:2px 6px;border-radius:5px} .app-chip.ub{background:rgba(34,211,238,.16);color:var(--cyan)} .app-chip.pl{background:rgba(167,139,255,.18);color:#C4B2FF}
+.p-card .d{font-size:10.5px;color:var(--t3)} .p-card .d.over{color:#FF8FA3;font-weight:700} .p-card .d.wait{color:#FFDC85;font-weight:700}
+.p-card .s{font-size:10.5px;color:var(--t4);margin-top:3px}
+.p-empty{font-size:11px;color:var(--t4);text-align:center;padding:14px 6px;border:1px dashed var(--b2);border-radius:9px}
+.p-foot{font-size:11px;color:var(--t4);margin-top:10px}
 </style>
 </head>
 <body>
 <div class="bar">
   <div class="mark">
-    <div class="dot">S</div>
-    <b>Sourcing Tracker</b>
-    <span>UB&nbsp;/&nbsp;PL</span>
+    <div class="tile"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="8" rx="2.5" fill="#030304" opacity=".85"/><rect x="6" y="6" width="12" height="6" rx="2" fill="#030304" opacity=".5"/></svg></div>
+    <b>PLUB</b><span>Sourcing tracker</span>
   </div>
   <div class="tabs" id="tabs">
     <button class="tab ub" data-app="ub"><i></i>Unique Bundles</button>
     <button class="tab pl" data-app="pl"><i></i>Private Label</button>
+    <button class="tab pipe" data-app="pipe"><i></i>Pipeline<span class="n" id="pipeN"></span></button>
   </div>
   <div class="right">
     <span class="chip">local · <b id="buildChip"></b></span>
@@ -57,11 +80,12 @@ iframe.show{display:block;animation:frameIn .18s cubic-bezier(.4,0,.2,1)}
 <div class="stage">
   <iframe id="f_ub" title="Unique Bundle Tracker"></iframe>
   <iframe id="f_pl" title="PL Sourcing"></iframe>
+  <section id="pipe"></section>
 </div>
 <script>
 // BUILD is the version people see; STAMP is what actually busts the cache. Bump STAMP every push.
-var BUILD = '0.1';          // shown in the chip — bump by 0.1 each release
-var STAMP = '2026-08-24c';   // bump on EVERY push (even a same-version fix) — it busts the GitHub Pages cache
+var BUILD = '0.1';
+var STAMP = '2026-08-24f';
 document.getElementById('buildChip').textContent = 'v' + BUILD;
 
 var FRAMES = { ub: document.getElementById('f_ub'), pl: document.getElementById('f_pl') };
@@ -69,30 +93,97 @@ var SRC = { ub: 'ub.html', pl: 'pl.html' };
 var TAB_KEY = 'ubpl_shell_tab';
 
 function ensureLoaded(app){
-  var f = FRAMES[app];
+  var f = FRAMES[app]; if(!f) return;
   if (!f.getAttribute('src')) f.src = SRC[app] + '?v=' + encodeURIComponent(BUILD + '-' + STAMP);
 }
 function show(app){
-  if (!FRAMES[app]) app = 'ub';
-  ensureLoaded(app);
-  Object.keys(FRAMES).forEach(function(k){
-    FRAMES[k].classList.toggle('show', k === app);
-  });
-  document.querySelectorAll('.tab').forEach(function(t){
-    t.classList.toggle('on', t.dataset.app === app);
-  });
+  if (app!=='pipe' && !FRAMES[app]) app = 'ub';
+  if (app!=='pipe') ensureLoaded(app);
+  Object.keys(FRAMES).forEach(function(k){ FRAMES[k].classList.toggle('show', k === app); });
+  document.getElementById('pipe').classList.toggle('show', app==='pipe');
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('on', t.dataset.app === app); });
   try { localStorage.setItem(TAB_KEY, app); } catch(e){}
-  setTimeout(function(){ try { FRAMES[app].contentWindow.focus(); } catch(e){} }, 60);
+  if (app==='pipe') renderPipe();
+  else setTimeout(function(){ try { FRAMES[app].contentWindow.focus(); } catch(e){} }, 60);
 }
-document.getElementById('tabs').addEventListener('click', function(e){
-  var b = e.target.closest('.tab');
-  if (b) show(b.dataset.app);
-});
+document.getElementById('tabs').addEventListener('click', function(e){ var b = e.target.closest('.tab'); if (b) show(b.dataset.app); });
+
+/* ══════════ merged pipeline: both apps' stores → one board ══════════ */
+var COLS = [
+  {key:'ideas',      name:'Ranked ideas'},
+  {key:'sourcing',   name:'Sourcing'},
+  {key:'validating', name:'Validating'},
+  {key:'samples',    name:'Samples'},
+  {key:'ordered',    name:'Ordered / stock'},
+  {key:'ready',      name:'Ready to launch'},
+  {key:'launching',  name:'Launching'},
+  {key:'launched',   name:'Launched'}
+];
+var UB_MAP = { ready_to_source:'sourcing', source:'sourcing', jack_validation:'validating', prepare_to_launch:'ready', order_purchase:'ordered', launch:'launching' };
+var UB_NAMES = { ready_to_source:'Ready to Source', source:'Source', jack_validation:'Jack Validation', prepare_to_launch:'Prepare to Launch', order_purchase:'Order / Purchase', launch:'Launch' };
+var PL_MAP = { 1:'sourcing', 2:'sourcing', 3:'samples', 4:'samples', 5:'ordered', 6:'ready', 7:'launching' };
+var PL_NAMES = { 1:'Sourcing', 2:'Contact & Pricing', 3:'Ordering Samples', 4:'Samples', 5:'Purchase', 6:'Prepare to Launch', 7:'Launch' };
+var PL_TARGET = { 1:10, 2:14, 3:7, 4:10, 5:28, 6:15, 7:10 };
+function days(iso){ if(!iso) return null; var d=(Date.now()-new Date(iso).getTime())/86400000; return isFinite(d)? Math.max(0,Math.round(d)) : null; }
+function sameMonth(iso){ var d=new Date(iso), n=new Date(); return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth(); }
+function readStores(){
+  var ub=null, pl=null;
+  try{ ub = JSON.parse(localStorage.getItem('ub_tracker_v1')||'null'); }catch(e){}
+  try{ pl = JSON.parse(localStorage.getItem('pl_sourcing_v1')||'null'); }catch(e){}
+  var cards = [];
+  if(ub){
+    var age = (ub.settings && ub.settings.ageing) || {};
+    (ub.ideas||[]).forEach(function(i){ if(i.status==='Ranked' && !i.killed) cards.push({app:'ub', col:'ideas', title:i.title||'Untitled idea', stage:(i.score!=null? i.score+'%' : 'ranked'), days:days(i.created), over:false, wait:false}); });
+    (ub.pipeline||[]).forEach(function(p){
+      var col = UB_MAP[p.stage]||'sourcing', d = days(p.entered), waiting = !!(p.waiting && p.waiting.until && new Date(p.waiting.until) > new Date());
+      cards.push({app:'ub', col:col, title:p.title, stage:UB_NAMES[p.stage]||p.stage, days:d, over: !waiting && d!=null && age[p.stage]!=null && d > age[p.stage], wait:waiting});
+    });
+    ((ub.archive&&ub.archive.launched)||[]).forEach(function(a){ if(a.date && sameMonth(a.date)) cards.push({app:'ub', col:'launched', title:a.title, stage:'launched '+new Date(a.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}), days:null}); });
+  }
+  if(pl){
+    (pl.ideas||[]).forEach(function(r){
+      var i = r.data||{}; var p = i.pipeline||{};
+      if(!i.inPipeline){ cards.push({app:'pl', col:'ideas', title:i.name||r.name||'Untitled', stage:(i.score&&i.score.pct!=null? i.score.pct+'%' : 'idea'), days:days(i.createdAt), over:false, wait:false}); return; }
+      if(p.status==='launched' || r.pipeline_status==='launched'){ cards.push({app:'pl', col:'launched', title:i.name||r.name, stage:'live on Amazon', days:null}); return; }
+      if(p.status==='rejected' || r.pipeline_status==='dropped') return;
+      var st = Number(p.stage)||1, col = PL_MAP[st]||'sourcing', d = days(p.lastMoved||p.enteredAt), waiting = p.status==='waiting' || (p.waitingUntil && new Date(p.waitingUntil) > new Date());
+      cards.push({app:'pl', col:col, title:i.name||r.name, stage:PL_NAMES[st]||('Stage '+st), days:d, over: !waiting && d!=null && d > (PL_TARGET[st]||14), wait:waiting});
+    });
+  }
+  return {cards:cards, haveUb:!!ub, havePl:!!pl};
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function activeCount(){ try{ return readStores().cards.filter(function(c){return c.col!=='launched';}).length; }catch(e){ return 0; } }
+function paintPipeN(){ var a=activeCount(); var n=document.getElementById('pipeN'); n.textContent=a; n.classList.toggle('show',a>0); }
+function renderPipe(){
+  var st = readStores(), cards = st.cards;
+  var ubN = cards.filter(function(c){return c.app==='ub' && c.col!=='launched';}).length, plN = cards.filter(function(c){return c.app==='pl' && c.col!=='launched';}).length;
+  var stuck = cards.filter(function(c){return c.over;}).length, wait = cards.filter(function(c){return c.wait;}).length, launched = cards.filter(function(c){return c.col==='launched';}).length;
+  paintPipeN();
+  var cols = COLS.map(function(c){
+    var rows = cards.filter(function(x){return x.col===c.key;}).sort(function(a,b){ return (b.over?1:0)-(a.over?1:0) || (b.days||0)-(a.days||0); });
+    return '<div class="p-col c-'+c.key+'"><div class="p-col-h"><b>'+c.name+'</b><span class="c">'+rows.length+'</span></div>'
+      + (rows.length ? rows.map(function(x){ return '<div class="p-card'+(x.over?' stuck':'')+'" onclick="show(\''+x.app+'\')" title="Open in '+(x.app==='ub'?'Unique Bundles':'Private Label')+'">'
+          + '<div class="t">'+esc(x.title)+'</div>'
+          + '<div class="m"><span class="app-chip '+x.app+'">'+(x.app==='ub'?'UB':'PL')+'</span>'
+          + (x.days!=null ? '<span class="d'+(x.over?' over':x.wait?' wait':'')+'">'+(x.wait?'waiting · ':'')+x.days+'d'+(x.over?' · stuck':'')+'</span>' : '')
+          + '</div><div class="s">'+esc(x.stage)+'</div></div>'; }).join('')
+        : '<div class="p-empty">'+(c.key==='launched'?'none this month':'empty')+'</div>') + '</div>';
+  }).join('');
+  document.getElementById('pipe').innerHTML =
+    '<div class="p-head"><div><div class="p-eyebrow">Both trackers · one belt</div><div class="p-title">Pipeline</div><div class="p-sub">Everything moving across Unique Bundles and Private Label, in plain stages. Click a card to open it in its app.</div></div>'
+    + '<div class="p-summary"><span class="p-pill ub"><i></i>'+ubN+' UB</span><span class="p-pill pl"><i></i>'+plN+' PL</span>'
+    + (stuck?'<span class="p-pill stuck">'+stuck+' stuck</span>':'') + (wait?'<span class="p-pill wait">'+wait+' waiting</span>':'')
+    + '<span class="p-pill" style="color:var(--green);border-color:rgba(0,229,160,.4)">'+launched+' launched this month</span></div></div>'
+    + '<div class="p-wrap"><div class="p-cols">'+cols+'</div></div>'
+    + '<div class="p-foot">Reads what each app has saved in this browser' + ((!st.haveUb||!st.havePl)?' — ' + (!st.haveUb?'Unique Bundles':'Private Label') + ' has not been opened here yet':'') + '. Updates live as you work in either tab.</div>';
+}
+window.addEventListener('storage', function(e){ if(e.key==='ub_tracker_v1' || e.key==='pl_sourcing_v1'){ if(document.getElementById('pipe').classList.contains('show')) renderPipe(); else paintPipeN(); } });
+
 var last = 'ub';
 try { last = localStorage.getItem(TAB_KEY) || 'ub'; } catch(e){}
 show(last);
-// Preload the other app once the first is settled, so switching is instant.
-setTimeout(function(){ ensureLoaded(last === 'ub' ? 'pl' : 'ub'); }, 1500);
+setTimeout(function(){ ensureLoaded('ub'); ensureLoaded('pl'); paintPipeN(); }, 1500);
 </script>
 </body>
 </html>

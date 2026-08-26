@@ -1343,6 +1343,47 @@ body,.app{background:var(--bg)}
 </div>
 
 <!-- ════════════════════ TOP NAV ════════════════════ -->
+<aside class="sidebar sb2">
+  <div class="sn-brand">
+    <div class="sn-mark"><svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="2.5" fill="#030304" opacity=".85"/><path d="M8.5 9V7a3.5 3.5 0 017 0v2" fill="none" stroke="#030304" stroke-width="2" stroke-linecap="round" opacity=".85"/></svg></div>
+    <div class="sn-brand-t"><div class="sn-name">Private Label</div><div class="sn-sub">Sourcing tracker · <i>v0.1</i></div></div>
+  </div>
+  <button class="sn-toggle" title="Collapse / expand" onclick="toggleSidebar()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5L5.5 8 10 12.5"/></svg></button>
+  <nav class="sn-nav">
+      <div class="sn-sec"><span>Today</span></div>
+      <button class="nav-item ntab" id="ntab-week" data-pane="week" style="--c:#22D3EE" onclick="nav('week')" title="Action Centre">
+        <span class="sn-ic"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" fill="currentColor" opacity=".18"/><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="10" r="3" fill="currentColor"/></svg></span><span class="sn-t">Action Centre</span><span class="nav-badge" id="navCntWeek">0</span>
+      </button>
+      <div class="sn-sec"><span>Find</span></div>
+      <button class="nav-item ntab active" id="ntab-dash" data-pane="dash" style="--c:#A78BFF" onclick="nav('dash')" title="Ideas">
+        <span class="sn-ic"><svg viewBox="0 0 20 20"><path d="M10 2.5a5.5 5.5 0 00-3 10.1V15h6v-2.4A5.5 5.5 0 0010 2.5z" fill="currentColor" opacity=".18"/><path d="M10 2.5a5.5 5.5 0 00-3 10.1V15h6v-2.4A5.5 5.5 0 0010 2.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 17.5h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M10 6.5v3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="sn-t">Ideas</span><span class="nav-badge" id="navCntIdeas">0</span>
+      </button>
+      <div class="sn-sec"><span>Build</span></div>
+      <button class="nav-item ntab" id="ntab-pipeline" data-pane="pipeline" style="--c:#00E5A0" onclick="nav('pipeline')" title="Pipeline">
+        <span class="sn-ic"><svg viewBox="0 0 20 20"><rect x="2.5" y="4" width="4" height="12" rx="1.3" fill="currentColor" opacity=".18"/><rect x="8" y="4" width="4" height="8.5" rx="1.3" fill="currentColor" opacity=".18"/><rect x="13.5" y="4" width="4" height="5.5" rx="1.3" fill="currentColor" opacity=".18"/><rect x="2.5" y="4" width="4" height="12" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="8" y="4" width="4" height="8.5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13.5" y="4" width="4" height="5.5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span><span class="sn-t">Pipeline</span><span class="nav-badge" id="navCntPipe">0</span>
+      </button>
+      <div class="sn-sec"><span>Money</span></div>
+      <button class="nav-item ntab" id="ntab-pl" data-pane="pl" style="--c:#FFC53D" onclick="nav('pl')" title="P&L">
+        <span class="sn-ic"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" fill="currentColor" opacity=".18"/><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 13.5h3.2a2 2 0 000-4H8.8a2 2 0 010-3.5H12M10 4.5v2M10 13.5v2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="sn-t">P&amp;L</span>
+      </button>
+      <button class="nav-item ntab" id="ntab-forecast" data-pane="forecast" style="--c:#FF8A3D" onclick="nav('forecast')" title="PL Forecast">
+        <span class="sn-ic"><svg viewBox="0 0 20 20"><path d="M3 16l4-5 3 3 7-8v10H3z" fill="currentColor" opacity=".18"/><path d="M3 16l4-5 3 3 7-8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 6h4v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="sn-t">PL Forecast</span>
+      </button>
+      <div class="sn-sec"><span>Help</span></div>
+      <button class="nav-item ntab" id="ntab-settings" data-pane="settings" style="--c:#B4B6C4" onclick="nav('settings')" title="Settings">
+        <span class="sn-ic"><svg viewBox="0 0 20 20"><path d="M3.5 6h13M3.5 10h13M3.5 14h13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".45"/><circle cx="7" cy="6" r="2" fill="currentColor"/><circle cx="13" cy="10" r="2" fill="currentColor"/><circle cx="8.5" cy="14" r="2" fill="currentColor"/></svg></span><span class="sn-t">Settings</span>
+      </button>
+  </nav>
+  <div class="sn-foot">
+    <div class="sn-av">J</div>
+    <div class="sn-foot-t"><div class="sn-user">Jack</div><div class="sn-role">Private label</div></div>
+    <span class="sn-saved" title="Saves in this browser automatically"><i></i></span>
+  </div>
+</aside>
+<script>
+function toggleSidebar(){ document.body.classList.toggle('sb-min'); try{ localStorage.setItem('pl_sb_min', document.body.classList.contains('sb-min')?'1':'0'); }catch(e){} }
+try{ if(localStorage.getItem('pl_sb_min')==='1') document.body.classList.add('sb-min'); }catch(e){}
+</script>
 <header class="topbar" id="appTopbar">
   <a class="tb-logo">
     <div class="tb-mark">
@@ -1354,14 +1395,7 @@ body,.app{background:var(--bg)}
     <span class="tb-logo-name">PL&nbsp;Tracker</span>
   </a>
 
-  <nav class="tb-nav">
-    <button class="ntab active" id="ntab-dash" onclick="nav('dash')"><span class="ntab-ico">◫</span><span>Ideas</span><span class="ntab-badge" id="navCntIdeas">0</span></button>
-    <button class="ntab" id="ntab-pipeline" onclick="nav(&quot;pipeline&quot;)"><span class="ntab-ico">⇶</span><span>Pipeline</span><span class="ntab-badge" id="navCntPipe">0</span></button>
-    <button class="ntab" id="ntab-week" onclick="nav('week')"><span class="ntab-ico">◉</span><span>Action Centre</span><span class="ntab-badge" id="navCntWeek">0</span></button>
-    <button class="ntab" id="ntab-pl" onclick="nav('pl')"><span class="ntab-ico">£</span><span>P&amp;L</span></button>
-    <button class="ntab" id="ntab-forecast" onclick="nav('forecast')"><span class="ntab-ico">↗</span><span>Forecast</span></button>
-    <button class="ntab" id="ntab-settings" onclick="nav('settings')"><span class="ntab-ico">⚙</span><span>Settings</span></button>
-  </nav>
+  <div class="tb-spacer-ub"></div>
 
   <div class="tb-actions">
     <span class="flash" id="flash"></span>
@@ -4478,7 +4512,9 @@ var pipeFilter='active';
 function setPipeFilter(f){pipeFilter=f;renderPipeline();}
 
 // ── nav counts ──
-function updateNavCounts(){
+function _ubZeroBadges(){ document.querySelectorAll('.sb2 .nav-badge').forEach(el=>{ const t=(el.textContent||'').trim(); el.classList.toggle('zero', !t || t==='0'); }); }
+function updateNavCounts(){ try{ _updateNavCounts0(); }finally{ _ubZeroBadges(); } }
+function _updateNavCounts0(){
   const inPipe=ideas.filter(n=>n.inPipeline);
   const active=inPipe.filter(n=>ensurePipe(n).status!=='rejected');
   const ci=document.getElementById('navCntIdeas');if(ci)ci.textContent=ideas.filter(n=>!n.inPipeline).length;
@@ -7121,5 +7157,108 @@ html,body{background:radial-gradient(950px 540px at 50% -210px,rgba(163,163,170,
 })();
 </script>
 
+
+<style id="ub-skin">
+/* ═══════ PL · UB design language ═══════ */
+:root,[data-theme="dark"],[data-theme="light"]{
+  --bg:#030304!important;--surface:#0A0A0C!important;--s1:#0A0A0C!important;--s2:#0F0F12!important;--s3:#17171B!important;--s4:#1E1E24!important;--sidebar:#050507!important;
+  --b1:#1E1E24!important;--b2:#2A2A31!important;--b3:#3A3A43!important;
+  --t1:#F5F5F8!important;--t2:#C6C7D0!important;--t3:#9698A4!important;--t4:#8A8A96!important;
+  --brand:#A78BFF!important;--brand-d:#030304!important;--brand-t:#030304!important;--brand-b:#A78BFF!important;--brand-h:#B9A3FF!important;
+  --green:#00E5A0!important;--gd:rgba(0,229,160,.14)!important;--gt:#5FFFC8!important;--gb:rgba(0,229,160,.45)!important;
+  --amber:#FFC53D!important;--ad:rgba(255,197,61,.14)!important;--at:#FFDC85!important;--ab:rgba(255,197,61,.45)!important;
+  --red:#FF5470!important;--rd:rgba(255,84,112,.14)!important;--rt:#FF8FA3!important;--rb:rgba(255,84,112,.46)!important;
+  --blue:#3B9EFF!important;--bd:rgba(59,158,255,.14)!important;--bt:#8CC8FF!important;--bb:rgba(59,158,255,.45)!important;
+  --purple:#A78BFF!important;--pd:rgba(167,139,255,.14)!important;--pt:#C4B2FF!important;--pb:rgba(167,139,255,.45)!important;
+  --cyan:#22D3EE!important;--cd:rgba(34,211,238,.14)!important;--cb:rgba(34,211,238,.45)!important;
+  --orange:#FF8A3D!important;--od:rgba(255,138,61,.14)!important;--ob:rgba(255,138,61,.45)!important;
+  --pink:#FF5CC8!important;--pkd:rgba(255,92,200,.14)!important;--pkb:rgba(255,92,200,.45)!important;
+  --mono:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif!important;
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif!important;
+  --r-sm:9px!important;--r-md:11px!important;--r-lg:13px!important;--r-xl:15px!important;
+  --sh-card:none!important;--sh-hover:none!important;--glow:none!important;
+}
+html{font-size:13px}
+body{background:#030304!important;color:var(--t1);display:grid!important;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);height:100vh;overflow:hidden;margin:0}
+body>*{font-variant-numeric:tabular-nums}
+.sidebar.sb2{grid-row:1/3;grid-column:1}
+#appTopbar{grid-row:1;grid-column:2}
+.app{grid-row:2;grid-column:2;height:auto!important;min-height:0;overflow-y:auto!important;background:#030304!important}
+.import-screen{display:none!important}
+/* top bar: slim, like UB */
+.topbar,#appTopbar{height:44px!important;min-height:0!important;padding:0 16px!important;background:rgba(3,3,4,.92)!important;border-bottom:1px solid var(--b1)!important;display:flex;align-items:center;gap:8px;backdrop-filter:blur(14px)}
+.tb-logo{display:none!important}
+.tb-spacer-ub{flex:1}
+.tb-actions{gap:8px!important}
+.tb-icon{height:30px!important;width:30px!important;border-radius:9px!important;background:var(--s3)!important;border:1px solid var(--b2)!important;color:var(--t2)!important}
+#themeToggle{display:none!important}
+.tb-lastsaved,.save-status{font-family:inherit!important;font-size:11px!important;color:var(--t4)!important}
+.tb-add{height:30px!important;padding:0 13px!important;border-radius:9px!important;background:linear-gradient(135deg,#A78BFF 0%,#22D3EE 100%)!important;color:#030304!important;border:none!important;font-weight:800!important;font-size:12px!important;box-shadow:none!important}
+.tb-add:hover{filter:brightness(1.08)}
+/* pages: compact */
+.pane{padding:18px 22px 48px!important;max-width:1720px!important}
+.page-hd{margin-bottom:12px!important;padding-bottom:10px!important;border-color:var(--b1)!important;align-items:center!important}
+.page-title{font-size:21px!important;font-weight:800!important;letter-spacing:-.6px!important}
+.page-sub{font-size:12px!important;color:var(--t3)!important}
+.eyebrow,.page-eyebrow,.pl-eyebrow{font-size:9.5px!important;letter-spacing:1.6px!important;background:linear-gradient(135deg,#A78BFF,#22D3EE);-webkit-background-clip:text;background-clip:text;color:transparent!important}
+.btn{height:30px!important;padding:0 12px!important;border-radius:9px!important;font-size:12px!important;font-weight:700!important;background:var(--s3)!important;border:1px solid var(--b2)!important;color:var(--t1)!important;font-family:inherit!important;box-shadow:none!important}
+.btn:hover{border-color:var(--b3)!important}
+.btn.primary,.btn-primary,.btn.pri,.btn-pri,.imp-btn.primary{background:linear-gradient(135deg,#A78BFF 0%,#22D3EE 100%)!important;color:#030304!important;border:none!important}
+.btn.lg{height:36px!important;padding:0 16px!important;font-size:13px!important}
+.btn.sm,.btn-sm{height:26px!important;padding:0 9px!important;font-size:11px!important}
+input,select,textarea{font-family:inherit!important;background:var(--s2)!important;border-color:var(--b2)!important;color:var(--t1)!important;border-radius:9px!important}
+input:focus,select:focus,textarea:focus{border-color:var(--brand)!important;box-shadow:0 0 0 3px rgba(167,139,255,.18)!important}
+/* cards & tiles */
+.stat,.pl-kpi,.pipe-kpi,.v6-forecast-kpi,.src-tile,.pipe-card,.week-task,.ac-alert,.ac-prod,.launch-panel,.sample-card,.rank-item,.card,.panel,.ic,.pl-tbl,.sup-row-wrap,.pl-stage-checklist,.pl-task-composer{background:var(--s2)!important;border:1px solid var(--b1)!important;border-radius:12px!important;box-shadow:none!important}
+.stat .v,.pl-kpi .v,.pipe-kpi .v,.v6-forecast-kpi .v{font-weight:800!important;letter-spacing:-.6px!important;font-family:inherit!important}
+.stat .l,.pl-kpi .l,.pipe-kpi .l{font-size:10.5px!important;letter-spacing:1.2px!important;color:var(--t3)!important}
+.score-chip,.imp-badge,.ic-tag,.target-chip,.prod-stage-badge,.ntab-badge{font-family:inherit!important;font-weight:800!important;border-radius:999px!important}
+.empty-state,.empty{border:1px dashed var(--b2)!important;border-radius:13px!important;background:var(--s1)!important}
+.mono,[class*="mono"],code{font-family:inherit!important}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--b2);border-radius:99px;border:2px solid var(--bg)}::-webkit-scrollbar-track{background:transparent}
+/* ═══════ sidebar (same component as UB) ═══════ */
+.sidebar.sb2{width:236px;flex-shrink:0;display:flex;flex-direction:column;background:#050507;border-right:1px solid var(--b1);position:relative;z-index:30;transition:width .18s cubic-bezier(.4,0,.2,1);padding:0;font-family:var(--sans)}
+.sb2 .sn-brand{display:flex;align-items:center;gap:10px;padding:14px 14px 10px;min-height:62px}
+.sb2 .sn-mark{width:36px;height:36px;border-radius:11px;flex:none;background:linear-gradient(135deg,#A78BFF 0%,#22D3EE 100%);display:flex;align-items:center;justify-content:center}
+.sb2 .sn-mark svg{width:22px;height:22px}
+.sb2 .sn-brand-t{min-width:0}
+.sb2 .sn-name{font-size:14px;font-weight:800;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--t1)}
+.sb2 .sn-sub{font-size:10.5px;color:var(--t4);margin-top:1px;white-space:nowrap} .sb2 .sn-sub i{font-style:normal;color:#22D3EE;font-weight:700}
+.sb2 .sn-toggle{position:absolute;right:-12px;top:24px;width:24px;height:24px;border-radius:50%;background:var(--s3);border:1px solid var(--b2);color:var(--t2);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5;transition:transform .18s cubic-bezier(.4,0,.2,1),background .15s,color .15s;padding:0}
+.sb2 .sn-toggle svg{width:11px;height:11px}
+.sb2 .sn-toggle:hover{background:var(--b2);color:#fff}
+.sb2 .sn-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:2px 10px 8px}
+.sb2 .sn-sec{display:flex;align-items:center;gap:8px;padding:12px 8px 5px;font-size:9.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--t4);white-space:nowrap}
+.sb2 .sn-sec::after{content:'';flex:1;height:1px;background:var(--b1)}
+.sb2 .nav-item{display:flex;align-items:center;gap:10px;width:100%;padding:5px 7px;border-radius:10px;margin:0 0 2px;color:var(--t2);font-size:12.75px;font-weight:600;position:relative;text-align:left;background:none;border:none;cursor:pointer;transition:background .14s,color .14s,transform .08s;letter-spacing:-.05px;height:auto;font-family:inherit}
+.sb2 .nav-item:hover{background:#0E0E12;color:#fff}
+.sb2 .nav-item:active{transform:scale(.985)}
+.sb2 .sn-ic{width:28px;height:28px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent);transition:background .14s,color .14s}
+.sb2 .sn-ic svg{width:17px;height:17px}
+.sb2 .sn-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb2 .nav-item.active{background:linear-gradient(90deg,color-mix(in srgb,var(--c) 16%,transparent),color-mix(in srgb,var(--c) 4%,transparent) 70%,transparent);color:#fff}
+.sb2 .nav-item.active .sn-ic{background:var(--c);color:#030304}
+.sb2 .nav-item.active::before{content:'';position:absolute;left:-10px;top:7px;bottom:7px;width:3px;border-radius:0 3px 3px 0;background:var(--c)}
+.sb2 .nav-badge{margin-left:auto;font-size:10px;font-weight:800;min-width:20px;text-align:center;padding:2px 6px;border-radius:999px;background:var(--s3);color:var(--t2);border:1px solid var(--b2);font-variant-numeric:tabular-nums;font-family:inherit;flex:none;display:inline-block}
+.sb2 .nav-badge.zero{display:none}
+.sb2 .sn-foot{display:flex;align-items:center;gap:9px;padding:10px 12px;border-top:1px solid var(--b1);min-height:54px}
+.sb2 .sn-av{width:30px;height:30px;border-radius:9px;flex:none;background:linear-gradient(135deg,#A78BFF,#FF5CC8);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;color:#fff}
+.sb2 .sn-foot-t{min-width:0} .sb2 .sn-user{font-size:12px;font-weight:700;white-space:nowrap} .sb2 .sn-role{font-size:9.5px;color:var(--t4);text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}
+.sb2 .sn-saved{margin-left:auto;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+.sb2 .sn-saved i{width:7px;height:7px;border-radius:50%;background:var(--green);display:block}
+body.sb-min .sidebar.sb2{width:64px}
+body.sb-min .sb2 .sn-brand{padding:14px 0 10px;justify-content:center}
+body.sb-min .sb2 .sn-brand-t,body.sb-min .sb2 .sn-t,body.sb-min .sb2 .sn-foot-t,body.sb-min .sb2 .sn-saved,body.sb-min .sb2 .sn-sec span{display:none}
+body.sb-min .sb2 .sn-toggle{transform:rotate(180deg)}
+body.sb-min .sb2 .sn-nav{padding:2px 12px 8px}
+body.sb-min .sb2 .sn-sec{padding:8px 4px 4px}
+body.sb-min .sb2 .nav-item{justify-content:center;padding:5px 0;gap:0;margin-bottom:4px}
+body.sb-min .sb2 .sn-ic{width:34px;height:34px;border-radius:11px} body.sb-min .sb2 .sn-ic svg{width:19px;height:19px}
+body.sb-min .sb2 .nav-item:hover .sn-ic{background:color-mix(in srgb,var(--c) 24%,transparent)}
+body.sb-min .sb2 .nav-item.active{background:none} body.sb-min .sb2 .nav-item.active::before{left:-12px;top:6px;bottom:6px}
+body.sb-min .sb2 .nav-badge{position:absolute;top:0;right:2px;min-width:15px;height:15px;padding:0 4px;font-size:8.5px;line-height:13px;border-width:1px}
+body.sb-min .sb2 .sn-foot{justify-content:center;padding:10px 0}
+body.sb-min .sb2 .sn-mark{width:34px;height:34px;border-radius:10px}
+</style>
 </body>
 </html>
