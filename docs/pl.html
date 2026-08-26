@@ -1346,7 +1346,7 @@ body,.app{background:var(--bg)}
 <aside class="sidebar sb2">
   <div class="sn-brand">
     <div class="sn-mark" onclick="if(document.body.classList.contains('sb-min'))toggleSidebar()" title="Expand the sidebar" style="cursor:pointer"><svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="2.5" fill="#030304" opacity=".85"/><path d="M8.5 9V7a3.5 3.5 0 017 0v2" fill="none" stroke="#030304" stroke-width="2" stroke-linecap="round" opacity=".85"/></svg></div>
-    <div class="sn-brand-t"><div class="sn-name">Private Label</div><div class="sn-sub">Sourcing tracker · <i data-ver>v0.15</i></div></div>
+    <div class="sn-brand-t"><div class="sn-name">Private Label</div><div class="sn-sub">Sourcing tracker · <i data-ver>v0.2</i></div></div>
     <button class="sn-toggle" title="Collapse / expand" onclick="toggleSidebar()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5L5.5 8 10 12.5"/></svg></button>
     </div>
   <nav class="sn-nav">
@@ -2503,32 +2503,26 @@ function renderSrcKpi(scoreCache,pool){
     const warmW=Math.round((data.warm/total)*100);
     const coldW=100-hotW-warmW;
     const tileBorderCol=avg>=80?'var(--green)':avg>=70?'var(--green)':avg>=50?'var(--amber)':'var(--b2)';
-    return`<div class="src-tile ${isActive?'active-filter':''}" onclick="toggleSrcFilter('${esc(src)}')" style="border-left:3px solid ${tileBorderCol}">
-      <div class="src-tile-top">
-        <div>
-          <div class="src-tile-name">${esc(src)}</div>
-          <div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-top:2px">${data.count} idea${data.count>1?'s':''}</div>
-        </div>
-        <div class="src-tile-score" style="color:${avg>=80?'#04180d':avg>=70?'#ffffff':avg>=50?'#241a00':'var(--t3)'};background:${avg>=80?'var(--green)':avg>=70?'#1b7f4f':avg>=50?'var(--amber)':'var(--s4)'};border:none;padding:4px 10px">${avg}%</div>
+    // Was a box, holding two boxes, holding a badge. Flattened: one card, a colour spine that
+    // says how good the channel is, the mix bar, and the numbers on one line.
+    const spine = avg>=80?'#00E5A0' : avg>=70?'#4ADE80' : avg>=60?'#FFC53D' : avg>=50?'#FF8A3D' : '#7A7A85';
+    const readyTxt = data.hot>0 ? `<b style="color:#00E5A0">${data.hot}</b> launch-ready`
+                   : data.warm>0 ? `<b style="color:#FFC53D">${data.warm}</b> worth a look`
+                   : `<span style="color:var(--t4)">none ready yet</span>`;
+    return`<div class="srcx ${isActive?'on':''}" onclick="toggleSrcFilter('${esc(src)}')" style="--c:${spine}">
+      <div class="srcx-top">
+        <div class="srcx-name">${esc(src)}</div>
+        <div class="srcx-pct">${avg}<i>%</i></div>
       </div>
-      <div class="src-hot-bar">
-        ${hotW>0?`<div class="src-hot-pip" style="flex:${hotW};background:var(--green);opacity:1"></div>`:''}
-        ${warmW>0?`<div class="src-hot-pip" style="flex:${warmW};background:var(--amber);opacity:1"></div>`:''}
-        ${coldW>0?`<div class="src-hot-pip" style="flex:${Math.max(coldW,1)};background:var(--b2)"></div>`:''}
+      <div class="srcx-sub">${data.count} idea${data.count>1?'s':''} · avg score</div>
+      <div class="srcx-bar">
+        ${hotW>0?`<span style="flex:${hotW};background:#00E5A0"></span>`:''}
+        ${warmW>0?`<span style="flex:${warmW};background:#FFC53D"></span>`:''}
+        ${coldW>0?`<span style="flex:${Math.max(coldW,1)};background:var(--b2)"></span>`:''}
       </div>
-      <div class="src-tile-stats">
-        <div class="src-stat" style="background:${data.hot>0?'var(--gd)':data.warm>0?'var(--ad)':'var(--s3)'};border-color:${data.hot>0?'var(--gb)':data.warm>0?'var(--ab)':'var(--b2)'}">
-          <div class="src-stat-val" style="color:${data.hot>0?'var(--green)':data.warm>0?'var(--amber)':'var(--t2)'}">
-            ${data.hot>0?data.hot+' launch ready':data.warm>0?data.warm+' look at':'none ready'}
-          </div>
-          <div class="src-stat-lbl" style="color:${data.hot>0?'var(--green)':data.warm>0?'var(--amber)':'var(--t4)'}">Best status</div>
-        </div>
-        <div class="src-stat">
-          <div class="src-stat-val">${avgSv?Number(avgSv).toLocaleString():'—'}</div>
-          <div class="src-stat-lbl">Avg search vol</div>
-        </div>
-      </div>
-      ${best?`<div class="src-tile-best"><span>Top idea: </span>${esc(best.name.substring(0,28))}${best.name.length>28?'…':''} <span style="color:${best.pct>=80?'var(--green)':best.pct>=70?'#1ba967':best.pct>=50?'var(--amber)':'var(--t3)'}">${best.pct}%</span></div>`:''}
+      <div class="srcx-meta">${readyTxt}${avgSv?` · <b>${Number(avgSv).toLocaleString()}</b> avg SV`:''}</div>
+      ${best?`<div class="srcx-best">Best · ${esc(best.name.substring(0,26))}${best.name.length>26?'…':''}
+        <span style="color:${best.pct>=80?'#00E5A0':best.pct>=70?'#4ADE80':best.pct>=60?'#FFC53D':'var(--t3)'}">${best.pct}%</span></div>`:''}
     </div>`;
   }).join('');
 }
@@ -2605,40 +2599,44 @@ function renderDash(){
   else if(sort==='edited')list.sort((a,b)=>(b.editedAt||b.createdAt)-(a.editedAt||a.createdAt));
 
   const all=pool.map(n=>scoreCache.get(n.id)||score(n));
+  // Seven flat cells with hairline dividers read as a spreadsheet, not a set of KPIs — and
+  // nothing showed the SHAPE of the portfolio. Now: the total anchors it, a stacked bar shows
+  // the mix at a glance, and each band is a chip in its own colour that filters on click.
+  const BANDS = [
+    {k:'launch',    l:'Launch ASAP',       r:'80%+',      c:'#00E5A0'},
+    {k:'good',      l:'Good — look ASAP',  r:'70–79%',    c:'#4ADE80'},
+    {k:'potential', l:'Has potential',     r:'60–69%',    c:'#FFC53D'},
+    {k:'revisit',   l:'Worth revisiting',  r:'50–59%',    c:'#FF8A3D'},
+    {k:'weak',      l:'Weak — needs work', r:'40–49%',    c:'#FF6B81'},
+    {k:'holding',   l:'Holding',           r:'under 40%', c:'#7A7A85'},
+  ];
+  const bandN = {}; BANDS.forEach(b=>{ bandN[b.k] = all.filter(s=>s.status===b.k).length; });
+  const tot = pool.length || 1;
+  const act = bandN.launch + bandN.good;
+  const seg = BANDS.filter(b=>bandN[b.k]).map(b=>
+      `<span class="sr-seg" style="flex:${bandN[b.k]};background:${b.c}" title="${b.l} · ${bandN[b.k]}"></span>`).join('');
+  const chip = (k,l,n,r,c,activeCol) =>
+    `<button class="sr-chip${fs===k?' on':''}" onclick="setStatFilter('${k}')" style="--c:${c}">
+       <span class="sr-n">${n}</span>
+       <span class="sr-t">${l}</span>
+       ${r?`<span class="sr-r">${r}</span>`:''}
+     </button>`;
   document.getElementById('statRow').innerHTML=`
-    <div class="stat ${fs===''?'active-stat':''}" onclick="setStatFilter('')" style="border-right:1px solid var(--b2)">
-      <div class="stat-n">${pool.length}</div>
-      <div class="stat-l">All Ideas</div>
+    <div class="sr-top">
+      <button class="sr-all${fs===''?' on':''}" onclick="setStatFilter('')">
+        <span class="sr-all-n">${pool.length}</span>
+        <span class="sr-all-l">ideas<br>tracked</span>
+      </button>
+      <div class="sr-mid">
+        <div class="sr-bar">${seg || '<span class="sr-seg sr-empty"></span>'}</div>
+        <div class="sr-read">${act
+          ? `<b>${act}</b> scored 70%+ — those are the ones worth acting on`
+          : 'Nothing above 70% yet — score a few more and the strong ones surface here'}${
+          fs ? ` · <span class="sr-filtered">filtered to ${BANDS.concat([{k:'',l:'all'}]).find(b=>b.k===fs)?.l||fs}</span>` : ''}</div>
+      </div>
     </div>
-    <div class="stat ${fs==='launch'?'active-stat':''}" onclick="setStatFilter('launch')" style="border-right:1px solid var(--b2)">
-      <div class="stat-n" style="color:var(--green)">${all.filter(s=>s.status==='launch').length}</div>
-      <div class="stat-l">Launch ASAP</div>
-      <div style="font-family:var(--mono);font-size:10px;color:var(--t4);margin-top:3px">80%+</div>
-    </div>
-    <div class="stat ${fs==='good'?'active-stat':''}" onclick="setStatFilter('good')" style="border-right:1px solid var(--b2)">
-      <div class="stat-n" style="color:var(--green)">${all.filter(s=>s.status==='good').length}</div>
-      <div class="stat-l">Good — Look ASAP</div>
-      <div style="font-family:var(--mono);font-size:10px;color:var(--t4);margin-top:3px">70–79%</div>
-    </div>
-    <div class="stat ${fs==='potential'?'active-stat':''}" onclick="setStatFilter('potential')" style="border-right:1px solid var(--b2)">
-      <div class="stat-n" style="color:var(--amber)">${all.filter(s=>s.status==='potential').length}</div>
-      <div class="stat-l">Has Potential</div>
-      <div style="font-family:var(--mono);font-size:10px;color:var(--t4);margin-top:3px">60–69%</div>
-    </div>
-    <div class="stat ${fs==='revisit'?'active-stat':''}" onclick="setStatFilter('revisit')" style="border-right:1px solid var(--b2)">
-      <div class="stat-n" style="color:var(--amber)">${all.filter(s=>s.status==='revisit').length}</div>
-      <div class="stat-l">Worth Revisiting</div>
-      <div style="font-family:var(--mono);font-size:10px;color:var(--t4);margin-top:3px">50–59%</div>
-    </div>
-    <div class="stat ${fs==='weak'?'active-stat':''}" onclick="setStatFilter('weak')" style="border-right:1px solid var(--b2)">
-      <div class="stat-n" style="color:var(--t2)">${all.filter(s=>s.status==='weak').length}</div>
-      <div class="stat-l">Weak — Needs Work</div>
-      <div style="font-family:var(--mono);font-size:10px;color:var(--t4);margin-top:3px">40–49%</div>
-    </div>
-    <div class="stat ${fs==='holding'?'active-stat':''}" onclick="setStatFilter('holding')">
-      <div class="stat-n" style="color:var(--t3)">${all.filter(s=>s.status==='holding').length}</div>
-      <div class="stat-l" style="color:var(--t4)">Holding</div>
-      <div style="font-family:var(--mono);font-size:10px;color:var(--t4);margin-top:3px">under 40%</div>
+    <div class="sr-chips">
+      ${BANDS.map(b=>chip(b.k,b.l,bandN[b.k],b.r,b.c)).join('')}
     </div>
   `;
 
@@ -7340,6 +7338,58 @@ body.sb-min .sb2 .sn-mark{width:28px;height:28px}
 .ac2-kpi-lines>div{font-size:11.5px!important} .ac2-kpi-lines b{font-variant-numeric:tabular-nums}
 .ac2-completed summary{font-size:11.5px!important;color:var(--t3)!important}
 
+/* ═══════ WHERE IDEAS COME FROM — one card, no nested boxes ═══════ */
+#srcKpiRow{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(212px,1fr))!important;gap:8px!important}
+.srcx{position:relative;background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:11px 13px 12px;
+  cursor:pointer;overflow:hidden;display:flex;flex-direction:column;gap:5px;transition:border-color .15s,transform .08s,background .15s}
+.srcx::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c);opacity:.8}
+.srcx:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--c) 45%,transparent)}
+.srcx.on{background:color-mix(in srgb,var(--c) 10%,var(--s1));border-color:color-mix(in srgb,var(--c) 55%,transparent)}
+.srcx.on::before{width:4px;opacity:1}
+.srcx-top{display:flex;align-items:baseline;gap:8px}
+.srcx-name{flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srcx-pct{font-size:19px;font-weight:850;letter-spacing:-.8px;color:var(--c);font-variant-numeric:tabular-nums;line-height:1}
+.srcx-pct i{font-size:11px;font-style:normal;font-weight:700;margin-left:1px}
+.srcx-sub{font-size:10px;color:var(--t4);letter-spacing:.2px;margin-top:-3px}
+.srcx-bar{display:flex;gap:2px;height:5px;border-radius:99px;overflow:hidden;margin:2px 0 1px}
+.srcx-bar span{border-radius:99px;min-width:4px}
+.srcx-meta{font-size:10.5px;color:var(--t3);font-variant-numeric:tabular-nums}
+.srcx-meta b{font-weight:800;color:var(--t1)}
+.srcx-best{font-size:10px;color:var(--t4);border-top:1px solid var(--b1);padding-top:6px;margin-top:1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+
+/* ═══════ IDEAS BANDS — a set of KPIs, not a table ═══════ */
+#pane-dash .stat-row{display:block!important;background:transparent!important;border:none!important;
+  box-shadow:none!important;overflow:visible!important;border-radius:0!important;margin-bottom:13px!important;padding:0!important}
+.sr-top{display:flex;align-items:stretch;gap:11px;margin-bottom:9px}
+.sr-all{display:flex;align-items:center;gap:9px;flex:none;padding:11px 15px;border-radius:12px;cursor:pointer;font-family:inherit;text-align:left;
+  background:var(--s2);border:1px solid var(--b2);transition:border-color .15s,background .15s}
+.sr-all:hover{border-color:var(--b3)}
+.sr-all.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--s2))}
+.sr-all-n{font-size:30px;font-weight:850;letter-spacing:-1.4px;line-height:1;color:var(--t1);font-variant-numeric:tabular-nums}
+.sr-all-l{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--t4);line-height:1.25}
+.sr-mid{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:8px;
+  background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:12px 15px}
+.sr-bar{display:flex;gap:2px;height:9px;border-radius:99px;overflow:hidden}
+.sr-seg{border-radius:99px;min-width:5px;transition:flex .3s}
+.sr-seg.sr-empty{flex:1;background:var(--b2)}
+.sr-read{font-size:11.5px;color:var(--t3);line-height:1.35}
+.sr-read b{color:var(--t1);font-weight:800}
+.sr-filtered{color:var(--at,#FFC53D);font-weight:700}
+.sr-chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:7px}
+.sr-chip{position:relative;display:flex;flex-direction:column;gap:1px;padding:9px 12px 10px;border-radius:11px;cursor:pointer;
+  font-family:inherit;text-align:left;overflow:hidden;
+  background:var(--s1);border:1px solid var(--b1);transition:border-color .15s,background .15s,transform .08s}
+.sr-chip::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c);opacity:.75}
+.sr-chip:hover{border-color:color-mix(in srgb,var(--c) 45%,transparent);transform:translateY(-1px)}
+.sr-chip.on{background:color-mix(in srgb,var(--c) 13%,var(--s1));border-color:color-mix(in srgb,var(--c) 52%,transparent)}
+.sr-chip.on::before{opacity:1;width:4px}
+.sr-n{font-size:21px;font-weight:850;line-height:1;letter-spacing:-.9px;color:var(--c);font-variant-numeric:tabular-nums}
+.sr-t{font-size:10.5px;font-weight:650;color:var(--t2);line-height:1.25}
+.sr-r{font-size:9.5px;font-weight:600;color:var(--t4);letter-spacing:.2px}
+
+
 /* "work these next" — the three ideas actually waiting on a decision */
 .plnext{margin:0 0 11px}
 .plnext-h{display:flex;align-items:baseline;gap:9px;margin-bottom:7px}
@@ -7393,7 +7443,7 @@ body.sb-min .sb2 .sn-mark{width:28px;height:28px}
 
 <script>
 /* ── THE VERSION PEOPLE SEE. Bump by 0.05 every release, in step with UB. ── */
-var APP_VER = '0.15';
+var APP_VER = '0.2';
 document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'+APP_VER; });
 /* ═══════════ IMPORT IDEAS — adds, never replaces ═══════════
    The existing "restore backup" wipes the tracker and puts a saved copy back. That is the right
@@ -7437,6 +7487,10 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
         // only carry the "check these" tally if his record had no answers of its own to begin with
         if(inc._prefill && !ex._prefill && !hadAnswers) ex._prefill = inc._prefill;
         if(inc.notes) ex.notes = (ex.notes ? ex.notes.trim()+'\n' : '') + inc.notes;
+        // An earlier import of the same idea can carry a wrong (too recent) creation date —
+        // the real one is whichever is older. This lets a corrected file repair what's already
+        // here instead of forcing a wipe-and-reimport.
+        if(inc.createdAt && (!ex.createdAt || inc.createdAt < ex.createdAt)) ex.createdAt = inc.createdAt;
         ex.editedAt = base;
         updated++;
       } else {

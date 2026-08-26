@@ -169,3 +169,15 @@ Above the ideas list, up to three ideas that **scored 60%+, have not been touche
 
 Everything above from "First month is scaled" onward ships as **v0.15**: five pipeline stages, part-month targets, paste-your-notes, the PL idea import with pre-filled checklists, the density pass, and the pre-ship fixes. Backups written by v0.1 still import into v0.15 — nothing checks the version number.
 
+## v0.2 — 26 Aug · Ideas page look
+
+- **The band row is a set of KPIs now, not a spreadsheet.** Seven flat cells with hairline dividers became: the total as an anchor, a **stacked bar showing the shape of the portfolio** at a glance, a plain-English read (*"10 scored 70%+ — those are the ones worth acting on"*), and six colour-coded chips. Each chip still filters on click, and now says so — the read line tells you what you're filtered to.
+- **Each band has its own colour** — Launch ASAP green through Holding grey — instead of three colours shared across six bands.
+- **Where ideas come from: one card, no nested boxes.** The source tiles were a box holding two boxes holding a badge. Now a single card with a colour spine that reflects how good the channel is, the hot/warm/cold mix bar, the numbers on one line, and the best idea from that source. Takes about half the vertical space.
+
+### Fixed: the date filters looked broken
+
+Every idea the first import created carried **today's** date, so *Today / This week / This month / All time* all returned the same list, sort-by-recent did nothing, and every card said "today". The filters were fine — the data was flat.
+
+The real creation dates are back (55 of them, recovered from the July backup; the 7 found on 26 Aug are genuinely new; 3 have no recorded date anywhere and say so in their notes). **Re-importing the corrected file repairs ideas already in the tracker** — the merge now takes the older of the two creation dates, so there is no need to wipe and start again.
+

@@ -1948,7 +1948,7 @@ body.sb-min .sb2 .sn-mark{width:28px;height:28px}
   <aside class="sidebar sb2">
     <div class="sn-brand">
       <div class="sn-mark" onclick="if(document.body.classList.contains('sb-min'))toggleSidebar()" title="Expand the sidebar" style="cursor:pointer"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="8" rx="2.5" fill="#030304" opacity=".85"/><rect x="5.5" y="7" width="13" height="6" rx="2" fill="#030304" opacity=".55"/><rect x="8" y="3.5" width="8" height="5" rx="1.8" fill="#030304" opacity=".35"/></svg></div>
-      <div class="sn-brand-t"><div class="sn-name" id="sbName">Unique Bundles</div><div class="sn-sub">Sourcing tracker · <i data-ver>v0.15</i></div></div>
+      <div class="sn-brand-t"><div class="sn-name" id="sbName">Unique Bundles</div><div class="sn-sub">Sourcing tracker · <i data-ver>v0.2</i></div></div>
       <button class="sn-toggle" title="Collapse the sidebar" onclick="toggleSidebar()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5L5.5 8 10 12.5"/></svg></button>
     </div>
     <nav class="sn-nav">
@@ -2003,7 +2003,7 @@ body.sb-min .sb2 .sn-mark{width:28px;height:28px}
         <span class="tb-kbd">/</span>
       </div>
       <div class="tb-spacer"></div>
-      <span class="tb-saved" id="saveChip" style="cursor:pointer" title="Everything is saved in this browser automatically — click to download a backup file" onclick="exportData()"><span class="dot"></span><b data-ver>v0.15</b> · saves locally</span>
+      <span class="tb-saved" id="saveChip" style="cursor:pointer" title="Everything is saved in this browser automatically — click to download a backup file" onclick="exportData()"><span class="dot"></span><b data-ver>v0.2</b> · saves locally</span>
       <button class="btn" id="sessBtn" title="Time your sourcing — counts the ideas and reviews you do while it runs" onclick="toggleSession()">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5"/></svg>
         Start session
@@ -3656,7 +3656,7 @@ const bandFor = s => SETTINGS.bands.slice().sort((a,b)=>b.min-a.min).find(b => s
 const linkFor = (key, asin) => SETTINGS.linkTemplates.find(l=>l.key===key).tpl.replace('{asin}', asin);
 
 // ── THE VERSION PEOPLE SEE. Bump by 0.05 every release. ──
-const APP_VER = '0.15';
+const APP_VER = '0.2';
 function paintVersion(){ document.querySelectorAll('[data-ver]').forEach(e=>{ e.textContent = 'v'+APP_VER; }); }
 const STAGES = [
   {key:'sourcing', name:'Sourcing', desc:'Can every component be acquired at a viable cost? Starts the moment it leaves ranking.'},
