@@ -83,9 +83,9 @@ iframe.show{display:block;animation:frameIn .18s cubic-bezier(.4,0,.2,1)}
   <section id="pipe"></section>
 </div>
 <script>
-// BUILD is the version people see; STAMP is what actually busts the cache. Bump STAMP every push.
-var BUILD = '0.1';
-var STAMP = '2026-08-24f';
+// BUILD is the version people see — moves by 0.05 a release; STAMP is what actually busts the cache. Bump STAMP every push.
+var BUILD = '0.15';
+var STAMP = '2026-08-26x';
 document.getElementById('buildChip').textContent = 'v' + BUILD;
 
 var FRAMES = { ub: document.getElementById('f_ub'), pl: document.getElementById('f_pl') };
@@ -119,7 +119,7 @@ var COLS = [
   {key:'launching',  name:'Launching'},
   {key:'launched',   name:'Launched'}
 ];
-var UB_MAP = { ready_to_source:'sourcing', source:'sourcing', jack_validation:'validating', prepare_to_launch:'ready', order_purchase:'ordered', launch:'launching' };
+var UB_MAP = { sourcing:'sourcing', jack_validation:'validating', prepare_to_launch:'ready', buy_receive:'ordered', live:'launching', ready_to_source:'sourcing', source:'sourcing', order_purchase:'ordered', launch:'launching' };
 var UB_NAMES = { ready_to_source:'Ready to Source', source:'Source', jack_validation:'Jack Validation', prepare_to_launch:'Prepare to Launch', order_purchase:'Order / Purchase', launch:'Launch' };
 var PL_MAP = { 1:'sourcing', 2:'sourcing', 3:'samples', 4:'samples', 5:'ordered', 6:'ready', 7:'launching' };
 var PL_NAMES = { 1:'Sourcing', 2:'Contact & Pricing', 3:'Ordering Samples', 4:'Samples', 5:'Purchase', 6:'Prepare to Launch', 7:'Launch' };

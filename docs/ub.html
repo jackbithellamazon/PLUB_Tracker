@@ -1780,6 +1780,165 @@ body.sb-min .sb2 .sn-foot{justify-content:center;padding:10px 0}
 .imp-more{font-size:10.5px;color:var(--t4);padding-top:5px}
 .imp-safe{font-size:11.5px;line-height:1.6;color:var(--t2);background:var(--gd);border:1px solid var(--gb);border-radius:10px;padding:9px 12px}
 .imp-safe b{color:var(--gt)}
+
+/* ═══════ TASKS — compact grouped list ═══════ */
+.tsk-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.tsk-stats{display:flex;gap:6px;flex-wrap:wrap}
+.tsk-stat{display:flex;align-items:baseline;gap:6px;background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:6px 11px;cursor:pointer;transition:border-color .14s,background .14s;font-family:inherit}
+.tsk-stat:hover{border-color:var(--b3)} .tsk-stat.on{border-color:var(--accent2);background:color-mix(in srgb,var(--accent2) 10%,var(--s1))}
+.tsk-stat.bad{border-color:var(--rb);background:var(--rd)} .tsk-stat.bad b{color:var(--rt)}
+.tsk-stat b{font-size:17px;font-weight:800;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
+.tsk-stat span{font-size:10.5px;color:var(--t3)}
+.tsk-tools{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tsk-search{background:var(--s2);border:1px solid var(--b2);border-radius:9px;padding:6px 11px;font-size:12px;color:var(--t1);width:200px;font-family:inherit}
+.tsk-search:focus{border-color:var(--accent);outline:none}
+.tsk-seg{display:flex;background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:2px}
+.tsk-seg button{font:700 11px/1 inherit;background:none;border:none;color:var(--t3);padding:6px 10px;border-radius:7px;cursor:pointer;transition:color .14s,background .14s}
+.tsk-seg button:hover{color:var(--t1)} .tsk-seg button.on{background:var(--s3);color:#fff}
+.tsk-hint{font-size:11px;color:var(--t4);margin-bottom:11px}
+.tsk-hint b{font-weight:700} .p-urgent{color:#FF8FA3} .p-high{color:var(--at)} .p-low{color:var(--t3)}
+.tsk-sec{margin-bottom:14px}
+.tsk-sec-h{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--t4);margin-bottom:6px}
+.tsk-sec-ic{font-size:12px} .tsk-sec-n{background:var(--s3);border:1px solid var(--b2);border-radius:999px;padding:1px 7px;font-size:10px;color:var(--t3);letter-spacing:0}
+.tsk-sec-h::after{content:'';flex:1;height:1px;background:var(--b1)}
+.tsk-rows{background:var(--s1);border:1px solid var(--b1);border-radius:12px;overflow:hidden}
+.tsk-row{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--b1);transition:background .12s}
+.tsk-row:last-child{border-bottom:none}
+.tsk-row:hover{background:var(--s2)}
+.tsk-row.is-open{background:var(--s2)}
+.tsk-row.is-flag{box-shadow:inset 3px 0 0 var(--red)}
+.tsk-row.is-late{box-shadow:inset 3px 0 0 var(--amber)}
+.tsk-row.is-done{opacity:.5} .tsk-row.is-done .tsk-title{text-decoration:line-through}
+.tsk-check{width:19px;height:19px;flex:none;border-radius:6px;border:1.5px solid var(--b3);background:none;color:transparent;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .14s;padding:0}
+.tsk-check:hover{border-color:var(--accent2)}
+.tsk-check.in_process{border-color:var(--amber);color:var(--at);background:var(--ad)}
+.tsk-check.done{border-color:var(--green);background:var(--green);color:#030304}
+.tsk-pri{width:7px;height:7px;border-radius:50%;flex:none;border:none;cursor:pointer;padding:0;background:var(--b3);transition:transform .1s}
+.tsk-pri:hover{transform:scale(1.5)}
+.tsk-pri.p-urgent{background:var(--red)} .tsk-pri.p-high{background:var(--amber)} .tsk-pri.p-medium{background:var(--b3)} .tsk-pri.p-low{background:#2A2A31}
+.tsk-main{min-width:0;cursor:pointer;padding:1px 0}
+.tsk-title{font-size:12.5px;font-weight:600;color:var(--t1);line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tsk-note{font-size:11px;color:var(--at);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tsk-new{font-size:8.5px;font-weight:800;background:var(--rd);color:var(--rt);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle}
+.tsk-meta{display:flex;align-items:center;gap:6px;flex:none}
+.tsk-flag{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:2px 6px;border-radius:5px}
+.tsk-flag.p-urgent{background:var(--rd);color:var(--rt)} .tsk-flag.p-high{background:var(--ad);color:var(--at)}
+.tsk-due{font-size:10.5px;font-weight:700;color:var(--t3);font-variant-numeric:tabular-nums}
+.tsk-due.over{color:var(--rt)} .tsk-due.soon{color:var(--at)}
+.tsk-rep,.tsk-notes{font-size:10px;color:var(--t4);background:var(--s3);border-radius:5px;padding:1px 5px}
+.tsk-type{font-size:11px;opacity:.75;width:20px;text-align:center}
+.tsk-acts{display:flex;align-items:center;gap:4px;flex:none;opacity:0;transition:opacity .14s}
+.tsk-row:hover .tsk-acts,.tsk-row.is-open .tsk-acts{opacity:1}
+.tsk-go{font:700 10.5px/1 inherit;background:var(--s3);border:1px solid var(--b2);color:var(--t2);border-radius:7px;padding:4px 8px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.tsk-go:hover{color:#fff;border-color:var(--accent2)}
+.tsk-x{font:700 11px/1 inherit;background:none;border:none;color:var(--t4);cursor:pointer;padding:4px 5px;border-radius:6px}
+.tsk-x:hover{color:var(--rt);background:var(--rd)}
+.tsk-open{grid-column:1/-1;padding:8px 0 4px;border-top:1px solid var(--b1);margin-top:6px}
+.tsk-open-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.tsk-prisel{display:flex;gap:3px}
+.tsk-thread{margin-bottom:8px}
+@media (max-width:900px){.tsk-tools{margin-left:0;width:100%}.tsk-search{flex:1;width:auto}}
+
+/* sidebar/topbar alignment: brand row is exactly the topbar height, toggle sits inside it */
+.sb2 .sn-brand{min-height:44px;height:44px;padding:0 10px 0 12px;border-bottom:1px solid var(--b1);gap:9px}
+.sb2 .sn-mark{width:26px;height:26px;border-radius:8px} .sb2 .sn-mark svg{width:16px;height:16px}
+.sb2 .sn-name{font-size:12.5px;line-height:1.15}
+.sb2 .sn-sub{font-size:9.5px;margin-top:0;line-height:1.15}
+.sb2 .sn-toggle{position:static;margin-left:auto;width:20px;height:20px;border-radius:6px;flex:none;background:none;border:1px solid var(--b2)}
+.sb2 .sn-toggle svg{width:10px;height:10px}
+body.sb-min .sb2 .sn-brand{padding:0;justify-content:center}
+body.sb-min .sb2 .sn-toggle{display:none}
+body.sb-min .sb2 .sn-mark{width:28px;height:28px}
+.sb2 .sn-foot{min-height:46px;padding:8px 12px}
+.sb2 .sn-nav{padding-top:6px}
+
+/* ═══════ REVIEW QUEUE — decide one, see what's next ═══════ */
+.nq{background:linear-gradient(180deg,var(--s2) 0%,var(--s1) 60%);border:1px solid var(--b2);border-radius:15px;padding:15px 17px;position:relative;overflow:hidden}
+.nq::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent2)}
+.nq.tc-asin::before{background:var(--green)} .nq.tc-amazon::before{background:var(--amber)} .nq.tc-store::before{background:var(--accent2)} .nq.tc-keepa::before{background:#E879C7} .nq.tc-sas::before{background:var(--blue)}
+.nq.tc-over{border-color:var(--rb)} .nq.tc-warn{border-color:var(--ab)}
+.nq-top{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.nq-pos{font-size:10.5px;font-weight:700;color:var(--t3);font-variant-numeric:tabular-nums}
+.nq-age{font-size:10.5px;font-weight:700;color:var(--t4)} .nq-age.tc-warn{color:var(--at)} .nq-age.tc-over{color:var(--rt)}
+.nq-nav{margin-left:auto;display:flex;gap:4px}
+.nq-arrow{width:26px;height:26px;border-radius:8px;background:var(--s3);border:1px solid var(--b2);color:var(--t2);font-size:12px;cursor:pointer;font-family:inherit}
+.nq-arrow:hover{color:#fff;border-color:var(--b3)}
+.nq-name{font-size:17px;font-weight:800;letter-spacing:-.4px;line-height:1.3;word-break:break-word}
+.nq-sub{font-size:11px;color:var(--t4);margin-top:3px}
+.nq-links{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:11px 0 9px}
+.nq-link{font:700 11.5px/1 inherit;padding:7px 11px;border-radius:9px;background:var(--s3);border:1px solid var(--b2);color:var(--t2);text-decoration:none;transition:border-color .14s,color .14s}
+.nq-link:hover{color:#fff;border-color:var(--accent2)}
+.nq-link.primary{background:color-mix(in srgb,var(--accent2) 14%,transparent);border-color:rgba(34,211,238,.4);color:#7FE9F5}
+.nq-kb{font-size:10.5px;color:var(--t4);margin-left:2px}
+.nq-note{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:9px;padding:8px 11px;font-size:12px;color:var(--t1);font-family:inherit;margin-bottom:10px}
+.nq-note:focus{border-color:var(--accent);outline:none}
+.nq-decide{display:flex;gap:7px;flex-wrap:wrap}
+.nq-btn{display:flex;align-items:center;gap:8px;font-family:inherit;border-radius:10px;padding:9px 14px;cursor:pointer;border:1px solid var(--b2);background:var(--s3);color:var(--t1);transition:transform .08s,border-color .14s,background .14s}
+.nq-btn:active{transform:scale(.97)}
+.nq-btn b{font-size:12.5px;font-weight:700} .nq-btn span{font-size:9px;font-weight:800;background:rgba(255,255,255,.08);border-radius:4px;padding:2px 5px;color:var(--t3)}
+.nq-btn.yes{background:var(--gd);border-color:var(--gb);color:var(--gt)} .nq-btn.yes:hover{background:rgba(0,229,160,.22)}
+.nq-btn.no{background:var(--rd);border-color:var(--rb);color:var(--rt)} .nq-btn.no:hover{background:rgba(255,84,112,.22)}
+.nq-btn.snz:hover,.nq-btn.watch:hover{border-color:var(--b3)}
+.qr-batches{font-size:10px;color:var(--t4);font-weight:600;letter-spacing:0;text-transform:none}
+.qr-list{background:var(--s1);border:1px solid var(--b1);border-radius:12px;overflow:hidden;max-height:420px;overflow-y:auto}
+.qr{display:flex;align-items:center;gap:9px;width:100%;padding:7px 12px;background:none;border:none;border-bottom:1px solid var(--b1);cursor:pointer;text-align:left;font-family:inherit;transition:background .12s}
+.qr:last-child{border-bottom:none} .qr:hover{background:var(--s2)}
+.qr-chip{font-size:8.5px;font-weight:800;letter-spacing:.5px;padding:2px 6px;border-radius:5px;flex:none;background:var(--s3);color:var(--t3);border:1px solid var(--b2)}
+.qr-chip.tc-asin{color:var(--gt);border-color:var(--gb);background:var(--gd)}
+.qr-chip.tc-keepa{color:#F0A6DA;border-color:rgba(232,121,199,.4);background:rgba(232,121,199,.12)}
+.qr-chip.tc-store{color:#7FE9F5;border-color:rgba(56,189,248,.4);background:rgba(56,189,248,.1)}
+.qr-chip.tc-sas{color:var(--blue);border-color:rgba(59,158,255,.4);background:rgba(59,158,255,.1)}
+.qr-chip.tc-amazon{color:var(--at);border-color:var(--ab);background:var(--ad)}
+.qr-name{flex:1;min-width:0;font-size:12px;font-weight:600;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qr-note{font-size:10.5px;color:var(--at);max-width:32%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none}
+.qr-age{font-size:10.5px;font-weight:700;color:var(--t4);flex:none;font-variant-numeric:tabular-nums}
+.qr-age.tc-warn{color:var(--at)} .qr-age.tc-over{color:var(--rt)}
+.qr.tc-over{box-shadow:inset 3px 0 0 var(--red)} .qr.tc-warn{box-shadow:inset 3px 0 0 var(--amber)}
+.qr-more,.qr-last{font-size:11.5px;color:var(--t4);padding:10px 2px}
+.qr-last{text-align:center;padding:14px}
+
+/* ── Ideas: where to start ── */
+.wn{background:linear-gradient(180deg,color-mix(in srgb,var(--green) 7%,var(--s1)),var(--s1) 70%);border:1px solid var(--gb);border-radius:13px;padding:11px 13px;margin:12px 0 4px}
+.wn-h{font-size:12.5px;font-weight:800;margin-bottom:9px;display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.wn-sub{font-size:11px;font-weight:500;color:var(--t3)}
+.wn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}
+.wn-card{background:var(--s2);border:1px solid var(--b1);border-radius:11px;padding:10px 11px;cursor:pointer;transition:border-color .14s,transform .08s}
+.wn-card:hover{border-color:var(--gb)} .wn-card:active{transform:scale(.99)}
+.wn-top{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.wn-score{font-size:15px;font-weight:800;color:var(--gt);letter-spacing:-.4px;font-variant-numeric:tabular-nums}
+.wn-kind{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--acc-t);border-radius:5px;padding:2px 6px}
+.wn-t{font-size:12.5px;font-weight:700;line-height:1.35;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.wn-m{font-size:10.5px;color:var(--t3);margin-top:3px}
+.wn-go{margin-top:8px;width:100%;font:700 11px/1 inherit;background:var(--gd);border:1px solid var(--gb);color:var(--gt);border-radius:8px;padding:6px 9px;cursor:pointer}
+.wn-go:hover{background:rgba(0,229,160,.22)}
+/* tighter leaderboard rows */
+.lb-row{padding:8px 12px!important;gap:11px}
+.lb-title{font-size:12.5px}
+.rr-stat .v{font-size:13px} .rr-stat .l{font-size:9px;letter-spacing:.8px}
+.sig-chips{margin:5px 0 0!important}
+
+.kpi-pro{font-size:8.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin-left:6px;padding:2px 5px;border-radius:5px;background:rgba(167,139,255,.14);border:1px solid rgba(167,139,255,.34);color:#C3B0FF;vertical-align:2px;cursor:help}
+
+/* Buy & receive: five ticks in one stage, shown as pips so a four-week stage still reads as movement */
+.pc-ticks{display:flex;align-items:center;gap:3px;margin-bottom:5px;flex-wrap:nowrap}
+.pt{flex:1 1 auto;min-width:5px;max-width:18px;height:4px;border-radius:99px;background:var(--b2);transition:background .16s}
+.pt.on{background:var(--green)}
+.pt-l{flex:none;white-space:nowrap;font-size:9.5px;font-weight:800;color:var(--t4);margin-left:4px;font-variant-numeric:tabular-nums}
+.board.compact .pc-ticks{display:none}
+
+/* paste-your-notes, in the composer head */
+.cp-paste{margin-top:8px}
+.cp-paste-t{display:flex;align-items:center;gap:8px;width:100%;font:700 11.5px inherit;color:var(--t3);background:var(--s2);
+  border:1px dashed var(--b2);border-radius:9px;padding:7px 11px;cursor:pointer;text-align:left;transition:border-color .14s,color .14s}
+.cp-paste-t:hover{border-color:var(--accent);color:var(--t1)}
+.cp-paste.open .cp-paste-t{border-style:solid;border-color:var(--accent);color:var(--t1);border-bottom-left-radius:0;border-bottom-right-radius:0}
+.cp-paste-h{margin-left:auto;font-weight:600;font-size:10.5px;color:var(--t4)}
+.cp-paste-b{border:1px solid var(--accent);border-top:none;border-radius:0 0 9px 9px;padding:9px 11px 10px;background:var(--s2)}
+.cp-paste-b textarea{width:100%;min-height:104px;resize:vertical;background:var(--s1);border:1px solid var(--b2);border-radius:8px;
+  padding:8px 10px;font:12px/1.55 inherit;color:var(--t1)}
+.cp-paste-b textarea:focus{border-color:var(--accent);outline:none}
+.cp-paste-a{display:flex;align-items:center;gap:10px;margin-top:8px}
+.cp-paste-n{font-size:10.5px;color:var(--t4)}
 </style>
 </head>
 <body>
@@ -1788,10 +1947,10 @@ body.sb-min .sb2 .sn-foot{justify-content:center;padding:10px 0}
   <!-- ═══════ SIDEBAR ═══════ -->
   <aside class="sidebar sb2">
     <div class="sn-brand">
-      <div class="sn-mark"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="8" rx="2.5" fill="#030304" opacity=".85"/><rect x="5.5" y="7" width="13" height="6" rx="2" fill="#030304" opacity=".55"/><rect x="8" y="3.5" width="8" height="5" rx="1.8" fill="#030304" opacity=".35"/></svg></div>
-      <div class="sn-brand-t"><div class="sn-name" id="sbName">Unique Bundles</div><div class="sn-sub">Sourcing tracker · <i>v0.1</i></div></div>
+      <div class="sn-mark" onclick="if(document.body.classList.contains('sb-min'))toggleSidebar()" title="Expand the sidebar" style="cursor:pointer"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="8" rx="2.5" fill="#030304" opacity=".85"/><rect x="5.5" y="7" width="13" height="6" rx="2" fill="#030304" opacity=".55"/><rect x="8" y="3.5" width="8" height="5" rx="1.8" fill="#030304" opacity=".35"/></svg></div>
+      <div class="sn-brand-t"><div class="sn-name" id="sbName">Unique Bundles</div><div class="sn-sub">Sourcing tracker · <i data-ver>v0.1</i></div></div>
+      <button class="sn-toggle" title="Collapse the sidebar" onclick="toggleSidebar()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5L5.5 8 10 12.5"/></svg></button>
     </div>
-    <button class="sn-toggle" title="Collapse / expand" onclick="toggleSidebar()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5L5.5 8 10 12.5"/></svg></button>
     <nav class="sn-nav">
       <div class="sn-sec"><span>Today</span></div>
       <button class="nav-item active" data-pane="action" style="--c:#22D3EE" onclick="nav('action')" title="Action Centre">
@@ -1844,7 +2003,7 @@ body.sb-min .sb2 .sn-foot{justify-content:center;padding:10px 0}
         <span class="tb-kbd">/</span>
       </div>
       <div class="tb-spacer"></div>
-      <span class="tb-saved" id="saveChip" style="cursor:pointer" title="Everything is saved in this browser automatically — click to download a backup file" onclick="exportData()"><span class="dot"></span>v0.1 · saves locally</span>
+      <span class="tb-saved" id="saveChip" style="cursor:pointer" title="Everything is saved in this browser automatically — click to download a backup file" onclick="exportData()"><span class="dot"></span><b data-ver>v0.1</b> · saves locally</span>
       <button class="btn" id="sessBtn" title="Time your sourcing — counts the ideas and reviews you do while it runs" onclick="toggleSession()">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5"/></svg>
         Start session
@@ -2287,50 +2446,71 @@ function taskImport(){
     renderTasks(); updateBadges(); toast('Imported '+n+' task'+(n===1?'':'s'));
   });
 }
+let tkGroup = 'type';          // type | status | flat
+let tkExpanded = null;         // one open row at a time
+let tkQuery = '';
+function tkToggleRow(id){ tkExpanded = (tkExpanded===id? null : id); renderTasks(); }
+function tkSetGroup(g){ tkGroup=g; renderTasks(); }
+function tkSearch(v){ tkQuery=v; renderTasks(); }
+function tkPriSet(id, p){ saveState(); const t=tasks.find(x=>x.id===id); if(t){ t.pri=p; renderTasks(); toast('Priority: '+p); } }
+const PRI_RANK = {urgent:0,high:1,medium:2,low:3};
+
 function renderTasks(){ saveState();
-  const other = isJack()? 'Becki' : 'Jack';
-  tkTo = CURRENT_USER;   // solo trial: every task is her own
-  const mine = tasks.filter(t=>t.to===CURRENT_USER);
-  const sent = tasks.filter(t=>t.from===CURRENT_USER && t.to!==CURRENT_USER);
-  let rows = tkFilter==='mine'? mine : tkFilter==='sent'? sent : tasks.slice();
+  tkTo = CURRENT_USER;
+  const ae = document.activeElement, keepFocus = ae && ae.id==='tkSearch', caret = keepFocus? ae.selectionStart : null;
+  const all = tasks.filter(t=>t.to===CURRENT_USER);
+  let rows = all.slice();
   if(!tkShowDone) rows = rows.filter(t=>t.status!=='done');
-  const PRI_RANK = {urgent:0,high:1,medium:2,low:3};
-  rows.sort((a,b)=>{
-    const ad = a.due? daysIn(a.due) : -999, bd = b.due? daysIn(b.due) : -999;
-    return (b.unread===CURRENT_USER?1:0)-(a.unread===CURRENT_USER?1:0)
-      || PRI_RANK[a.pri]-PRI_RANK[b.pri] || bd-ad || new Date(b.created)-new Date(a.created);
-  });
-  const openMine = mine.filter(t=>t.status!=='done').length;
-  const lateMine = mine.filter(t=>t.status!=='done' && t.due && daysIn(t.due)>0).length;
-  const waiting = sent.filter(t=>t.status!=='done').length;
-  const doneMonth = tasks.filter(t=>t.status==='done').length;
+  if(tkFilter==='doing') rows = rows.filter(t=>t.status==='in_process');
+  if(tkFilter==='todo')  rows = rows.filter(t=>t.status==='not_started');
+  if(tkQuery){ const q=tkQuery.toLowerCase(); rows = rows.filter(t=>((t.title||'')+' '+(t.brief||'')+' '+(t.url||'')).toLowerCase().includes(q)); }
+  rows.sort((x,y)=>
+      (y.unread===CURRENT_USER?1:0)-(x.unread===CURRENT_USER?1:0)
+   || PRI_RANK[x.pri]-PRI_RANK[y.pri]
+   || (y.due? daysIn(y.due):-999)-(x.due? daysIn(x.due):-999)
+   || (x.status==='in_process'?-1:0)-(y.status==='in_process'?-1:0)
+   || new Date(x.created)-new Date(y.created));
+
+  const open = all.filter(t=>t.status!=='done');
+  const doing = all.filter(t=>t.status==='in_process').length;
+  const late  = open.filter(t=>t.due && daysIn(t.due)>0).length;
+  const done  = all.filter(t=>t.status==='done').length;
+  const flagged = open.filter(t=>t.pri==='urgent'||t.pri==='high').length;
+
+  // group
+  let groups;
+  if(tkGroup==='status'){
+    const S = [['in_process','In progress'],['not_started','Not started'],['done','Done']];
+    groups = S.map(([k,label])=>({key:k, label, items:rows.filter(t=>t.status===k)})).filter(g=>g.items.length);
+  } else if(tkGroup==='type'){
+    const order = ['general','training','keepa','h10','storefront','asin'];
+    groups = order.map(k=>({key:k, label:(TASK_TYPES[k]||{}).label||k, ic:(TASK_TYPES[k]||{}).ic||'', items:rows.filter(t=>(t.type||'general')===k)})).filter(g=>g.items.length);
+  } else {
+    groups = [{key:'all', label:'All tasks', items:rows}];
+  }
 
   document.getElementById('pane-tasks').innerHTML = `
     <div class="page-head">
       <div><div class="eyebrow">Operate · my tasks</div>
         <h1 class="page-title">Tasks</h1>
-        <div class="page-sub">Your to-do list. Add anything with a link and context — it stays on the list until you tick it off.</div></div>
+        <div class="page-sub">Everything waiting on you, worst first. Tick a row when it's done — it stays on the list until you do.</div></div>
       <div class="page-head-actions">
-        <button class="btn btn-sm" onclick="pickImportFile()" title="Open a work list Jack sent you (.json) — or just drag the file onto the page">⬆ Import a list</button>
+        <button class="btn btn-sm" onclick="pickImportFile()" title="Open a work list Jack sent you (.json) — or drag the file onto the page">⬆ Import a list</button>
         <button class="btn btn-sm" onclick="taskImport()" title="Paste rows straight from a sheet, one per line">Paste rows</button>
         <button class="btn btn-pri btn-sm" onclick="tkCapture();tkOpen=!tkOpen;renderTasks()">${tkOpen?'✕ Close':'＋ New task'}</button>
       </div>
     </div>
 
     <div class="tk-send tk-compose" style="${tkOpen?'':'display:none'}">
-      <div class="tk-send-h">✎ New task
-        <span class="td-sub" style="margin-left:auto">it stays on your list every day until it's done</span>
-      </div>
+      <div class="tk-send-h">✎ New task<span class="td-sub" style="margin-left:auto">it stays on your list every day until it's done</span></div>
       <div class="tk-types">
         ${Object.entries(TASK_TYPES).map(([k,v])=>`<button class="tk-type ${tkType===k?'on':''}" onclick="tkCapture();tkType='${k}';renderTasks()">${v.ic} ${v.label}</button>`).join('')}
       </div>
       <input class="tk-in" id="tkUrl" value="${esc(tkDraft.url)}" placeholder="Paste the link — storefront, Keepa, Helium 10, ASIN, training video… (optional)" oninput="tkDraft.url=this.value" onchange="tkDetect()">
       <input class="tk-in" id="tkTitle" value="${esc(tkDraft.title)}" placeholder="What is it? e.g. Christmas eve boxes — what can we do design wise" oninput="tkDraft.title=this.value" onkeydown="if(event.key==='Enter')sendTask()">
       <input class="tk-in" id="tkBrief" value="${esc(tkDraft.brief)}" placeholder="Why / what to focus on (optional)" oninput="tkDraft.brief=this.value">
-      <div class="tk-quick">
-        <span class="td-sub">Notes you use a lot</span>
-        ${taskQuick.map(q=>`<button class="tk-q" onclick="taskQuickNote('${esc(q).replace(/'/g,"&#39;")}')">${esc(q)}</button>`).join('')}
-      </div>
+      <div class="tk-quick"><span class="td-sub">Notes you use a lot</span>
+        ${taskQuick.map(q=>`<button class="tk-q" onclick="taskQuickNote('${esc(q).replace(/'/g,"&#39;")}')">${esc(q)}</button>`).join('')}</div>
       <div class="tk-row2">
         <div class="tk-pri">${TASK_PRIS.map(p=>`<button class="tk-p tk-p-${p} ${tkPri===p?'on':''}" onclick="tkCapture();tkPri='${p}';renderTasks()">${p}</button>`).join('')}</div>
         <label class="tk-f"><span>Due</span><input type="date" id="tkDue" value="${esc(tkDraft.due)}" onchange="tkDraft.due=this.value"></label>
@@ -2340,58 +2520,76 @@ function renderTasks(){ saveState();
       </div>
     </div>
 
-    <div class="rq-stats">
-      <div class="rq-stat ${lateMine?'is-bad':''}"><span class="rq-s-v">${openMine}</span><span class="rq-s-l">on my list</span></div>
-      <div class="rq-stat ${lateMine?'is-bad':''}"><span class="rq-s-v">${lateMine}</span><span class="rq-s-l">overdue</span></div>
-      <div class="rq-stat"><span class="rq-s-v" style="color:var(--gt)">${doneMonth}</span><span class="rq-s-l">done</span></div>
-      <div class="rq-tabs">
-        <button class="tab-inline ${tkFilter==='mine'?'active':''}" onclick="tkFilter='mine';renderTasks()">My list · ${mine.filter(t=>t.status!=='done').length}</button>
-        <button class="tab-inline ${tkFilter==='all'?'active':''}" onclick="tkFilter='all';renderTasks()">Everything</button>
-        <button class="tab-inline ${tkShowDone?'active':''}" onclick="tkShowDone=!tkShowDone;renderTasks()">${tkShowDone?'✓ Showing done':'Show done'}</button>
+    <div class="tsk-bar">
+      <div class="tsk-stats">
+        <button class="tsk-stat ${tkFilter==='mine'&&!tkShowDone?'on':''}" onclick="tkFilter='mine';tkShowDone=false;renderTasks()"><b>${open.length}</b><span>to do</span></button>
+        <button class="tsk-stat ${tkFilter==='doing'?'on':''}" onclick="tkFilter='doing';tkShowDone=false;renderTasks()"><b style="color:var(--at)">${doing}</b><span>in progress</span></button>
+        ${late?`<button class="tsk-stat bad" onclick="tkFilter='mine';tkShowDone=false;renderTasks()"><b>${late}</b><span>overdue</span></button>`:''}
+        ${flagged?`<div class="tsk-stat"><b style="color:var(--rt)">${flagged}</b><span>urgent / high</span></div>`:''}
+        <button class="tsk-stat ${tkShowDone?'on':''}" onclick="tkShowDone=!tkShowDone;tkFilter='mine';renderTasks()"><b style="color:var(--gt)">${done}</b><span>${tkShowDone?'hide done':'done'}</span></button>
+      </div>
+      <div class="tsk-tools">
+        <input class="tsk-search" id="tkSearch" placeholder="Search tasks…" value="${esc(tkQuery)}" oninput="tkSearch(this.value)">
+        <div class="tsk-seg">
+          <button class="${tkGroup==='type'?'on':''}" onclick="tkSetGroup('type')">By type</button>
+          <button class="${tkGroup==='status'?'on':''}" onclick="tkSetGroup('status')">By status</button>
+          <button class="${tkGroup==='flat'?'on':''}" onclick="tkSetGroup('flat')">One list</button>
+        </div>
       </div>
     </div>
+    <div class="tsk-hint">Sorted worst-first: <b class="p-urgent">urgent</b> → <b class="p-high">high</b> → normal → <b class="p-low">low</b>, then by due date. Priority is yours to set — click the dot on any row. Anything imported arrives as normal.</div>
 
-    ${rows.length? `<div class="tk-list">${rows.map(taskCard).join('')}</div>` : `<div class="card"><div class="empty" style="padding:34px"><div class="empty-t">Nothing here</div><div class="empty-s">${tasks.length===0? 'Nothing here yet — add your first task and it stays on the list until it\'s done.' : tkFilter==='mine'? 'Your list is clear — nice.' : 'Nothing on the list.'}${tasks.length===0? '<br><br><button class="btn btn-pri" onclick="tkOpen=true;renderTasks();setTimeout(()=>{const e=document.getElementById(\'tkTitle\');if(e)e.focus()},60)">＋ Create your first task</button>':''}</div></div></div>`}`;
+    ${rows.length? groups.map(g=>`
+      <div class="tsk-sec">
+        <div class="tsk-sec-h">${g.ic?`<span class="tsk-sec-ic">${g.ic}</span>`:''}<span>${esc(g.label)}</span><span class="tsk-sec-n">${g.items.length}</span></div>
+        <div class="tsk-rows">${g.items.map(taskRow).join('')}</div>
+      </div>`).join('')
+    : `<div class="card"><div class="empty" style="padding:30px"><div class="empty-t">${tkQuery?'Nothing matches':'Nothing on your list'}</div><div class="empty-s">${tkQuery?'Try a different search.':'Add a task, paste rows from a sheet, or import a work list.'}</div></div></div>`}`;
+
+  if(keepFocus){ const el=document.getElementById('tkSearch'); if(el){ el.focus(); if(caret!=null) el.setSelectionRange(caret,caret); } }
 }
-function taskCard(t){
+
+function taskRow(t){
   const ty = TASK_TYPES[t.type]||TASK_TYPES.general;
   const dd = t.due? daysIn(t.due) : null;
   const late = t.status!=='done' && dd!=null && dd>0;
   const today = t.status!=='done' && dd===0;
   const unread = t.unread===CURRENT_USER;
-  const last = t.notes[t.notes.length-1];
-  const stMap = {not_started:['Not started','tk-st-no'], in_process:['In process','tk-st-mid'], done:['Done','tk-st-done']};
-  const [stLabel, stCls] = stMap[t.status];
-  return `<div class="tk-card ${ty.cls} ${late?'tk-late':''} ${t.status==='done'?'tk-done':''} ${unread?'tk-unread':''}" style="cursor:pointer" onclick="taskOpen(${t.id})">
-    <div class="tk-top">
-      <button class="tk-check ${stCls}" title="Click to change status" onclick="event.stopPropagation();taskCycle(${t.id})">${t.status==='done'?'✓':t.status==='in_process'?'◐':''}</button>
-      <div class="tk-id">
-        <div class="tk-title">${esc(t.title)}${unread?`<span class="tk-newchip">${t.notes.length?'NEW REPLY':'NEW'}</span>`:''}</div>
-        <div class="tk-meta">
-          <span class="tk-chip">${ty.ic} ${ty.label}</span>
-          <span class="tk-p tk-p-${t.pri}" style="pointer-events:none">${t.pri}</span>
-          ${t.due?`<span class="day-chip ${late?'over':today?'soon':''}">${late?'overdue '+dd+'d':today?'due today':'due '+fmtDate(t.due)}</span>`:''}
-          ${t.repeat?`<span class="tk-chip">↻ ${t.repeat}</span>`:''}
-          ${t.rel?`<span class="tk-chip">🔗 ${esc(t.rel)}</span>`:''}
-        </div>
+  const openRow = tkExpanded===t.id;
+  const flag = t.pri==='urgent'||t.pri==='high';
+  return `<div class="tsk-row ${t.status==='done'?'is-done':''} ${late?'is-late':''} ${flag?'is-flag':''} ${openRow?'is-open':''} ${unread?'is-new':''}">
+    <button class="tsk-check ${t.status}" title="${t.status==='done'?'Done — click to reopen':t.status==='in_process'?'In progress — click to finish':'Click to start'}" onclick="event.stopPropagation();taskCycle(${t.id})">${t.status==='done'?'✓':t.status==='in_process'?'◐':''}</button>
+    <button class="tsk-pri p-${t.pri}" title="Priority: ${t.pri} — click to change" onclick="event.stopPropagation();tkPriCycle(${t.id})"></button>
+    <div class="tsk-main" onclick="tkToggleRow(${t.id})">
+      <div class="tsk-title">${esc(t.title)}${unread?'<span class="tsk-new">NEW</span>':''}</div>
+      ${t.brief?`<div class="tsk-note">${esc(t.brief)}</div>`:''}
+    </div>
+    <div class="tsk-meta">
+      ${flag?`<span class="tsk-flag p-${t.pri}">${t.pri}</span>`:''}
+      ${t.due?`<span class="tsk-due ${late?'over':today?'soon':''}">${late?dd+'d late':today?'today':fmtDate(t.due)}</span>`:''}
+      ${t.repeat?`<span class="tsk-rep">↻</span>`:''}
+      ${t.notes.length?`<span class="tsk-notes">${t.notes.length}</span>`:''}
+      <span class="tsk-type ${ty.cls}">${ty.ic}</span>
+    </div>
+    <div class="tsk-acts">
+      ${t.url?`<a class="tsk-go" target="_blank" href="${esc(t.url)}" onclick="event.stopPropagation()" title="Open ${ty.label}">Open ↗</a>`:''}
+      ${t.url&&['storefront','keepa','asin','h10'].includes(t.type)?`<button class="tsk-go" onclick="event.stopPropagation();taskToQueue(${t.id})" title="Send what you find into the Review Queue">→ Queue</button>`:''}
+      <button class="tsk-x" title="Delete" onclick="event.stopPropagation();taskDelete(${t.id})">✕</button>
+    </div>
+    ${openRow?`<div class="tsk-open" onclick="event.stopPropagation()">
+      ${t.notes.length?`<div class="tsk-thread">${t.notes.map(n=>`<div class="tk-note ${n.who==='Jack'?'tk-n-jack':''}"><b>${esc(n.who)}</b><span>${esc(n.text)}</span><i>${fmtDate(n.at)}</i></div>`).join('')}</div>`:''}
+      <div class="tsk-open-row">
+        <input class="tk-reply" id="tkReply${t.id}" placeholder="Add a note…" onkeydown="if(event.key==='Enter')taskReply(${t.id})">
+        <button class="btn btn-sm" onclick="taskReply(${t.id})">Add note</button>
+        <div class="tsk-prisel">${TASK_PRIS.map(p=>`<button class="tk-p tk-p-${p} ${t.pri===p?'on':''}" onclick="tkPriSet(${t.id},'${p}')">${p}</button>`).join('')}</div>
+        ${t.status!=='done'?`<button class="btn btn-sm btn-green" style="margin-left:auto" onclick="taskStatus(${t.id},'done')">✓ Done</button>`:`<button class="btn btn-sm" style="margin-left:auto" onclick="taskStatus(${t.id},'not_started')">Reopen</button>`}
       </div>
-      <span class="badge ${t.status==='done'?'bg-green':t.status==='in_process'?'bg-amber':'bg-grey'}"><span class="bd"></span>${stLabel}</span>
-    </div>
-    ${t.brief?`<div class="tk-brief">“${esc(t.brief)}”</div>`:''}
-    ${t.url?`<div class="tk-links">
-      <a class="tc-link" target="_blank" href="${esc(t.url)}">Open ${ty.label.toLowerCase()} ↗</a>
-      ${['storefront','keepa','asin','h10'].includes(t.type)?`<button class="tc-link" onclick="event.stopPropagation();taskToQueue(${t.id})">+ Send finds to review queue</button>`:''}
     </div>`:''}
-    ${t.notes.length?`<div class="tk-thread">
-      ${t.notes.map(n=>`<div class="tk-note ${n.who==='Jack'?'tk-n-jack':''}"><b>${esc(n.who)}</b><span>${esc(n.text)}</span><i>${fmtDate(n.at)}</i></div>`).join('')}
-    </div>`:''}
-    <div class="tk-foot" onclick="event.stopPropagation()">
-      <input class="tk-reply" id="tkReply${t.id}" placeholder="Add a note…" onkeydown="if(event.key==='Enter')taskReply(${t.id})">
-      <button class="btn btn-sm" onclick="taskReply(${t.id})">Add note</button>
-      ${t.status!=='done'?`<button class="btn btn-sm btn-green" onclick="taskStatus(${t.id},'done')">✓ Done</button>`:`<button class="btn btn-sm" onclick="taskStatus(${t.id},'not_started')">Reopen</button>`}
-      <button class="btn btn-sm btn-ghost" style="color:var(--t4)" onclick="taskDelete(${t.id})">✕</button>
-    </div>
   </div>`;
+}
+function tkPriCycle(id){ saveState(); const t=tasks.find(x=>x.id===id); if(!t) return;
+  const order=['medium','high','urgent','low']; t.pri = order[(order.indexOf(t.pri)+1)%order.length];
+  renderTasks(); toast('Priority: '+t.pri);
 }
 function renderSeasons(){ saveState();
   const now = TODAY;
@@ -2590,9 +2788,9 @@ function renderSessions(){ saveState();
     <div class="sec-label" style="margin-top:16px">${mp.label} <span class="line"></span><span class="card-count">day ${mp.day} of ${mp.days}</span></div>
     <div class="sess-month">
       <div class="sm-hours">
-        <div class="sm-big" style="color:${tierC}">${fmtKpi(hoursK,hrs)}<span class="of">/${hoursK.target}h</span></div>
+        <div class="sm-big" style="color:${tierC}">${fmtKpi(hoursK,hrs)}<span class="of">/${fmtKpi(hoursK,kpiTarget(hoursK))}h</span></div>
         <div class="sm-label">sourcing hours · <b style="color:${tierC}">${hState.label}</b> · expected ${fmtKpi(hoursK,hState.exp)}h by today</div>
-        <div class="sm-bar"><div class="sm-fill fresh" style="width:${Math.min(100, m.freshMins/60/hoursK.target*100)}%"></div><div class="sm-fill working" style="width:${Math.min(100, m.workingMins/60/hoursK.target*100)}%"></div><div class="sm-pace" style="left:${Math.round(mp.pace*100)}%"></div></div>
+        <div class="sm-bar"><div class="sm-fill fresh" style="width:${Math.min(100, m.freshMins/60/Math.max(0.1,kpiTarget(hoursK))*100)}%"></div><div class="sm-fill working" style="width:${Math.min(100, m.workingMins/60/Math.max(0.1,kpiTarget(hoursK))*100)}%"></div><div class="sm-pace" style="left:${Math.round(mp.pace*100)}%"></div></div>
         <div class="sm-split"><span class="sp-fresh">● ${fmtKpi(hoursK,m.freshMins/60)}h fresh sourcing</span><span class="sp-working">● ${fmtKpi(hoursK,m.workingMins/60)}h working ideas</span><span class="sp-pace">│ where today sits</span></div>
       </div>
       <div class="sm-grid">
@@ -2688,7 +2886,7 @@ let READ_ONLY = false;      // set when another tab owns the write lock
 let saveHealthy = true;
 
 function snapshotState(){
-  return {schema:SCHEMA_VERSION, app:'bdl-ub', appVersion:'v0.1', savedAt:new Date().toISOString(), rev:++_rev,
+  return {schema:SCHEMA_VERSION, app:'bdl-ub', appVersion:'v'+APP_VER, savedAt:new Date().toISOString(), rev:++_rev,
     ideas, pipeline, inbox, tasks, storefronts, seasons:SEASONS, archive, events:EVENTS,
     sessionLog:sessionLog||[], session, tkDraft, flags:FLAGS, archivedStageLogs:(window.__archivedStageLogs||[]),
     settings:SETTINGS, rankQs:RANK_QS, qsVersion:QS_VERSION, kpiVersion:KPI_VERSION, uid, taskQuick};
@@ -2842,6 +3040,48 @@ function normaliseRecords(){
     if(!Array.isArray(i.options)) i.options = [];
     if(!i.kind && Object.keys(i.answers).length) i.kind = 'bundle';   // scored before the hamper/bundle split
   });
+  ensureStartedOn();   // stamped once, from the first thing that ever happened — drives the part-month scaling
+  migrateStages();
+  paintVersion();
+}
+// Six stages became five. A record mid-flight keeps its tasks and their done state; the ticks it
+// has never seen are appended, so nothing anyone already did is thrown away.
+function migrateStages(){
+  let moved = 0;
+  pipeline.forEach(p=>{
+    const to = STAGE_MIGRATE[p.stage];
+    if(!to) return;
+    const from = p.stage;
+    p.stage = to;
+    if(to === TICK_STAGE){
+      const old = (p.tasks||[]);
+      const doneBy = {};   // new tick label -> was it already done under the old wording?
+      old.forEach(t=>{
+        const target = TICK_ALIAS[t.t] || t.t;
+        if(t.done || t.na) doneBy[target] = true;
+      });
+      p.tasks = stageSeedTasks(TICK_STAGE).map(w => doneBy[w.t] ? Object.assign({}, w, {done:1}) : w);
+      // work that has no equivalent among the five is kept, ticked, but not required — it stays
+      // visible in the workspace without making the card read "3 of 8"
+      old.forEach(t=>{
+        if(!t.done && !t.na) return;
+        const target = TICK_ALIAS[t.t] || t.t;
+        if(p.tasks.some(x=>x.t===target)) return;
+        p.tasks.push(Object.assign({}, t, {req:0}));
+      });
+    }
+    if(Array.isArray(p.hist)) p.hist.unshift(['Stage list changed — '+from+' is now '+stageName(to),'System',0,new Date().toISOString()]);
+    moved++;
+  });
+  // stage thresholds keyed by the old names would read undefined and never flag anything overdue
+  const A = SETTINGS.ageing || (SETTINGS.ageing = {});
+  const DEF_A = { sourcing:7, jack_validation:3, prepare_to_launch:10, buy_receive:28, live:0 };
+  Object.keys(DEF_A).forEach(k=>{ if(typeof A[k] !== 'number') A[k] = DEF_A[k]; });
+  // Prepare to Launch became "Listing & test" and now includes the 72-hour test. Its old default
+  // of 7 days no longer fits — but if he had picked his own number, that stays his.
+  if(A.prepare_to_launch === 7) A.prepare_to_launch = 10;
+  ['ready_to_source','source','order_purchase','launch'].forEach(k=>{ delete A[k]; });
+  if(moved) try{ writeNow(); }catch(e){}
 }
 function restoreSessionUI(){
   if(session && !session.type) session.type='fresh';
@@ -2864,8 +3104,10 @@ function restoreSessionUI(){
   clearInterval(sessionTick); sessionTick = setInterval(tickSessionClock, 1000);
 }
 function loadState(){
-  let raw; try{ raw = localStorage.getItem(STORE_KEY); }catch(e){ return; }
-  if(!raw) return;
+  let raw; try{ raw = localStorage.getItem(STORE_KEY); }catch(e){ normaliseRecords(); return; }
+  // A first-ever visit has nothing to apply, but it still needs the start date stamped —
+  // otherwise day one opens on full monthly targets and reports her 26 hours behind.
+  if(!raw){ normaliseRecords(); return; }
   try{ applyState(JSON.parse(raw)); }
   catch(e){
     // never overwrite data we failed to read — quarantine it and stop saving
@@ -3065,11 +3307,19 @@ function mergeState(s){
 }
 function runMerge(s){
   if(READ_ONLY){ toast('This tab is read-only — click “use this tab instead” first'); return; }
+  _keepPreDelete();   // an import is a change like any other: keep a copy so Settings → Undo can put it back
   let added; try{ added = mergeState(s); }catch(e){ toast('Import failed — '+e.message+' (nothing was changed)'); return; }
   KPI_LIVE=false; ideas.forEach(i=>{ if(!i.options) i.options=[]; recomputeIdea(i); }); KPI_LIVE=true;
   writeNow(); paintSaved(); closeModal('mJack'); renderPane(currentPane()); updateBadges();
   logEvent('backup','Imported and added — '+added.inbox+' queue · '+added.tasks+' tasks · '+added.ideas+' ideas');
-  toast(`Added ${added.inbox} to the queue · ${added.tasks} task${added.tasks===1?'':'s'}${added.ideas?' · '+added.ideas+' ideas':''}${added.skipped?' · '+added.skipped+' already here, skipped':''}`);
+  // only say what actually happened — "Added 0 to the queue" reads like a failure
+  const bits = [];
+  if(added.inbox) bits.push(added.inbox+' to the queue');
+  if(added.tasks) bits.push(added.tasks+' task'+(added.tasks===1?'':'s'));
+  if(added.ideas) bits.push(added.ideas+' idea'+(added.ideas===1?'':'s'));
+  toast(bits.length
+    ? 'Added '+bits.join(' · ')+(added.skipped?' · '+added.skipped+' already here, skipped':'')+' — Settings → Undo puts it back'
+    : 'Nothing new to add — all '+added.skipped+' were already here');
   if(added.inbox && currentPane()!=='inbox') nav('inbox');
   else if(added.tasks && currentPane()!=='tasks') nav('tasks');
 }
@@ -3246,20 +3496,63 @@ function monthMins(ref, type){
   return mins;
 }
 function monthHours(ref, type){ return Math.round(monthMins(ref, type)/60*10)/10; }
+// The first month is never a whole month — she starts on the 26th, not the 1st. Judging her
+// against 32 hours she never had time to do reads as failure on day one, so the partial first
+// month scales: the target shrinks to the share of days she actually had, and pace runs from
+// her start date. Every month after this is a normal full month.
+function trackingStart(){
+  const v = SETTINGS.startedOn; if(!v) return null;
+  const d = new Date(v + (v.length<=10 ? 'T00:00:00' : '')); return isNaN(d) ? null : d;
+}
+function ensureStartedOn(){
+  if(SETTINGS.startedOn) return;
+  let earliest = null;
+  EVENTS.forEach(e=>{ if(e.at && (!earliest || e.at < earliest)) earliest = e.at; });
+  (initSessionLog()||[]).forEach(x=>{ if(x.date && (!earliest || x.date < earliest)) earliest = x.date; });
+  SETTINGS.startedOn = (earliest || new Date().toISOString()).slice(0,10);
+}
 function monthPaceInfo(ref){
   const d = ref? new Date(ref) : TODAY;
-  const day = d.getDate(), days = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
-  return { day, days, pace: day/days, label: d.toLocaleDateString('en-GB',{month:'long'}) };
+  const days = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  const label = d.toLocaleDateString('en-GB',{month:'long'});
+  const st = trackingStart();
+  if(st && st.getFullYear()===d.getFullYear() && st.getMonth()===d.getMonth() && st.getDate()>1){
+    const from = st.getDate();
+    const avail = days - from + 1;
+    const elapsed = Math.min(avail, Math.max(1, d.getDate() - from + 1));
+    return { day: elapsed, days: avail, pace: dayFraction(d, elapsed, avail), share: avail/days, partial:true,
+             from, fromLabel: st.toLocaleDateString('en-GB',{day:'numeric',month:'short'}), label };
+  }
+  const day = d.getDate();
+  return { day, days, pace: dayFraction(d, day, days), share:1, partial:false, label };
 }
-function kpiExpected(k, ref){ return k.target * monthPaceInfo(ref).pace; }
+// Days finished, plus however much of today has gone. Without this you open the app at 9am
+// on the 1st and it already says you're behind on a full day you haven't had yet.
+function dayFraction(d, elapsed, total){
+  const sameDay = !TODAY || (d.toDateString()===new Date().toDateString());
+  const frac = sameDay ? (d.getHours()*60 + d.getMinutes())/1440 : 1;
+  return Math.max(0, Math.min(1, (elapsed - 1 + frac) / total));
+}
+// The target actually in play this month. Settings still holds the real monthly number.
+function kpiTarget(k, ref){
+  const mp = monthPaceInfo(ref);
+  if(!mp.partial) return k.target;
+  const t = k.target * mp.share;
+  return k.unit==='h' ? Math.round(t*10)/10 : Math.round(t);
+}
+function kpiExpected(k, ref){ return kpiTarget(k, ref) * monthPaceInfo(ref).pace; }
 function fmtKpi(k, v){ return k.unit==='h' ? (Math.round(v*10)/10).toString().replace(/\.0$/,'') : String(Math.round(v)); }
 function monthHasActivity(ref){ return EVENTS.some(e=>sameMonth(e.at, ref)) || monthMins(ref)>0; }
 // Ahead / on track / behind, judged against where the calendar says she should be.
 function kpiState(k, ref){
   const act = kpiActual(k, ref);
+  const tgt = kpiTarget(k, ref);
   // whole-number targets are judged against a whole-number expectation — you can't launch 1.48 products
   const exp = k.unit==='h' ? kpiExpected(k, ref) : Math.round(kpiExpected(k, ref));
-  if(act >= k.target) return {tier:'done', label: act > k.target ? 'Target beaten' : 'Target hit', rank:4, act, exp};
+  // 2 launches scaled across 6 days rounds to nothing — say that plainly instead of inventing a target
+  if(tgt <= 0){ const nx=new Date(TODAY.getFullYear(), TODAY.getMonth()+1, 1);
+    return {tier:'grey', label:'From '+nx.toLocaleDateString('en-GB',{month:'long'}), rank:2, act, exp:0}; }
+  if(act >= tgt) return {tier:'done', label: act > tgt ? 'Target beaten' : 'Target hit', rank:4, act, exp};
   if(!monthHasActivity(ref) && act===0) return {tier:'grey', label:'Not started', rank:2, act, exp};
   const ratio = exp>0 ? act/exp : 1;
   if(ratio>=1.05) return {tier:'green', label:'Ahead',           rank:3, act, exp};
@@ -3340,7 +3633,7 @@ const SETTINGS = {
     {id:'shortlist',label:'Green ideas found', target:6,  period:'auto', pane:'ideas',    on:false},
     {id:'sourced',  label:'Products sourced',  target:6,  period:'auto', pane:'pipeline', on:false},
   ],
-  ageing: { ready_to_source:7, source:10, jack_validation:3, prepare_to_launch:7, order_purchase:10, launch:5 },
+  ageing: { sourcing:7, jack_validation:3, prepare_to_launch:10, buy_receive:28, live:0 },
   jackBottleneck: 3,
   queue: { overdueDays:10, snoozeDays:7, storefrontDays:30, seasonSoonDays:21, sourceWip:6, backlogBig:10 },
   weekly: { hours:16, ideas:10, validated:8 },   // legacy — replaced by the monthly hours target
@@ -3362,14 +3655,29 @@ const DEFAULT_KPIS = SETTINGS.kpis.map(k=>({...k}));
 const bandFor = s => SETTINGS.bands.slice().sort((a,b)=>b.min-a.min).find(b => s >= b.min) || SETTINGS.bands[SETTINGS.bands.length-1];
 const linkFor = (key, asin) => SETTINGS.linkTemplates.find(l=>l.key===key).tpl.replace('{asin}', asin);
 
+// ── THE VERSION PEOPLE SEE. Bump by 0.05 every release. ──
+const APP_VER = '0.15';
+function paintVersion(){ document.querySelectorAll('[data-ver]').forEach(e=>{ e.textContent = 'v'+APP_VER; }); }
 const STAGES = [
-  {key:'ready_to_source', name:'Ready to Source', desc:'Validated in ranking. Queued to begin sourcing.'},
-  {key:'source', name:'Source', desc:'Can every component be acquired at a viable cost?'},
+  {key:'sourcing', name:'Sourcing', desc:'Can every component be acquired at a viable cost? Starts the moment it leaves ranking.'},
   {key:'jack_validation', name:'Jack Validation', desc:'Final decision before money is committed.'},
-  {key:'prepare_to_launch', name:'Prepare to Launch', desc:'Build the listing, images and assets. Confirm Amazon accepts it.'},
-  {key:'order_purchase', name:'Order / Purchase', desc:'Listing accepted — now buy, receive and check the stock.'},
-  {key:'launch', name:'Launch', desc:'Live listing, stock dispatched — then archive.'},
+  {key:'prepare_to_launch', name:'Listing & test', desc:'Build the listing, images and assets. Confirm Amazon accepts it.'},
+  {key:'buy_receive', name:'Buy & receive', desc:'Buy it, get it in, prep it, send it. Five ticks, one stage — nothing moves until the last one.'},
+  {key:'live', name:'Live', desc:'Listing live and stock checked in. Archive it when you are done watching.'},
 ];
+// Old records carry the six-stage keys. Ready-to-Source folds into Sourcing; Order/Purchase and
+// Launch fold into Buy & receive, keeping whatever was already ticked.
+const STAGE_MIGRATE = { ready_to_source:'sourcing', source:'sourcing', order_purchase:'buy_receive', launch:'buy_receive' };
+// The stage that is a checklist rather than a step. The card shows which tick it is on.
+const TICK_STAGE = 'buy_receive';
+// Old Order/Purchase and Launch tasks that mean the same thing as one of the five ticks. Without
+// this a half-finished product arrives with eight boxes and reads "3 of 8" instead of "2 of 5".
+const TICK_ALIAS = {
+  'All required components ordered' : 'Stock bought — order placed',
+  'Components received'             : 'Components received & checked',
+  'Components checked'              : 'Components received & checked',
+  'FBA shipment created'            : 'FBA shipment created & sent',
+};
 const stageIdx = k => STAGES.findIndex(s=>s.key===k);
 const stageName = k => STAGES[stageIdx(k)].name;
 
@@ -3699,6 +4007,8 @@ function updateBadges(){
   tb.className = 'nav-badge ' + (mine && openTasksFor(CURRENT_USER).some(t=>t.pri==='urgent') ? 'hot':'');
   // a badge only earns its place when it has something to say
   document.querySelectorAll('.sb2 .nav-badge').forEach(el=>{ const t=(el.textContent||'').trim(); el.classList.toggle('zero', !t || t==='0' || t==='–'); });
+  // the session bar is the flow meter — it has to move while she works, not only when the tab regains focus
+  renderSessionBar();
 }
 function toast(msg){
   const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
@@ -3783,13 +4093,13 @@ function buildActions(){
   } else overdueProds.forEach(p=>
     acts.push({pri:'amber', t:`${p.title} has been in ${stageName(p.stage)} for ${daysIn(p.entered)} days`, m:`Threshold ${SETTINGS.ageing[p.stage]} days · next: ${nextTask(p)}`, go:()=>openWorkspace(p.id), btn:'Open product'}));
   // 5. ready to launch
-  pipeline.filter(p=>p.stage==='launch').forEach(p=>{ const pr=taskProg(p);
+  pipeline.filter(p=>p.stage==='live').forEach(p=>{ const pr=taskProg(p);
     acts.push({pri:'blue', t:`${p.title} is in Launch — ${pr.total-pr.done} task${pr.total-pr.done===1?'':'s'} remaining`, m:`Next: ${nextTask(p)}`, go:()=>openWorkspace(p.id), btn:'Open product'});});
   // 7. KPI shortfalls (monthly) — any KPI clearly behind pace gets its own nudge
   const dim = new Date(TODAY.getFullYear(), TODAY.getMonth()+1, 0).getDate();
   const pace = TODAY.getDate()/dim;
-  SETTINGS.kpis.filter(k=>EVENTS.length>0 && k.on && k.target>0 && kpiActual(k)<k.target && (kpiActual(k)/k.target)/(pace||0.001) < 0.7).forEach(k=>
-    acts.push({pri:'amber', t:`${k.target-kpiActual(k)} more to hit ${TODAY.toLocaleDateString('en-GB',{month:'long'})}'s “${k.label}” target`, m:`${kpiActual(k)} of ${k.target} so far this month — behind pace`, go:()=>nav(k.pane), btn:'Open'}));
+  SETTINGS.kpis.filter(k=>EVENTS.length>0 && k.on && kpiTarget(k)>0 && kpiActual(k)<kpiTarget(k) && (kpiActual(k)/kpiTarget(k))/(pace||0.001) < 0.7).forEach(k=>
+    acts.push({pri:'amber', t:`${fmtKpi(k,kpiTarget(k)-kpiActual(k))}${k.unit||''} more to hit ${TODAY.toLocaleDateString('en-GB',{month:'long'})}'s “${k.label}” target`, m:`${fmtKpi(k,kpiActual(k))} of ${fmtKpi(k,kpiTarget(k))}${k.unit||''} so far this month — behind pace`, go:()=>nav(k.pane), btn:'Open'}));
   // 8. review queue — items sitting too long get called out individually
   const activeQueue = inbox.filter(i=>i.status==='active');
   const overdueItems = activeQueue.filter(i=>daysIn(i.imported)>=SETTINGS.queue.overdueDays);
@@ -3820,9 +4130,9 @@ function buildActions(){
   });
   // 8b. green ideas piling up while the source lane runs thin — keeps the pipeline fed
   const greensReady = ideas.filter(i=>i.status==='Ranked' && !i.killed && bandOf(i)==='green').length;
-  const rtsCount = pipeline.filter(p=>p.stage==='ready_to_source').length;
+  const rtsCount = pipeline.filter(p=>p.stage==='sourcing').length;
   if(greensReady>=3 && rtsCount<=1)
-    acts.push({pri:'amber', t:`${greensReady} shortlist-ready ideas waiting to be sourced`, m:`Only ${rtsCount} in the Ready to Source lane — move your best few this week to keep the pipeline fed`, go:()=>nav('ideas'), btn:'Pick winners'});
+    acts.push({pri:'amber', t:`${greensReady} shortlist-ready ideas waiting to be sourced`, m:`Only ${rtsCount} in Sourcing — move your best few this week to keep the pipeline fed`, go:()=>nav('ideas'), btn:'Pick winners'});
   // weekly report nudge — the report is the only thing Jack ever sees
   let lastR = 0; try{ lastR = +localStorage.getItem('ub_last_report')||0; }catch(e){}
   const anyWork = ideas.length+pipeline.length+inbox.length > 0;
@@ -3880,14 +4190,15 @@ function renderAction(){ saveState();
   const kpiCard = k => {
     const st = kpiState(k);
     const act = st.act, exp = st.exp;
-    const pct = Math.min(100, Math.round(act/k.target*100));
+    const tgt = kpiTarget(k);
+    const pct = tgt>0 ? Math.min(100, Math.round(act/tgt*100)) : 0;
     const pacePct = Math.round(monthPace*100);
     const own = KPI_HUE[k.id] || '#22D3EE';
     const tierC = {done:'var(--green)', green:'var(--green)', blue:'var(--blue)', amber:'var(--amber)', red:'var(--red)', grey:'var(--b3)'}[st.tier];
     const R=22, C=2*Math.PI*R, off=C*(1-pct/100), poff=C*(1-Math.min(100,pacePct)/100);
     const diff = act - exp;
     const gapTxt = st.tier==='grey' ? `expected ${fmtKpi(k,exp)} by today`
-                 : st.tier==='done' ? (act>k.target ? `+${fmtKpi(k,act-k.target)} over target` : 'done for '+mp.label)
+                 : st.tier==='done' ? (act>tgt ? `+${fmtKpi(k,act-tgt)} over target` : 'done for '+mp.label)
                  : diff>=0 ? `${fmtKpi(k,diff)}${k.unit||''} ahead · expected ${fmtKpi(k,exp)}`
                            : `${fmtKpi(k,-diff)}${k.unit||''} behind · expected ${fmtKpi(k,exp)}`;
     const milestone = pct>=100 ? 'm100' : pct>=75 ? 'm75' : pct>=50 ? 'm50' : '';
@@ -3906,11 +4217,11 @@ function renderAction(){ saveState();
           <span class="kpi-ring-pct">${pct>=100?'✓':pct+'<i>%</i>'}</span>
         </div>
         <div class="kpi-nums">
-          <div class="kpi-val">${fmtKpi(k,act)}<span class="of">/${fmtKpi(k,k.target)}${k.unit||''}</span></div>
+          <div class="kpi-val">${fmtKpi(k,act)}<span class="of">/${fmtKpi(k,tgt)}${k.unit||''}</span></div>
           <div class="kpi-pace ${diff>=0||st.tier==='done'?'ok':'off'}">${gapTxt}</div>
         </div>
       </div>
-      <div class="kpi-foot"><span>${act>=k.target?'target reached':fmtKpi(k,k.target-act)+(k.unit||'')+' to go'}</span>${/^k\d+$/.test(String(k.id))?`<button class="kfoot-btn" title="Count one manually" onclick="event.stopPropagation();kpiPlus('${k.id}')">+1</button>`:''}</div>
+      <div class="kpi-foot"><span>${tgt<=0?'no target this month':act>=tgt?'target reached':fmtKpi(k,tgt-act)+(k.unit||'')+' to go'}${mp.partial&&tgt>0?` · scaled from ${fmtKpi(k,k.target)}${k.unit||''}`:''}</span>${/^k\d+$/.test(String(k.id))?`<button class="kfoot-btn" title="Count one manually" onclick="event.stopPropagation();kpiPlus('${k.id}')">+1</button>`:''}</div>
     </div>`;
   };
   const spine = {red:'sp-red', amber:'sp-amber', purple:'sp-purple', blue:'sp-blue', grey:'sp-grey'};
@@ -3936,7 +4247,7 @@ function renderAction(){ saveState();
           <div class="wc-step"><span class="wc-n">1</span><b>Capture</b><small>Paste ASINs, or add an idea as you spot it</small></div>
           <div class="wc-step"><span class="wc-n">2</span><b>Score</b><small>Answer the questions, get a ranked shortlist</small></div>
           <div class="wc-step"><span class="wc-n">3</span><b>Source</b><small>Price the components, check the margin</small></div>
-          <div class="wc-step"><span class="wc-n">4</span><b>Launch</b><small>Six stages, then it lands in the archive</small></div>
+          <div class="wc-step"><span class="wc-n">4</span><b>Launch</b><small>Five stages, then it lands in the archive</small></div>
         </div>
         <div class="wc-acts">
           <button class="btn btn-pri" onclick="nav('ideas');setTimeout(()=>{const q=document.getElementById('qaTitle');if(q)q.focus();},80)">Add your first idea</button>
@@ -3952,7 +4263,7 @@ function renderAction(){ saveState();
           : behind===0 ? `Every target on track for ${mp.label}` : `${behind} target${behind===1?'':'s'} behind pace`;
         return `<div class="pace-strip">
           <div class="pace-bar"><div class="pace-fill" style="width:${Math.round(mp.pace*100)}%"></div></div>
-          <div class="pace-text"><b>${mp.label}</b> · day ${mp.day} of ${mp.days} · ${Math.round(mp.pace*100)}% through · <span class="${behind&&started?'pace-bad':'pace-ok'}">${summary}</span></div>
+          <div class="pace-text"><b>${mp.label}</b> · day ${mp.day} of ${mp.days}${mp.partial?` since you started on ${mp.fromLabel} · targets scaled to a part month`:''} · ${Math.round(mp.pace*100)}% through · <span class="${behind&&started?'pace-bad':'pace-ok'}">${summary}</span></div>
         </div>
         <div class="kpi-row kpi-row-${activeKpis.length}">${activeKpis.map(kpiCard).join('')}</div>
         <div class="info-strip">
@@ -4074,6 +4385,14 @@ function moveCursor(d){
 function paintCursor(scroll){
   const rows = queueRows();
   if(inboxCursor >= rows.length) inboxCursor = Math.max(0, rows.length-1);
+  // The queue shows ONE item at a time now, so moving the cursor means re-rendering the
+  // focus card — not just moving a highlight around a grid.
+  if(inboxTab==='active' && document.querySelector('#pane-inbox .nq')){
+    const cur = rows[inboxCursor];
+    const shown = document.querySelector('#pane-inbox .nq');
+    if(cur && shown && shown.dataset.qid !== String(cur.id)) renderInbox();
+    return;
+  }
   document.querySelectorAll('#pane-inbox .tc-cur').forEach(el=>el.classList.remove('tc-cur'));
   const cur = rows[inboxCursor]; if(!cur) return;
   const el = document.querySelector('#pane-inbox [data-qid="'+cur.id+'"]');
@@ -4229,8 +4548,55 @@ function renderInbox(){ saveState();
       <div class="empty-s">Add ASINs or links and they appear here for review — or use <b>Import ASINs</b> (top right) to paste a whole list.</div>
       <div style="margin-top:14px"><button class="btn btn-pri" onclick="addToQueue()">+ Add to queue</button></div></div></div>`;
   } else {
+    // One at a time. The big card is what you're deciding now; the list below is what's coming.
+    // 75 identical tiles is a wall — this is a queue, so show it as a queue.
+    const cur = cursorItem() || active[0];
+    const ix = Math.max(0, active.findIndex(r=>r.id===(cur||{}).id));
+    const t = TYPE_META[itemType(cur)]||TYPE_META.asin;
+    const a = ageInfo(cur);
+    const label = cur.searchUrl ? (cur.searchLabel||'Search link') : cur.asin;
+    const batches = {}; active.forEach(r=>{ const b=r.batch||'No batch'; batches[b]=(batches[b]||0)+1; });
+    const nowCard = `
+      <div class="nq ${t.cls} ${a.cls}" data-qid="${cur.id}">
+        <div class="nq-top">
+          <span class="tc-chip">${t.tag}</span>
+          <span class="nq-pos">${ix+1} of ${active.length}</span>
+          <span class="nq-age ${a.cls}">${a.d===0?'added today':a.d+' days in the queue'}</span>
+          <div class="nq-nav">
+            <button class="nq-arrow" title="Previous (↑)" onclick="moveCursor(-1)">↑</button>
+            <button class="nq-arrow" title="Next (↓)" onclick="moveCursor(1)">↓</button>
+          </div>
+        </div>
+        <div class="nq-name">${esc(label)}</div>
+        <div class="nq-sub">${esc(cur.batch||'No batch')} · added ${fmtDate(cur.imported)}</div>
+        <div class="nq-links">
+          ${cur.searchUrl
+            ? `<a class="nq-link primary" target="_blank" href="${esc(cur.searchUrl)}">Open ${esc(cur.searchLabel||'link')} ↗</a>`
+            : SETTINGS.linkTemplates.map((l,i)=>`<a class="nq-link ${i===0?'primary':''}" target="_blank" href="${l.tpl.replace('{asin}',cur.asin)}">${esc(l.name)} ↗</a>`).join('')}
+          <span class="nq-kb">or press <kbd>O</kbd> to open them all</span>
+        </div>
+        <input class="nq-note" value="${esc(cur.note||'')}" placeholder="Note — what is it? carries into the idea…" oninput="setReviewNote(${cur.id}, this.value)">
+        <div class="nq-decide">
+          <button class="nq-btn yes" onclick="inboxCreateIdea(${cur.id})"><b>✓ Idea</b><span>Y</span></button>
+          <button class="nq-btn no" onclick="inboxDelete(${cur.id})"><b>✕ No</b><span>N</span></button>
+          <button class="nq-btn snz" onclick="snoozeCustom(${cur.id})"><b>💤 Snooze</b><span>S</span></button>
+          ${itemType(cur)==='storefront'?`<button class="nq-btn watch" onclick="watchlistFromQueue(${cur.id})"><b>★ Watch monthly</b></button>`:''}
+        </div>
+      </div>`;
+    const rest = active.filter(r=>r.id!==cur.id);
+    const rowFor = r => { const rt=TYPE_META[itemType(r)]||TYPE_META.asin, ra=ageInfo(r);
+      return `<button class="qr ${ra.cls}" onclick="focusQueueRow(${r.id});renderInbox()">
+        <span class="qr-chip ${rt.cls}">${rt.tag}</span>
+        <span class="qr-name">${esc(r.searchUrl?(r.searchLabel||'Search link'):r.asin)}</span>
+        ${r.note?`<span class="qr-note">${esc(r.note)}</span>`:''}
+        <span class="qr-age ${ra.cls}">${ra.d}d</span>
+      </button>`; };
     body = `<div class="kb-hint">⌨ <b>Fast mode</b> — <kbd>↑</kbd><kbd>↓</kbd> move · <kbd>Y</kbd> make it an idea · <kbd>N</kbd> no · <kbd>S</kbd> snooze · <kbd>O</kbd> open the links. No mouse needed.</div>
-      <div class="tc-grid">${active.map(tile).join('')}</div>`;
+      ${nowCard}
+      ${rest.length? `<div class="sec-label" style="margin-top:14px">Up next <span class="line"></span><span class="card-count">${rest.length}</span>
+          ${Object.keys(batches).length>1?`<span class="qr-batches">${Object.entries(batches).sort((x,y)=>y[1]-x[1]).slice(0,3).map(([b,n])=>`${esc(b)} · ${n}`).join('  ·  ')}</span>`:''}</div>
+        <div class="qr-list">${rest.slice(0,60).map(rowFor).join('')}</div>
+        ${rest.length>60?`<div class="qr-more">…and ${rest.length-60} more further down the queue</div>`:''}` : `<div class="qr-last">Last one in the queue 🎯</div>`}`;
   }
 
   document.getElementById('pane-inbox').innerHTML = `
@@ -4530,7 +4896,7 @@ function renderIdeas(){ saveState();
     <div class="page-head">
       <div><div class="eyebrow">Pre-Pipeline · Capture &amp; prioritise</div>
         <h1 class="page-title">Ideas &amp; Ranking</h1>
-        <div class="page-sub">One leaderboard, best first. The score shortlists — you hand-pick what goes to Ready to Source.</div></div>
+        <div class="page-sub">One leaderboard, best first. The score shortlists — you hand-pick what goes into Sourcing.</div></div>
     </div>
     <div class="quick-add">
       <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--t4)" stroke-width="1.6" style="flex-shrink:0"><path d="M8 3v10M3 8h10"/></svg>
@@ -4551,6 +4917,18 @@ function renderIdeas(){ saveState();
       </select>
       ${ideaFilter.band?`<button class="btn btn-sm" onclick="ideaFilter.band='';renderIdeas()">✕ Clear band filter</button>`:''}
     </div>
+    ${(()=>{ const next = live.filter(i=>i.status==='Ranked' && !i.killed && bandOf(i)==='green').sort((a,b)=>b.score-a.score).slice(0,3);
+      if(!next.length) return '';
+      return `<div class="wn">
+        <div class="wn-h">Work these next <span class="wn-sub">green, ranked, and nobody has started them</span></div>
+        <div class="wn-grid">${next.map(i=>{ const a=i.answers, n=v=>(v!=null&&v!==''&&v!=='na')?Number(v).toLocaleString():'—';
+          return `<div class="wn-card" onclick="openRankDrawer(${i.id})">
+            <div class="wn-top"><span class="wn-score">${i.score}%</span><span class="wn-kind">${KINDS[kindOf(i)]}</span></div>
+            <div class="wn-t">${esc(i.title||'Untitled idea')}</div>
+            <div class="wn-m">${n(a.search)} searches/mo · ${n(a.competitors)} competitors${a.price&&a.price!=='na'?' · '+gbp(a.price):''}</div>
+            <button class="wn-go" onclick="event.stopPropagation();moveToPipeline(${i.id})">→ Sourcing</button>
+          </div>`; }).join('')}</div>
+      </div>`; })()}
     <div class="sec-label">Ranked — pick the winners <span class="line"></span><span class="card-count">${rankedRows.length}</span></div>
     ${rankedRows.length? rankedRows.map((i,ix)=>lbRow(i,ix,m,total)).join('')
       : `<div class="card"><div class="empty"><div class="empty-t">Nothing fully ranked${ideaFilter.q||ideaFilter.band||ideaFilter.source?' matches':''}</div><div class="empty-s">Finish a questionnaire and the idea appears here, best first.</div>${live.length===0?`<button class="btn btn-pri" onclick="document.getElementById('qaTitle').focus()">+ Add your first idea</button>`:''}</div></div>`}
@@ -4582,9 +4960,8 @@ function lbRow(i, ix, m, total){
       <div class="rr-stat"><div class="v">${f(a.competitors)}</div><div class="l">COMP</div></div>
       <div class="rr-stat"><div class="v" style="color:var(--gt)">${a.price&&a.price!=='na'?gbp(a.price):'—'}</div><div class="l">PRICE</div></div>
     </div>
-    <div class="lb-yn"><span class="y">✓${yn.pos}</span><span class="n">✕${yn.neg}</span></div>
     <div class="lb-acts">
-      <button class="rr-go ${bandOf(i)==='green'?'':'rr-ghost'}" onclick="event.stopPropagation();moveToPipeline(${i.id})">→ Ready to Source</button>
+      <button class="rr-go ${bandOf(i)==='green'?'':'rr-ghost'}" onclick="event.stopPropagation();moveToPipeline(${i.id})">→ Sourcing</button>
       <button class="lb-del" title="Delete — recorded in Archive" onclick="event.stopPropagation();deleteIdea(${i.id})">✕</button>
     </div>
   </div>`;
@@ -4741,13 +5118,15 @@ function reallyMoveToPipeline(id){
     if(!i._kNew){ i._kNew = true; bumpKpi('ideas', 'Idea captured — '+(i.title||i.asin||'untitled')); }
   }
   i.status = 'Moved to Pipeline';
-  pipeline.push({id:nid(), ideaId:i.id, title:i.title, source:i.source, option:i.options.find(o=>o.sel)?.d || 'Single option', stage:'ready_to_source', entered:TODAY.toISOString(), createdAt:TODAY.toISOString(), owner:CURRENT_USER, estUnits:Number(i.answers.spm)||100, waiting:null, blocked:false, score:i.score, asin:i.asin,
-    tasks: mkTasks([['Confirm working option & target price',1,0],['Queue for sourcing this week',1,0]]),
-    components: [], sell: Number(i.options.find(o=>o.sel)?.price ?? i.answers.price)||0, hist:[['Moved from Ranking → Ready to Source (validated at '+i.score+'%)',CURRENT_USER,0]]});
-  bumpKpi('moved', 'Moved to Ready to Source — '+i.title);
+  pipeline.push({id:nid(), ideaId:i.id, title:i.title, source:i.source, option:i.options.find(o=>o.sel)?.d || 'Single option', stage:'sourcing', entered:TODAY.toISOString(), createdAt:TODAY.toISOString(), owner:CURRENT_USER, estUnits:Number(i.answers.spm)||100, waiting:null, blocked:false, score:i.score, asin:i.asin,
+    // seed from the stage itself — a hard-coded pair here was the old Ready-to-Source checklist,
+    // so new products were arriving in Sourcing with two ticks instead of its eight
+    tasks: stageSeedTasks('sourcing'),
+    components: [], sell: Number(i.options.find(o=>o.sel)?.price ?? i.answers.price)||0, hist:[['Moved from Ranking → Sourcing (validated at '+i.score+'%)',CURRENT_USER,0]]});
+  bumpKpi('moved', 'Moved to Sourcing — '+i.title);
   updateBadges(); renderIdeasIfActive();
   const np = pipeline[pipeline.length-1];
-  undoToast('Moved to Ready to Source', ()=>{
+  undoToast('Moved to Sourcing', ()=>{
     const ix = pipeline.indexOf(np); if(ix>=0) pipeline.splice(ix,1);
     i.status = i.killed? 'Killed' : 'Ranked';
     unbumpKpi('moved'); updateBadges(); renderIdeasIfActive(); renderPipelineIfActive();
@@ -4830,7 +5209,67 @@ function renderComposerHead(i){
       ${i.asin?`<span class="linkgrp">${SETTINGS.linkTemplates.map(l=>`<a target="_blank" href="${l.tpl.replace('{asin}',i.asin)}">${l.short}</a>`).join('')}</span>`:''}
     </div>
     <input class="cp-sum" value="${esc(i.summary||'')}" placeholder="One-line summary — what's the bundle and why would it sell?"
-      oninput="ideaField(${i.id},'summary',this.value)">`;
+      oninput="ideaField(${i.id},'summary',this.value)">
+    <div class="cp-paste ${cpPasteOpen?'open':''}">
+      <button class="cp-paste-t" onclick="cpPasteOpen=!cpPasteOpen;renderComposerHead(ideas.find(x=>x.id===${i.id}));if(cpPasteOpen)setTimeout(()=>{const b=document.getElementById('cpPasteBox');if(b)b.focus();},40)">
+        ⇩ Paste from your notes<span class="cp-paste-h">name · ASIN · the numbers — filled for you</span></button>
+      ${cpPasteOpen?`<div class="cp-paste-b">
+        <textarea id="cpPasteBox" placeholder="Paste anything — a Helium 10 line, an Amazon link, your notes.
+
+e.g.  Blue Lotus Flower
+      Search volume: 1,436
+      £12.99 · 4 competitors · 200 sold/mo
+      https://www.amazon.co.uk/dp/B0G5913PW3"></textarea>
+        <div class="cp-paste-a">
+          <button class="btn btn-sm btn-pri" onclick="fillFromNotes(${i.id})">Fill what you can</button>
+          <span class="cp-paste-n">Nothing already filled in gets overwritten.</span>
+        </div></div>`:''}
+    </div>`;
+}
+let cpPasteOpen = false;
+/* Becki already writes her sourcing notes down before she opens the app — a name, a link and a
+   few numbers. Retyping them into six boxes is the slowest part of adding an idea, so this reads
+   the block and fills what it recognises. It never overwrites something already there. */
+function fillFromNotes(id){
+  const box = document.getElementById('cpPasteBox'); if(!box) return;
+  const raw = box.value || '';
+  if(!raw.trim()){ toast('Paste something in first'); return; }
+  const i = ideas.find(x=>x.id===id); if(!i) return;
+  const txt = raw.replace(/\u00a0/g,' ');
+  const num = m => m ? parseFloat(String(m[1]).replace(/,/g,'')) : null;
+  const got = [];
+
+  const asin = extractAsin(txt);
+  if(asin && !i.asin){ i.asin = asin; got.push('ASIN'); }
+
+  // a name: the first line that is not a link, not a heading, and not just numbers
+  if(!String(i.title||'').trim()){
+    const line = txt.split(/\n/).map(l=>l.trim())
+      .filter(l=>l && !/^https?:/i.test(l) && !/^[\d.,£$\s·|-]+$/.test(l))
+      .map(l=>l.replace(/^PRODUCT\s*\d+\s*[—–-]\s*/i,'').replace(/^[-*•]\s*/,'').replace(/:$/,'').trim())
+      .filter(l=>l.length>2 && l.length<70 && !/^(search volume|thoughts?|listings?|market|notes?|pros|cons)\b/i.test(l))[0];
+    if(line){ i.title = line; got.push('name'); }
+  }
+
+  const put = (qid, v) => {
+    if(v==null || isNaN(v)) return;
+    if(String(i.answers[qid]==null?'':i.answers[qid]).trim()) return;   // never overwrite
+    i.answers[qid] = String(v); got.push(qTitle(qById(qid), i.kind)||qid);
+  };
+  // the label and its number are often a line or two apart ("Search Volume\nChicory Coffee: 1,540"),
+  // and he writes "2 main competitors" as often as "4 competitors" — so both have slack in them
+  put('search', num(txt.match(/(?:search\s*vol(?:ume)?|\bSV\b)[^\d]{0,40}([\d,]+)/i)));
+  put('competitors', num(txt.match(/(\d[\d,]*)\s*(?:[a-z]+\s+){0,2}competitors?\b/i)
+                      || txt.match(/competitors?[^\d]{0,20}([\d,]+)/i)));
+  put('spm', num(txt.match(/([\d,]+)\s*(?:comp\s*)?(?:sales|sold|units)\s*(?:per\s*month|\/\s*mo\b|pm\b|a month)/i)
+              || txt.match(/(?:comp\s*sales|sales|sold)[^\d]{0,20}([\d,]+)\s*(?:per\s*month|\/\s*mo\b|pm\b|a month)?/i)));
+  put('price', num(txt.match(/£\s*([\d]+(?:\.\d{1,2})?)/) || txt.match(/price\D{0,12}([\d]+(?:\.\d{1,2})?)/i)));
+
+  if(!got.length){ toast("Couldn't find anything to fill — add it by hand"); return; }
+  recomputeIdea(i);
+  cpPasteOpen = false;
+  renderComposerHead(i); renderComposerBody(i); renderComposerFoot(i); renderIdeasIfActive(); updateBadges(); saveState();
+  toast('Filled ' + got.length + ': ' + got.slice(0,4).join(' · ') + (got.length>4? ' +'+(got.length-4)+' more':''));
 }
 function ideaField(id, f, v){
   const i = ideas.find(x=>x.id===id); i[f]=v;
@@ -4945,7 +5384,7 @@ function renderComposerFoot(i){
       </div>
       <button class="btn btn-ghost" style="color:var(--rt)" onclick="discardIdea(${i.id})">Delete idea</button>
       <button class="btn" onclick="tryCloseComposer()">Save &amp; close</button>
-      <button class="btn btn-pri" ${canMove?'':'disabled'} onclick="moveToPipeline(${i.id})">→ Ready to Source</button>
+      <button class="btn btn-pri" ${canMove?'':'disabled'} onclick="moveToPipeline(${i.id})">→ Sourcing</button>
     </div>`;
 }
 function discardIdea(id){
@@ -5080,7 +5519,7 @@ function renderPipeline(){ saveState();
   const caret = (ae && ae.id==='pipeSearch') ? ae.selectionStart : null;
   document.getElementById('pane-pipeline').innerHTML = `
     <div class="page-head">
-      <div><div class="eyebrow">Active · six fixed stages</div>
+      <div><div class="eyebrow">Active · five fixed stages</div>
         <h1 class="page-title">Pipeline</h1>
         <div class="page-sub">Only products genuinely being worked on. Ideas and Ranking stay out of this board.</div></div>
       <div class="page-head-actions">
@@ -5129,7 +5568,7 @@ function renderPipeline(){ saveState();
             <div class="col-title">${s.name}<span class="n">${all.length}</span><span class="col-th" title="Attention after ${SETTINGS.ageing[s.key]} days">⏱ ${SETTINGS.ageing[s.key]}d</span></div>
             <div class="col-desc">${s.desc}</div>
             <div class="col-meta">
-              ${s.key==='source' && all.length>SETTINGS.queue.sourceWip?`<span class="badge bg-amber"><span class="bd"></span>over WIP limit (${SETTINGS.queue.sourceWip})</span>`:''}
+              ${s.key==='sourcing' && all.length>SETTINGS.queue.sourceWip?`<span class="badge bg-amber"><span class="bd"></span>over WIP limit (${SETTINGS.queue.sourceWip})</span>`:''}
               ${all.filter(p=>p.waiting).length?`<span class="badge bg-amber"><span class="bd"></span>${all.filter(p=>p.waiting).length} waiting</span>`:''}
               ${all.filter(isOver).length?`<span class="badge bg-red"><span class="bd"></span>${all.filter(isOver).length} overdue</span>`:''}
             </div>
@@ -5151,13 +5590,17 @@ function renderPipeline(){ saveState();
                 ${e?`<div class="pc-econ"><span class="pe-sell">${gbp(p.sell)}</span><span class="pe-m ${e.margin>=SETTINGS.econ.minMargin?'ok':'bad'}">${Math.round(e.margin*100)}% mgn</span><span class="pe-m ${e.roi>=SETTINGS.econ.minRoi?'ok':'bad'}">${Math.round(e.roi*100)}% roi</span>${p.estUnits?`<span class="pe-m ok" title="Projected monthly profit at ${p.estUnits} units/mo">${gbp0(e.profit*p.estUnits)}/mo</span>`:''}</div>`:''}
                 <div class="pc-prog"><div class="pc-fill" style="width:${pr.total?Math.round(pr.done/pr.total*100):0}%"></div></div>
                 <div class="pc-meta"><span>Checklist <b>${pr.done}/${pr.total}</b></span><span class="day-chip ${dayCls}">Day ${d} / ${th}</span></div>
+                ${p.stage===TICK_STAGE?(()=>{ const pr=taskProg(p);
+                  return `<div class="pc-ticks" title="${esc((p.tasks||[]).map((t,i)=>(t.done||t.na?'✓ ':'· ')+t.t).join('\n'))}">
+                    ${(p.tasks||[]).map(t=>`<span class="pt ${t.done||t.na?'on':''}"></span>`).join('')}
+                    <span class="pt-l">${pr.done} of ${pr.total}</span></div>`; })():''}
                 <div class="pc-next"><b>Next:</b> ${p.stage==='jack_validation'? "ask Jack, then record it" : esc(nextTask(p))}</div>
                 ${(nix>=0||ready)?`<div class="pc-acts">
                   ${nix>=0?`<button class="pca-btn" title="Tick: ${esc(p.tasks[nix].t)}" onclick="event.stopPropagation();toggleTask(${p.id},${nix})">✓ Next task</button>`:''}
                   ${ready && p.stage!=='jack_validation'?`<button class="pca-btn pca-go" onclick="event.stopPropagation();moveForward(${p.id})">Move on →</button>`:''}
                 </div>`:''}
               </div>`;}).join('')
-            : `<div class="col-empty">${s.key==='ready_to_source'&&!pipeline.length? 'Fed from Ideas &amp; Ranking — score an idea green and move it here' : 'Empty'+(pipeFilter?' · filtered':'')}</div>`}
+            : `<div class="col-empty">${s.key==='sourcing'&&!pipeline.length? 'Fed from Ideas &amp; Ranking — score an idea green and move it here' : 'Empty'+(pipeFilter?' · filtered':'')}</div>`}
           </div>
         </div>`;}).join('')}
     </div>`}`;
@@ -5263,7 +5706,7 @@ function setCompStatus(pid,i,v){
 }
 function syncSourceChecklist(p){
   // the component table is the source of truth — its state ticks the Source checklist automatically
-  if(p.stage!=='source' || !p.components.length) return;
+  if(p.stage!=='sourcing' || !p.components.length) return;
   const cs = p.components;
   const tick = (name, cond)=>{ const t = p.tasks.find(x=>x.t===name); if(t && !t.na && t.done!==cond) t.done = cond; };
   tick('Confirm all required components', true);
@@ -5290,7 +5733,7 @@ function closeDrawer(){ document.getElementById('dwOverlay').classList.remove('o
 function openWorkspace(id, tab){
   const p = pipeline.find(x=>x.id===id);
   if(!p){ toast('Product no longer exists'); renderPane(currentPane()); return; }
-  wsId = id; wsTab = tab || (p.stage==='source' ? 'costs' : 'stage');
+  wsId = id; wsTab = tab || (p.stage==='sourcing' ? 'costs' : 'stage');
   renderWorkspace(); openDrawerShell();
 }
 function refreshPanes(){
@@ -5336,7 +5779,7 @@ function wsFoot(p, pr){
     <button class="btn btn-danger btn-sm" onclick="dropProduct(${p.id})">Drop…</button>`;
   const canMove = pr.done===pr.total && !p.blocked;
   const nextStage = STAGES[stageIdx(p.stage)+1];
-  const moveLabel = p.stage==='source' ? 'Move to Jack Validation' : p.stage==='launch' ? (p._launched?'Archive launched product':'Mark Launched & Archive') : nextStage ? 'Move to '+nextStage.name : '';
+  const moveLabel = p.stage==='sourcing' ? 'Move to Jack Validation' : p.stage==='live' ? (p._launched?'Archive launched product':'Mark Launched & Archive') : nextStage ? 'Move to '+nextStage.name : '';
   return `
     <span class="badge ${st.cls}"><span class="bd"></span>${st.label}</span>
     <span class="td-sub">${pr.done}/${pr.total} required tasks</span>
@@ -5350,8 +5793,8 @@ function wsFoot(p, pr){
 function wsStage(p, pr, d, th, status){
   const canMove = pr.done===pr.total && !p.blocked;
   const nextStage = STAGES[stageIdx(p.stage)+1];
-  const moveLabel = p.stage==='source' ? 'Move to Jack Validation'
-    : p.stage==='launch' ? 'Mark Launched and Archive'
+  const moveLabel = p.stage==='sourcing' ? 'Move to Jack Validation'
+    : p.stage==='live' ? 'Mark Launched and Archive'
     : nextStage ? 'Move to '+nextStage.name : '';
   return `
     <div class="stage-summary">
@@ -5363,11 +5806,11 @@ function wsStage(p, pr, d, th, status){
     ${p.waiting?`<div class="lock-note" style="border-color:var(--ab);color:var(--at)">Waiting — ${esc(p.waiting.reason)} · expected ${fmtDate(p.waiting.until)}${p.waiting.note?' · '+esc(p.waiting.note):''}
       <button class="btn btn-sm" style="margin-left:auto" onclick="clearWaiting(${p.id})">Clear waiting</button></div>`:''}
     ${p.stage==='jack_validation'? wsJackPanel(p)+`<div style="margin:-4px 0 14px"><button class="btn btn-sm" onclick="applyJackReply()">📋 Paste Jack's reply</button></div>`:''}
-    ${(p.stage==='order_purchase'||p.stage==='launch')?`
-    <div class="sec-label">${p.stage==='launch'?'Launch details':'Order details'} <span class="line"></span><span class="card-count">real data — carried into the Archive</span></div>
+    ${(p.stage==='buy_receive'||p.stage==='live')?`
+    <div class="sec-label">${p.stage==='live'?'Launch details':'Order details'} <span class="line"></span><span class="card-count">real data — carried into the Archive</span></div>
     <div class="card sec" style="padding:13px 16px">
       <div class="econ-inputs" style="grid-template-columns:repeat(2,1fr)">
-        ${p.stage==='launch'?`
+        ${p.stage==='live'?`
         <label><span class="l">Final ASIN</span><input value="${esc(p.asin||'')}" placeholder="B0XXXXXXXX" onchange="setProdField(${p.id},'asin',this.value)"></label>
         <label><span class="l">Launch date</span><input type="date" value="${esc(p.launchDate||'')}" onchange="setProdField(${p.id},'launchDate',this.value)"></label>`
         :`
@@ -5500,7 +5943,7 @@ function wsHist(p){
 // Launched = stock bought AND listing live. The second tick fires the KPI; unticking hands it back.
 const LAUNCH_TICKS = ['Stock bought — order placed','Listing live on Amazon'];
 function checkLaunched(p){
-  if(!p || p.stage!=='launch') return;
+  if(!p || p.stage!=='buy_receive') return;
   const ticks = p.tasks.filter(t=>LAUNCH_TICKS.includes(t.t));
   const both = ticks.length===2 && ticks.every(t=>t.done);
   if(both && !p._launched){ p._launched=true; p.launchedAt=new Date().toISOString(); bumpKpi('launches','Launched — '+p.title); toast('Launched 🎉 — counted for '+monthPaceInfo().label+'. Archive it when you\'re ready.'); }
@@ -5609,7 +6052,7 @@ function stageStats(){
 }
 function moveForward(pid){
   const p=pipeline.find(x=>x.id===pid);
-  if(p.stage==='launch'){
+  if(p.stage==='live'){
     logStageExit(p, 'launched');
     window.__archivedStageLogs = (window.__archivedStageLogs||[]).concat(p.stageLog||[]);
     p.hist.unshift(['Marked launched — moved to Archive',CURRENT_USER,0,new Date().toISOString()]);
@@ -5618,13 +6061,13 @@ function moveForward(pid){
     if(!p._launched) bumpKpi('launches', 'Launched — '+p.title);   // normally already counted by the two launch ticks
     closeDrawer(); nav('pipeline'); toast(p.asin? 'Archived 🎉 — it\'s in the launched list' : 'Archived 🎉 — but no final ASIN was recorded'); return;
   }
-  if(p.stage==='source' && p.components.length && !econFor(p).pass){
+  if(p.stage==='sourcing' && p.components.length && !econFor(p).pass){
     const fb = SETTINGS.econ.failBehaviour||'override';
     if(fb==='block'){ toast('Blocked — economics fail the minimum margin/ROI rules'); return; }
     toast('Economics below minimums — confirm with Jack before committing money');
   }
   const next = STAGES[stageIdx(p.stage)+1];
-  if(p.stage==='source') bumpKpi('sourced', 'Sourcing completed — '+p.title);
+  if(p.stage==='sourcing') bumpKpi('sourced', 'Sourcing completed — '+p.title);
   logStageExit(p, next.key);
   p.stage = next.key; p.entered = TODAY.toISOString(); p.waiting=null; p.returned=null;
   p.tasks = stageSeedTasks(next.key);
@@ -5634,12 +6077,13 @@ function moveForward(pid){
 }
 function stageSeedTasks(stage){
   const seeds = {
-    ready_to_source:[['Confirm working option & target price',1],['Queue for sourcing this week',1]],
-    source:[['Confirm all required components',1],['Find a source for each component',1],['Add supplier links',1],['Confirm current pricing',1],['Confirm stock availability',1],['Complete estimated bundle costing',1],['Check estimated margin and ROI',1]],
+    sourcing:[['Confirm working option & target price',1],['Confirm all required components',1],['Find a source for each component',1],['Add supplier links',1],['Confirm current pricing',1],['Confirm stock availability',1],['Complete estimated bundle costing',1],['Check estimated margin and ROI',1]],
     jack_validation:[['Summary prepared for review',1],['Economics attached',1],['Risks recorded',1]],
-    prepare_to_launch:[['Listing created in Seller Central',1],['Images created / uploaded',1],['Bundle content & title finalised',1],['Final ASIN generated',1],['Amazon accepted the listing (no errors/flags)',1],['Listing live-ready',1]],
-    order_purchase:[['Listing confirmed accepted by Amazon',1],['All required components ordered',1],['Order references added',1],['Expected arrival dates recorded',1],['Components received',1],['Components checked',1],['Stock assembled / prepped',1],['FBA shipment created',1]],
-    launch:[['Stock bought — order placed',1],['Listing live on Amazon',1],['Final ASIN recorded',0],['Launch date recorded',0]],
+    prepare_to_launch:[['Listing created in Seller Central',1],['Images created / uploaded',1],['Bundle content & title finalised',1],['Final ASIN generated',1],['Amazon accepted the listing (no errors/flags)',1],['72-hour test complete — Amazon kept the listing up',1]],
+    // the five ticks. 'Stock bought' and 'Listing live' keep their exact wording because the
+    // launched KPI counts them by name — rename either and the KPI stops counting.
+    buy_receive:[['Stock bought — order placed',1],['Components received & checked',1],['Stock assembled / prepped',1],['FBA shipment created & sent',1],['Listing live on Amazon',1]],
+    live:[['Final ASIN recorded',0],['Launch date recorded',0],['First sale seen',0]],
   };
   return mkTasks(seeds[stage].map(x=>[x[0],x[1],0]));
 }
@@ -5724,10 +6168,10 @@ function reallyJackApprove(pid, how){
   const prevTasks = p.tasks, prevEntered = p.entered;
   logStageExit(p, 'prepare_to_launch');
   p.stage='prepare_to_launch'; p.entered=TODAY.toISOString(); p.tasks=stageSeedTasks('prepare_to_launch'); p.waiting=null; p.returned=null;
-  p.hist.unshift(['Jack approved'+(how?' ('+how+')':'')+' — moved to Prepare to Launch',CURRENT_USER,0,new Date().toISOString()]);
+  p.hist.unshift(['Jack approved'+(how?' ('+how+')':'')+' — moved to Listing & test',CURRENT_USER,0,new Date().toISOString()]);
   bumpKpi('jack', 'Jack approved — '+p.title);
   renderWorkspace(); refreshPanes();
-  undoToast('Recorded Jack\'s approval — now in Prepare to Launch', ()=>{
+  undoToast('Recorded Jack\'s approval — now in Listing & test', ()=>{
     p.stage='jack_validation'; p.tasks=prevTasks; p.entered=prevEntered;
     unbumpKpi('jack'); p.hist.shift();
     renderWorkspace(); refreshPanes();
@@ -5736,7 +6180,7 @@ function reallyJackApprove(pid, how){
 function jackModal(pid, kind){ resetJkBtn();
   wsId=pid;
   const cfg = {
-    back:{t:'Send back', body:`<div class="fld"><div class="fld-l">Return to stage</div><select id="jkStage"><option value="ready_to_source">Ready to Source</option><option value="source" selected>Source</option></select></div>
+    back:{t:'Send back', body:`<div class="fld"><div class="fld-l">Return to stage</div><select id="jkStage"><option value="sourcing" selected>Sourcing</option></select></div>
       <div class="fld"><div class="fld-l">Reason <span class="fld-req">required — appears in staff Action Centre</span></div><input type="text" id="jkReason" placeholder="What needs improving before re-review?"></div>`},
     hold:{t:'Put on hold', body:`<div class="fld"><div class="fld-l">Hold reason <span class="fld-req">required</span></div><input type="text" id="jkReason" placeholder="Why is this on hold?"></div>
       <div class="fld"><div class="fld-l">Review date</div><input type="date" id="jkDate" value="${daysAhead(14).slice(0,10)}"></div>`},
@@ -5843,7 +6287,10 @@ function renderArchive(){ saveState();
       const top = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
       const max = top.length? top[0][1] : 1;
       const stages = {}; D.forEach(a=>{ stages[a.stage]=(stages[a.stage]||0)+1; });
-      const lateN = D.filter(a=>['Jack Validation','Prepare to Launch','Order / Purchase'].includes(a.stage)).length;
+      // archive rows store the stage's display name at the time it was dropped, so the old
+      // six-stage names have to stay here alongside the new ones or history stops counting
+      const LATE = ['Jack Validation','Listing & test','Buy & receive','Live','Prepare to Launch','Order / Purchase','Launch'];
+      const lateN = D.filter(a=>LATE.includes(a.stage)).length;
       return `<div class="arch-insight">
         <div>
           <div class="rk-eyebrow">Why ideas die</div>
@@ -5940,7 +6387,7 @@ function renderGuide(){
         <div><b>Start</b><p>Open <b>Action Centre</b>. The three monthly targets are at the top, the pipeline flow underneath, and below that a list of what needs doing, worst first. If the list is quiet, that's a good sign — go sourcing.</p></div>
         <div><b>Sit down to source</b><p>Press <b>Start session</b> (top bar) and pick <b>Fresh sourcing</b> or <b>Working existing ideas</b>. That's how your hours count — nothing else to fill in.</p></div>
         <div><b>While sourcing</b><p>Paste finds into the <b>Review Queue</b> as you go — as many as you like at once. Decide each one with Y / N / S. Anything worth a look becomes an idea and gets its quick questions.</p></div>
-        <div><b>Work the backlog</b><p>Open <b>Ideas &amp; Ranking</b>, take the best unworked idea, move it to Ready to Source and work its checklist. When the Action Centre says you have a pile of ranked ideas waiting, this comes before fresh sourcing.</p></div>
+        <div><b>Work the backlog</b><p>Open <b>Ideas &amp; Ranking</b>, take the best unworked idea, move it into Sourcing and work its checklist. When the Action Centre says you have a pile of ranked ideas waiting, this comes before fresh sourcing.</p></div>
         <div><b>End of day</b><p>Move anything that's ready in the <b>Pipeline</b>, then <b>End session</b>. A short summary pops up — add one line about what you did if you like. Once a day, click the <b>Saved</b> chip to download a backup.</p></div>
       </div></div>`)}
 
@@ -5962,7 +6409,7 @@ function renderGuide(){
           <p><b>Red flags</b> — search volume under 100, or a price under £15.99, show a ⚠ on the idea. They still score (low), so the idea sinks on its own; nothing is deleted.</p>
           <p><b>Seasonal?</b> is optional — leave it blank unless it is. If you say yes and pick the season, the card shows the date sourcing needs to be done by (90 days before demand starts), and warns if it's already too late for this year.</p>
           <p><b>Keys:</b> <b>y</b>/<b>n</b>/<b>a</b> answer, <b>Enter</b> moves to the next question. Name + ASIN + the questions and you're done — under a minute.</p>
-          <p><b>Score:</b> green = strong, amber = maybe, red = weak. The score advises; you decide what to work. "Save &amp; close" keeps it as a draft; "→ Ready to Source" puts it straight into the pipeline.</p>
+          <p><b>Score:</b> green = strong, amber = maybe, red = weak. The score advises; you decide what to work. "Save &amp; close" keeps it as a draft; "→ Sourcing" puts it straight into the pipeline.</p>
         </div>
       </div>`)}
 
@@ -5977,9 +6424,9 @@ function renderGuide(){
 
     ${sec('ideas','Ideas &amp; Ranking', `
       <div class="g-card g-wide">
-        <p>One leaderboard, best first. Green ideas sit at the top with a <b>→ Ready to Source</b> button. Drafts with unanswered questions sit separately until you finish them.</p>
+        <p>One leaderboard, best first. Green ideas sit at the top with a <b>→ Sourcing</b> button. Drafts with unanswered questions sit separately until you finish them.</p>
         <p><b>The backlog rule:</b> ranked ideas that nobody has started working are your backlog. When there are ${SETTINGS.queue.backlogBig} or more, the Action Centre tells you to work those before finding more. Fresh sourcing doesn't stop — it just drops to a few hours until the pile is worked down. The targets don't change; only the advice does.</p>
-        <p><b>Working an idea</b> means moving it to Ready to Source, then Source: price each component, check the margin, send it to Jack — or reject it with a reason. A decision either way is progress. Rejected ideas still count as ideas captured; finding them was the work.</p>
+        <p><b>Working an idea</b> means moving it into Sourcing: price each component, check the margin, send it to Jack — or reject it with a reason. A decision either way is progress. Rejected ideas still count as ideas captured; finding them was the work.</p>
       </div>`)}
 
     ${sec('sessions','Sourcing sessions', `
@@ -5995,14 +6442,14 @@ function renderGuide(){
 
     ${sec('pipeline','Pipeline', `
       <div class="g-card g-wide">
-        <p>Six fixed stages. Each has a short checklist; the required ticks gate the move to the next stage. Days in stage are shown on every card, and a stage over its limit turns the card red and lands on the Action Centre.</p>
+        <p>Five fixed stages: <b>Sourcing → Jack Validation → Listing &amp; test → Buy &amp; receive → Live</b>. Each has a short checklist; the required ticks gate the move to the next stage. Days in stage are shown on every card, and a stage over its limit turns the card red and lands on the Action Centre.</p>
+          <p><b>Buy &amp; receive is one stage with five ticks</b>, not five stages — bought, arrived, prepped, sent, live. Buying and receiving stock is one long wait, and dragging a card through four columns to say "still waiting on the supplier" is admin, not progress. The card shows which tick it's on, so a four-week stage still reads as movement.</p>
         <table class="g-keys g-stages">
-          <tr><td><b>Ready to Source</b></td><td>validated in ranking, queued to begin · limit ${A.ready_to_source} days</td></tr>
-          <tr><td><b>Source</b></td><td>find and price every component, check margin and ROI · limit ${A.source} days</td></tr>
+          <tr><td><b>Sourcing</b></td><td>find and price every component, check margin and ROI · limit ${A.sourcing} days</td></tr>
           <tr><td><b>Jack Validation</b></td><td>Jack's yes/no before money is committed · limit ${A.jack_validation} days — message him, then record his answer here</td></tr>
-          <tr><td><b>Prepare to Launch</b></td><td>listing, images, title, Amazon accepts it · limit ${A.prepare_to_launch} days</td></tr>
-          <tr><td><b>Order / Purchase</b></td><td>buy, receive, check, prep the stock · limit ${A.order_purchase} days</td></tr>
-          <tr><td><b>Launch</b></td><td>tick <b>Stock bought</b> and <b>Listing live on Amazon</b> — the second tick counts the launch. Then archive it.</td></tr>
+          <tr><td><b>Listing &amp; test</b></td><td>listing, images, title, and the 72-hour test that Amazon keeps it up · limit ${A.prepare_to_launch} days</td></tr>
+          <tr><td><b>Buy &amp; receive</b></td><td>five ticks in one stage: bought · arrived &amp; checked · prepped · sent to Amazon · live · limit ${A.buy_receive} days</td></tr>
+          <tr><td><b>Live</b></td><td><b>Stock bought</b> and <b>Listing live on Amazon</b> are the two ticks that count the launch. Record the ASIN and launch date, then archive it.</td></tr>
         </table>
         <p style="margin-top:10px"><b>Waiting</b> on a supplier or a delivery? Use <b>Set waiting</b> with a date — the stage clock pauses and the card shows what it's waiting for. <b>Drop</b> a product at any stage with a reason; it goes to the Archive and can be revived later.</p>
         <p>A bundle typically takes 6–9 weeks from idea to live. That's normal — what matters is that it keeps moving.</p>
@@ -6012,6 +6459,7 @@ function renderGuide(){
       <div class="g-grid">
         <div class="g-card g-wide">
           <p>Three monthly targets. They reset on the 1st and are judged against how far through the month we are — so on the 15th you're expected to be about halfway. <b>Ahead / On track / Behind</b> is about pace, not the raw number.</p>
+          <p><b>Your first month is scaled.</b> Starting on the 26th doesn't mean you're behind on 25 days you never had — the targets shrink to the days you actually got, and a <span class="kpi-pro">part month</span> tag shows when that's happening. Full targets from the 1st of next month.</p>
           <table class="g-keys g-stages">
             <tr><td><b>Sourcing hours · ${hoursK.target}h</b></td><td>every session, both kinds. Counted automatically from the session clock.</td></tr>
             <tr><td><b>Ideas captured · ${ideasK.target}</b></td><td>counts the moment an idea is saved with a name. Rejected, killed or archived later — it still counts; it was found.</td></tr>
@@ -6076,7 +6524,7 @@ function _keepPreDelete(){ try{ localStorage.setItem(STORE_KEY+'__predelete', JS
 function undoLastDelete(){
   let raw=null, at=null; try{ raw = localStorage.getItem(STORE_KEY+'__predelete'); at = localStorage.getItem(STORE_KEY+'__predelete_at'); }catch(e){}
   if(!raw){ toast('Nothing to undo'); return; }
-  confirmModal('Undo the last delete?', 'Puts the tracker back exactly as it was before the last delete'+(at?' ('+new Date(at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+')':'')+'. Anything added since then is lost.', 'Undo', ()=>{
+  confirmModal('Undo the last change?', 'Puts the tracker back exactly as it was before the last delete or import'+(at?' ('+new Date(at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+')':'')+'. Anything added since then is lost.', 'Undo', ()=>{
     try{ applyState(JSON.parse(raw)); }catch(e){ toast('Could not undo — '+e.message); return; }
     KPI_LIVE=false; ideas.forEach(i=>{ if(!i.options) i.options=[]; recomputeIdea(i); }); KPI_LIVE=true;
     writeNow(); renderPane(currentPane()); updateBadges(); toast('Undone — everything is back');
@@ -6090,9 +6538,9 @@ function dataDeleteCard(){
   let hasUndo=false, undoAt=null; try{ hasUndo = !!localStorage.getItem(STORE_KEY+'__predelete'); undoAt = localStorage.getItem(STORE_KEY+'__predelete_at'); }catch(e){}
   const row = (l, d, btn, fn, danger) => `<div class="set-row"><div><div class="set-row-l">${l}</div><div class="set-row-d">${d}</div></div><button class="btn btn-sm ${danger?'btn-danger':''}" onclick="${fn}">${btn}</button></div>`;
   return `
-    <div class="sec-label" style="margin-top:16px">Delete &amp; reset <span class="line"></span><span class="card-count">a copy is kept before every delete</span></div>
+    <div class="sec-label" style="margin-top:16px">Delete &amp; reset <span class="line"></span><span class="card-count">a copy is kept before every delete and import</span></div>
     <div class="card">
-      ${hasUndo? row('Undo the last delete', 'Restores the copy taken before the most recent delete'+(undoAt?' · '+new Date(undoAt).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''), '↶ Undo', 'undoLastDelete()', false) : ''}
+      ${hasUndo? row('Undo the last change', 'Restores the copy taken before the most recent delete or import'+(undoAt?' · '+new Date(undoAt).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''), '↶ Undo', 'undoLastDelete()', false) : ''}
       ${bRows.length? `<div class="set-row" style="display:block"><div class="set-row-l">Remove an import batch</div><div class="set-row-d" style="margin-bottom:6px">Takes out every queue item that came in under that batch name — active, snoozed and completed.</div>
         ${bRows.map(([b,n])=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--b1)"><span style="flex:1;font-size:12px">${esc(b)} <span class="td-sub">· ${n} item${n===1?'':'s'}</span></span><button class="btn btn-sm btn-danger" onclick="deleteBatch(${JSON.stringify(b).replace(/"/g,'&quot;')})">Remove</button></div>`).join('')}</div>` : ''}
       ${row('Clear the review queue', activeQ+' active / snoozed item'+(activeQ===1?'':'s')+' — completed reviews stay in the archive', 'Clear queue', 'deleteQueue()', true)}
@@ -6209,9 +6657,15 @@ function renderSettings(){ saveState();
         </select></div>
     </div>`,
     kpis: `<div class="lock-note">Three monthly targets, all counted automatically — hours from sourcing sessions, ideas the moment they're saved, launches when a product is bought and live. Progress is judged against how far through the month we are. Everything else below is information, not a target.</div>
+      <div class="card" style="margin-bottom:12px"><div class="set-row"><div>
+        <div class="set-row-l">Tracking since</div>
+        <div class="set-row-d">${(()=>{const mp=monthPaceInfo(); return mp.partial
+          ? `Started part-way through ${mp.label}, so this month's targets are scaled to the ${mp.days} days you actually had. Full targets from next month.`
+          : 'Targets run over the whole calendar month.';})()}</div>
+      </div><input class="set-input" type="date" style="width:150px" value="${esc(SETTINGS.startedOn||'')}" onchange="setStartedOn(this.value)"></div></div>
       <div class="card">${SETTINGS.kpis.filter(k=>k.on).map(k=>{ const st=kpiState(k); return `
         <div class="set-row">
-          <div style="flex:1"><div class="set-row-l">${esc(k.label)}</div><div class="set-row-d">${monthPaceInfo().label} · ${fmtKpi(k,st.act)} of ${fmtKpi(k,k.target)}${k.unit||''} · ${st.label.toLowerCase()} · expected ${fmtKpi(k,st.exp)} by today${/^k\d+$/.test(String(k.id))?' · custom — counts via its +1 button':''}</div></div>
+          <div style="flex:1"><div class="set-row-l">${esc(k.label)}</div><div class="set-row-d">${monthPaceInfo().label} · ${fmtKpi(k,st.act)} of ${fmtKpi(k,kpiTarget(k))}${k.unit||''}${monthPaceInfo().partial?` (scaled from ${fmtKpi(k,k.target)}${k.unit||''} — part month)`:''} · ${st.label.toLowerCase()} · expected ${fmtKpi(k,st.exp)} by today${/^k\d+$/.test(String(k.id))?' · custom — counts via its +1 button':''}</div></div>
           <div style="display:flex;gap:8px;align-items:center">
             <span class="td-sub">monthly target</span><input class="set-input" style="width:60px" value="${k.target}" onchange="kpiEdit('${k.id}','target',this.value)">
             <button class="btn btn-sm" onclick="kpiToggle('${k.id}')">Shown</button>
@@ -6272,6 +6726,14 @@ function editLinkTpl(i, el){ saveState();
 const activeQsAll = () => RANK_QS.slice().sort((a,b)=>a.order-b.order);
 function qTypeLabel(q){
   return {yn:'Yes / No', ynna:'Yes / No / N/A', hml:'High / Med / Low', number:'Number'+(q.allowNA?' · N/A':''), currency:'£ Currency'+(q.allowNA?' · N/A':'')}[q.type]||q.type;
+}
+function setStartedOn(v){
+  saveState();
+  const d = v ? new Date(v+'T00:00:00') : null;
+  if(v && isNaN(d)){ toast("That isn't a date"); renderSettings(); return; }
+  SETTINGS.startedOn = v || new Date().toISOString().slice(0,10);
+  writeNow(); renderSettings(); refreshPanes(); updateBadges();
+  toast('Tracking since '+new Date(SETTINGS.startedOn+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}));
 }
 function kpiPlus(id){ saveState(); const k=SETTINGS.kpis.find(x=>x.id===id); if(!k) return; bumpKpi(id, '+1 — '+k.label); renderAction(); }
 function setWorkspaceName(v){ saveState(); v=(v||'').trim(); if(!v){ renderSettings(); return; } SETTINGS.workspaceName=v; document.getElementById('sbName').textContent=v; toast('Saved'); }
