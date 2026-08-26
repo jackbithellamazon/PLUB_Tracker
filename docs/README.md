@@ -49,9 +49,8 @@ These same backup files are what Phase 2 imports into the Supabase build. Keep t
 ## Phase plan
 
 1. **Now** — this build. Local save, live data from day one.
-2. **~1 week** — export backups → Supabase build with logins → import → confirm → carry on.
-3. **Week after** — multi-user testing on Supabase.
-4. **Later** — fold into the wider BDL hub.
+2. **Supabase is on hold** (decided 26 Aug). Local storage is the source of truth — what's in your browser is the real data, so the daily backup below is the only copy that exists off this laptop.
+3. **Later** — logins and shared data, if and when it's needed.
 
 ## v0.1 — what's in this release (UB)
 
