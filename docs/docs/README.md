@@ -83,4 +83,84 @@ They land on the **Tasks** page. Each one opens its link ("Open keepa filter ↗
 
 Nothing already on the list is touched — the file is *added*. Anything already there is skipped. Jobs already marked done on Jack's sheet are left out of the file entirely, so the list is only what still needs doing.
 
-If it goes wrong: **Settings → Data & backups → Delete & reset → Undo the last delete**.
+If it goes wrong: **Settings → Data & backups → Delete & reset → Undo the last change** — a copy of the tracker is taken immediately before every import and every delete, so one click puts it back.
+
+## Latest changes
+
+- **Tasks redesigned** — compact grouped list instead of 80 identical cards. Grouped by type (Keepa searches, ASINs, storefronts…), sorted worst-first, one row each with the note inline. Filter chips, search, and By type / By status / One list.
+- **Priority now means something** — a coloured dot on each row: red urgent, amber high, grey normal, dark low. It sorts the list. Click the dot to change it. Only urgent/high get a visible label; everything imported arrives as normal.
+- **Sidebar aligned** — the brand row is exactly the height of the top bar in both apps, with the collapse toggle inside it. Collapsed, the logo tile expands it again.
+- **PL Action Centre restyled** to UB's language — coloured KPI tiles, readable badges, compact action cards with colour spines.
+- **Fixed:** PL badges were rendering black-on-black (a token clash) — text is visible everywhere again. PL's top bar now shows which page you're on.
+
+## Fixed after testing (same day)
+
+- **The session bar now moves while you work.** Its live tally (`0 ideas · 0 reviewed · 0 greens · 0 progressed`) was frozen at zero for the whole session and only caught up if you switched browser tab and came back. The end-of-session summary was always right — it was just the live readout that was stale. It's the flow meter, so it has to move.
+- **An import can now be undone.** A copy is taken immediately before an import lands, exactly as it is before a delete. The import confirmation now says so.
+- **Import message reads properly** — it used to lead with "Added 0 to the queue" on a tasks-only file, which read like a failure. It now names only what actually landed.
+
+## First month is scaled (v0.1, 26 Aug)
+
+Starting on the 26th used to mean opening the app 26.8 hours behind on a 32-hour target — judged against 25 days you never had. Now the first partial month scales:
+
+- **Targets shrink to the days you actually got.** 32h becomes 6.2h across 6 days; 10 ideas becomes 2. The card foot says `scaled from 32h` so the odd number explains itself.
+- **A target that scales to nothing says so** — 2 launches across 6 days reads **From September**, not "behind".
+- **Pace counts the part of today that has actually happened**, so opening at 9am on day one doesn't report you behind on a day you haven't had.
+- **Settings → KPIs & targets → Tracking since** holds the date and can be changed. The monthly targets you type stay the real monthly numbers.
+
+From the 1st of next month everything runs on full calendar months as before.
+
+## PL — Ideas density (v0.1, 26 Aug)
+
+Same fix as the UB queue: 49 near-identical cards is a wall. Cards are **21% shorter** and the page is **18% less scrolling**, because the three buttons repeated on every card (→ Pipeline · Export · Delete) now appear on hover, and the 56px of padding that was reserving room for them goes with them. Touch devices keep the buttons visible.
+
+## PL — bulk import ideas (v0.1, 26 Aug)
+
+**··· menu → Import ideas**, or drag the `.json` anywhere onto the page.
+
+This **adds**; it never replaces. That matters — the existing *Restore backup* wipes the tracker and puts a saved copy back, which is right for a migration and wrong for "here are this week's products". Before anything happens you see exactly what will land: how many are new, how many are already here, and every name in a list.
+
+An idea already in the tracker is **not duplicated**. Its score and answers are left alone, and the new session notes plus any ASINs you were missing get attached to the record that already exists. So a second look on a product stays one record with two sets of notes.
+
+## PL — less typing when adding an idea
+
+The ASIN box now takes **Amazon links, not just codes** — and a whole block of them at once. Paste ten product URLs and you get ten ASIN rows. It ignores anything that isn't an ASIN and skips ones already on the idea.
+
+## PL — pre-filled answers, and the badge that says so (v0.1, 26 Aug)
+
+An imported idea arrives with all nine checklist answers filled in. Some of those are Jack's own words; some are a read of his notes. A score you didn't give is worse than no score if nothing tells you which is which — so:
+
+- **Every idea carrying guesses wears an amber `⚑ check N` badge** on its card until it's been through.
+- **`⚑ N to check`** above the grid filters to just those, so a review pass is one click in and one click out.
+- **Clicking the badge marks it checked** and removes it. The answers stay; only the flag goes.
+- **The reasoning lives next to the answer**, in the idea's Notes — every one of the nine tagged `YOUR WORDS`, `READ FROM YOUR NOTES` or `MY GUESS`, with the evidence, guesses listed first.
+
+Merging into an idea that already has answers **never touches them** — his answers win, and that record gets no badge. Blank fields on an existing idea get filled; answered ones don't.
+
+## Five stages, not six (v0.1, 26 Aug)
+
+**Sourcing → Jack Validation → Listing & test → Buy & receive → Live.**
+
+- **Ready to Source is gone.** It was a waiting room, not work — an idea that leaves ranking is being sourced.
+- **Order/Purchase, Launch and Launched were one phase pretending to be three.** They are now **Buy & receive**, one stage with five ticks: bought · arrived & checked · prepped · sent to Amazon · live. Buying and receiving stock is one long wait, and dragging a card through four columns to say "still waiting on the supplier" is admin, not progress. The card shows a row of pips and *2 of 5*, so a 28-day stage still reads as movement.
+- **Prepare to Launch is now Listing & test** and covers the 72-hour test. Its threshold moved 7 → 10 days to match (if you had set your own number, yours is kept).
+
+**Nothing in flight is lost.** Records on the old six stages migrate on load: Ready-to-Source and Source fold into Sourcing; Order/Purchase and Launch fold into Buy & receive. Old ticks map onto the new wording — *All required components ordered* becomes *Stock bought*, *Components received/checked* becomes *Components received & checked*. Work with no equivalent is kept, still ticked, but no longer required, so the card reads *2 of 5* rather than *3 of 8*. Every migrated product gets a line in its History saying what changed.
+
+## Paste your notes into a new idea (UB)
+
+**Add Idea → ⇩ Paste from your notes.** Paste a block — a Helium 10 line, an Amazon link, a page of notes — and it fills the name, the ASIN and the four numbers it recognises. Nothing already filled in is overwritten.
+
+It reads the shapes people actually write: `Search Volume` on one line and `1,540` on the next, `2 main competitors`, `SV 28,961 · £9.99 · 600 comp sales/mo · 40 competitors`, and a `PRODUCT 3 — CHICORY COFFEE` heading.
+
+## PL — scored well, then stalled
+
+Above the ideas list, up to three ideas that **scored 60%+, have not been touched in 14+ days, and still are not in the Pipeline** — with a one-click **→ Pipeline**. A "top three by score" strip would only repeat the first three cards; what actually goes missing is the idea that looked good weeks ago and then went quiet. Nothing stalled, no strip.
+
+## Fixed in pre-ship testing (26 Aug)
+
+- **Day one showed full monthly targets.** `loadState` returned early when there was no saved data, so the start date was never stamped and the part-month scaling never ran — on a brand-new browser, the exact case it exists for. A first visit now opens on **0 / 6.2h · scaled from 32h**, not 0 / 32h with "26.6 expected by today".
+- **New products entered Sourcing with the wrong checklist** — a hard-coded pair of tasks left over from Ready to Source, so a product arrived with 2 ticks instead of Sourcing's 8. Seeded from the stage definition now.
+- **Jack's "Send back" offered stages that no longer exist** (Ready to Source / Source). It would have parked a product on a stage with no column. One option now: Sourcing.
+- **Stale copy across the app** — buttons, toasts, history lines and the whole guide stage table still described six stages and "Ready to Source". All updated. The archive's "died late" count keeps the old stage names alongside the new ones so historical drops still count.
+

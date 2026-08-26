@@ -1345,10 +1345,10 @@ body,.app{background:var(--bg)}
 <!-- ════════════════════ TOP NAV ════════════════════ -->
 <aside class="sidebar sb2">
   <div class="sn-brand">
-    <div class="sn-mark"><svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="2.5" fill="#030304" opacity=".85"/><path d="M8.5 9V7a3.5 3.5 0 017 0v2" fill="none" stroke="#030304" stroke-width="2" stroke-linecap="round" opacity=".85"/></svg></div>
+    <div class="sn-mark" onclick="if(document.body.classList.contains('sb-min'))toggleSidebar()" title="Expand the sidebar" style="cursor:pointer"><svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="2.5" fill="#030304" opacity=".85"/><path d="M8.5 9V7a3.5 3.5 0 017 0v2" fill="none" stroke="#030304" stroke-width="2" stroke-linecap="round" opacity=".85"/></svg></div>
     <div class="sn-brand-t"><div class="sn-name">Private Label</div><div class="sn-sub">Sourcing tracker · <i>v0.1</i></div></div>
-  </div>
-  <button class="sn-toggle" title="Collapse / expand" onclick="toggleSidebar()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5L5.5 8 10 12.5"/></svg></button>
+    <button class="sn-toggle" title="Collapse / expand" onclick="toggleSidebar()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5L5.5 8 10 12.5"/></svg></button>
+    </div>
   <nav class="sn-nav">
       <div class="sn-sec"><span>Today</span></div>
       <button class="nav-item ntab" id="ntab-week" data-pane="week" style="--c:#22D3EE" onclick="nav('week')" title="Action Centre">
@@ -1382,6 +1382,21 @@ body,.app{background:var(--bg)}
 </aside>
 <script>
 function toggleSidebar(){ document.body.classList.toggle('sb-min'); try{ localStorage.setItem('pl_sb_min', document.body.classList.contains('sb-min')?'1':'0'); }catch(e){} }
+var PL_PAGE_NAMES = {dash:'Ideas', pipeline:'Pipeline', week:'Action Centre', pl:'P&L', forecast:'PL Forecast', settings:'Settings'};
+function plPaintPage(id){ var tb=document.getElementById('appTopbar'); if(tb) tb.setAttribute('data-page', PL_PAGE_NAMES[id]||''); }
+// PL reassigns window.nav in later script blocks, so wrapping it doesn't stick.
+// Watch which pane is active instead — that's always true.
+(function(){
+  function sync(){ var a=document.querySelector('.pane.active'); plPaintPage(a? a.id.replace('pane-',''):'dash'); }
+  function start(){
+    sync();
+    var panes=document.querySelectorAll('.pane');
+    if(!panes.length){ return setTimeout(start,200); }
+    var mo=new MutationObserver(sync);
+    panes.forEach(function(p){ mo.observe(p,{attributes:true,attributeFilter:['class']}); });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
+})();
 try{ if(localStorage.getItem('pl_sb_min')==='1') document.body.classList.add('sb-min'); }catch(e){}
 </script>
 <header class="topbar" id="appTopbar">
@@ -1406,6 +1421,7 @@ try{ if(localStorage.getItem('pl_sb_min')==='1') document.body.classList.add('sb
       <div class="nav-menu" id="navMenu">
         <button class="nav-menu-item" onclick="exportData();toggleNavMenu()">💾 Download backup</button>
         <button class="nav-menu-item" onclick="openExport();toggleNavMenu()">📤 Export ideas</button>
+        <button class="nav-menu-item" onclick="plPickIdeaImport();toggleNavMenu()">⬆ Import ideas — adds, never replaces</button>
         <div style="height:1px;background:var(--b1);margin:4px 0"></div>
         <button class="nav-menu-item" onclick="nav('settings');toggleNavMenu()">⚙ Settings</button>
       </div>
@@ -2785,7 +2801,20 @@ function openBulkModal(){
 }
 function addAsin(){tempAsins.push({asin:'',note:''});renderAsinList();setTimeout(()=>{const r=document.querySelectorAll('.asin-row input');if(r.length)r[r.length-2].focus();},50);}
 function remA(i){tempAsins.splice(i,1);renderAsinList();}
-function upA(i,f,v){if(tempAsins[i])tempAsins[i][f]=v;}
+function upA(i,f,v){
+  if(!tempAsins[i])return;
+  if(f!=='asin'){ tempAsins[i][f]=v; return; }
+  // He works from Amazon links, not bare codes. Accept a pasted URL, or a whole block of them,
+  // and turn it into ASINs — one paste instead of ten copy-outs.
+  var found = String(v||'').toUpperCase().match(/B0[A-Z0-9]{8}/g);
+  if(!found || !found.length){ tempAsins[i][f]=v; return; }
+  var seen={}; tempAsins.forEach(function(a,ix){ if(ix!==i) seen[String(a.asin||'').toUpperCase()]=1; });
+  var uniq = found.filter(function(a){ if(seen[a]) return false; seen[a]=1; return true; });
+  if(!uniq.length){ tempAsins[i].asin=''; renderAsinList(); return; }
+  tempAsins[i].asin = uniq[0];
+  for(var k=1;k<uniq.length;k++) tempAsins.splice(i+k,0,{asin:uniq[k],note:''});
+  if(uniq.length>1){ renderAsinList(); try{ showFlash('Pulled '+uniq.length+' ASINs out of that paste'); }catch(e){} }
+}
 
 // DELETE
 function askDelete(){
@@ -3259,7 +3288,7 @@ function renderAsinList(){
     const amzUrl=asinClean?amzUrlFor(asinClean):'';
     const amzBtn=amzUrl?'<a href="'+amzUrl+'" target="_blank" class="asin-link" title="Open on '+(settings.amazonDomain||'amazon.co.uk')+'">AMZ</a>':'<span class="asin-link-empty">AMZ</span>';
     return '<div class="asin-row">'
-      +'<input type="text" value="'+esc(a.asin||'')+'" placeholder="ASIN e.g. B08XYZ1234" oninput="upA('+i+',&quot;asin&quot;,this.value)" onchange="renderAsinList()">'
+      +'<input type="text" value="'+esc(a.asin||'')+'" placeholder="ASIN, or paste Amazon links" oninput="upA('+i+',&quot;asin&quot;,this.value)" onchange="renderAsinList()">'
       +'<input class="note-i" type="text" value="'+esc(a.note||'')+'" placeholder="Note e.g. top seller, weak reviews..." oninput="upA('+i+',&quot;note&quot;,this.value)">'
       +amzBtn
       +'<button class="asin-del" onclick="remA('+i+')" title="Remove">✕</button>'
@@ -7164,7 +7193,9 @@ html,body{background:radial-gradient(950px 540px at 50% -210px,rgba(163,163,170,
   --bg:#030304!important;--surface:#0A0A0C!important;--s1:#0A0A0C!important;--s2:#0F0F12!important;--s3:#17171B!important;--s4:#1E1E24!important;--sidebar:#050507!important;
   --b1:#1E1E24!important;--b2:#2A2A31!important;--b3:#3A3A43!important;
   --t1:#F5F5F8!important;--t2:#C6C7D0!important;--t3:#9698A4!important;--t4:#8A8A96!important;
-  --brand:#A78BFF!important;--brand-d:#030304!important;--brand-t:#030304!important;--brand-b:#A78BFF!important;--brand-h:#B9A3FF!important;
+  /* --brand-t is TEXT on a dark surface (must stay light); --brand-d is that dark surface.
+     Getting these backwards made badges #030304 on #030304 — invisible. */
+  --brand:#A78BFF!important;--brand-d:#171425!important;--brand-t:#C4B2FF!important;--brand-b:rgba(167,139,255,.45)!important;--brand-h:#B9A3FF!important;
   --green:#00E5A0!important;--gd:rgba(0,229,160,.14)!important;--gt:#5FFFC8!important;--gb:rgba(0,229,160,.45)!important;
   --amber:#FFC53D!important;--ad:rgba(255,197,61,.14)!important;--at:#FFDC85!important;--ab:rgba(255,197,61,.45)!important;
   --red:#FF5470!important;--rd:rgba(255,84,112,.14)!important;--rt:#FF8FA3!important;--rb:rgba(255,84,112,.46)!important;
@@ -7259,6 +7290,385 @@ body.sb-min .sb2 .nav-item.active{background:none} body.sb-min .sb2 .nav-item.ac
 body.sb-min .sb2 .nav-badge{position:absolute;top:0;right:2px;min-width:15px;height:15px;padding:0 4px;font-size:8.5px;line-height:13px;border-width:1px}
 body.sb-min .sb2 .sn-foot{justify-content:center;padding:10px 0}
 body.sb-min .sb2 .sn-mark{width:34px;height:34px;border-radius:10px}
+
+/* sidebar/topbar alignment: brand row is exactly the topbar height, toggle sits inside it */
+.sb2 .sn-brand{min-height:44px;height:44px;padding:0 10px 0 12px;border-bottom:1px solid var(--b1);gap:9px}
+.sb2 .sn-mark{width:26px;height:26px;border-radius:8px} .sb2 .sn-mark svg{width:16px;height:16px}
+.sb2 .sn-name{font-size:12.5px;line-height:1.15}
+.sb2 .sn-sub{font-size:9.5px;margin-top:0;line-height:1.15}
+.sb2 .sn-toggle{position:static;margin-left:auto;width:20px;height:20px;border-radius:6px;flex:none;background:none;border:1px solid var(--b2)}
+.sb2 .sn-toggle svg{width:10px;height:10px}
+body.sb-min .sb2 .sn-brand{padding:0;justify-content:center}
+body.sb-min .sb2 .sn-toggle{display:none}
+body.sb-min .sb2 .sn-mark{width:28px;height:28px}
+.sb2 .sn-foot{min-height:46px;padding:8px 12px}
+.sb2 .sn-nav{padding-top:6px}
+
+/* PL topbar had almost nothing in it — give it the page name so it isn't a dead strip */
+#appTopbar::before{content:attr(data-page);font-size:12.5px;font-weight:700;color:var(--t2);letter-spacing:-.1px}
+
+/* ── PL Action Centre: UB's language ── */
+.ac2-shell{padding-top:2px}
+.ac2-header h1{font-size:21px!important;letter-spacing:-.6px!important;font-weight:800!important}
+.ac2-eyebrow{font-size:9.5px!important;font-weight:800!important;letter-spacing:1.6px!important;background:linear-gradient(135deg,#A78BFF,#22D3EE);-webkit-background-clip:text;background-clip:text;color:transparent!important}
+.ac2-kpis{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:9px!important;margin:10px 0 12px!important}
+.ac2-kpi{min-height:0!important;padding:11px 13px!important;border-radius:12px!important;border:1px solid var(--b1)!important;border-top:2px solid var(--k,var(--b2))!important;background:linear-gradient(180deg,color-mix(in srgb,var(--k,#22D3EE) 8%,var(--s1)) 0%,var(--s1) 70%)!important;transition:border-color .14s,transform .08s!important}
+.ac2-kpi:hover{transform:none!important;border-color:var(--b3)!important}
+.ac2-kpi:before{display:none!important}
+.ac2-kpi.red{--k:#FF5470} .ac2-kpi.blue{--k:#3B9EFF} .ac2-kpi.purple{--k:#A78BFF} .ac2-kpi.cyan{--k:#22D3EE} .ac2-kpi.green{--k:#00E5A0}
+.ac2-kpi-label{font-family:inherit!important;font-size:10px!important;letter-spacing:1.2px!important;color:var(--t3)!important}
+.ac2-kpi-val{margin-top:6px!important;font-size:22px!important;font-weight:800!important;letter-spacing:-.6px!important;color:var(--k,var(--t1))!important;font-variant-numeric:tabular-nums}
+.ac2-kpi-sub{font-size:10.5px!important;color:var(--t4)!important;margin-top:2px!important}
+.ac2-section{padding:12px 14px!important;border-radius:13px!important;border-color:var(--b1)!important;margin-bottom:12px!important}
+.ac2-section-hd h2{font-size:10px!important;letter-spacing:1.4px!important;color:var(--t3)!important;font-family:inherit!important}
+.ac2-section-hd span{font-family:inherit!important;font-size:10px!important;background:var(--s3)!important;border:1px solid var(--b2)!important;color:var(--t3)!important;border-radius:999px!important;padding:1px 7px!important}
+.ac2-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))!important;gap:8px!important}
+.ac2-tile{min-height:0!important;border-radius:11px!important;padding:11px 12px!important;background:var(--s2)!important;border:1px solid var(--b1)!important;gap:5px!important}
+.ac2-tile:hover{border-color:var(--b3)!important;transform:none!important}
+.ac2-tile.overdue{border-left:3px solid var(--red)!important} .ac2-tile.stuck{border-left:3px solid var(--amber)!important} .ac2-tile.gap{border-left:3px solid var(--accent)!important} .ac2-tile.manual{border-left:3px solid var(--blue)!important} .ac2-tile.action{border-left:3px solid var(--accent2)!important}
+.ac2-tile h3{font-size:13px!important;font-weight:700!important;letter-spacing:-.2px!important;margin:2px 0 0!important}
+.ac2-badge{font-family:inherit!important;font-size:9px!important;letter-spacing:.6px!important;border-radius:5px!important;padding:2px 6px!important;background:var(--s3)!important;color:var(--t3)!important;border:1px solid var(--b2)!important}
+.ac2-badge.overdue{background:var(--rd)!important;color:var(--rt)!important;border-color:var(--rb)!important}
+.ac2-badge.stuck{background:var(--ad)!important;color:var(--at)!important;border-color:var(--ab)!important}
+.ac2-badge.gap{background:var(--pd)!important;color:var(--pt)!important;border-color:var(--pb)!important}
+.ac2-badge.action{background:color-mix(in srgb,#22D3EE 16%,transparent)!important;color:#22D3EE!important;border-color:rgba(34,211,238,.4)!important}
+.ac2-next{font-size:11.5px!important;color:var(--t2)!important}
+.ac2-tile p{font-size:10.5px!important;color:var(--t4)!important;margin:0!important}
+.ac2-product{font-size:10.5px!important;color:var(--t3)!important}
+.ac2-open{font-family:inherit!important;font-size:11px!important;font-weight:700!important;border-radius:8px!important;padding:5px 10px!important;background:var(--s3)!important;border:1px solid var(--b2)!important;color:var(--t1)!important;margin-top:4px!important}
+.ac2-open:hover{border-color:var(--accent2)!important}
+.ac2-kpi-lines>div{font-size:11.5px!important} .ac2-kpi-lines b{font-variant-numeric:tabular-nums}
+.ac2-completed summary{font-size:11.5px!important;color:var(--t3)!important}
+
+/* "work these next" — the three ideas actually waiting on a decision */
+.plnext{margin:0 0 11px}
+.plnext-h{display:flex;align-items:baseline;gap:9px;margin-bottom:7px}
+.plnext-h b{font-size:11.5px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;color:var(--t2)}
+.plnext-h span{font-size:10.5px;color:var(--t4)}
+.plnext-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.plnext-c{background:linear-gradient(180deg,color-mix(in srgb,var(--green) 9%,var(--s1)),var(--s1));
+  border:1px solid color-mix(in srgb,var(--green) 30%,var(--b1));border-radius:11px;padding:9px 11px 10px;
+  display:flex;flex-direction:column;gap:6px;min-width:0}
+.plnext-t{display:flex;align-items:center;gap:7px;min-width:0}
+.plnext-p{font-size:12.5px;font-weight:800;color:var(--gt);background:var(--gd);border-radius:6px;padding:2px 6px;flex:none;font-variant-numeric:tabular-nums}
+.plnext-n{font-size:12.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plnext-m{font-size:10.5px;color:var(--t4);font-variant-numeric:tabular-nums}
+.plnext-b{font:700 11px inherit;padding:5px 10px;border-radius:8px;cursor:pointer;align-self:flex-start;
+  background:var(--gd);border:1px solid color-mix(in srgb,var(--green) 40%,transparent);color:var(--gt);transition:background .14s}
+.plnext-b:hover{background:color-mix(in srgb,var(--green) 24%,transparent)}
+
+
+/* the "check these answers" badge + its filter */
+.ic-tag.ic-chk{background:rgba(255,197,61,.14)!important;border:1px solid rgba(255,197,61,.42)!important;color:#FFC53D!important;cursor:pointer;font-weight:800!important;font-family:inherit}
+.ic-tag.ic-chk:hover{background:rgba(255,197,61,.26)!important}
+.plchk-btn{display:inline-flex;align-items:center;gap:6px;font:800 11px inherit;letter-spacing:.2px;padding:6px 11px;margin:0 0 9px;border-radius:9px;cursor:pointer;
+  background:rgba(255,197,61,.11);border:1px solid rgba(255,197,61,.38);color:#FFC53D;transition:background .14s}
+.plchk-btn:hover{background:rgba(255,197,61,.2)}
+.plchk-btn.on{background:#FFC53D;border-color:#FFC53D;color:#1a1400}
+#pane-dash .idea-grid.only-check .ic:not(.has-check){display:none!important}
+
+
+/* ═══════ IDEAS — density pass ═══════
+   49 ideas at 279px tall is five cards a screen and seventeen rows of scrolling. The three
+   buttons repeated on every card are the biggest waste — they never change, so they come
+   back on hover, and the 56px of padding that was reserving room for them goes with them.
+   Scoped to #pane-dash because PL's own rules are id + !important and would otherwise win. */
+#pane-dash .idea-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))!important;gap:8px!important}
+#pane-dash .ic{border-radius:11px!important;transition:border-color .14s,transform .08s,box-shadow .14s!important}
+#pane-dash .ic:hover{transform:translateY(-1px)!important}
+#pane-dash .ic .ic-body{padding:10px 12px 11px!important;gap:7px!important}
+#pane-dash .ic .ic-top-row{gap:7px!important}
+#pane-dash .ic .ic-why{font-size:10.5px!important;line-height:1.45!important;color:var(--t3)!important}
+#pane-dash .ic .ic-metrics{gap:5px!important}
+#pane-dash .ic .ic-metrics>*{padding:6px 7px!important;border-radius:8px!important}
+/* the action row only when you actually want it */
+#pane-dash .ic .ic-actions{position:absolute!important;left:0!important;right:0!important;bottom:0!important;
+  opacity:0!important;transform:translateY(4px)!important;pointer-events:none!important;
+  background:linear-gradient(180deg,transparent 0,var(--s1) 26%,var(--s1) 100%)!important;border-top:none!important;
+  padding:20px 10px 9px!important;transition:opacity .13s,transform .13s!important;z-index:2!important}
+#pane-dash .ic:hover .ic-actions,#pane-dash .ic:focus-within .ic-actions{opacity:1!important;transform:none!important;pointer-events:auto!important}
+@media (hover:none){ #pane-dash .ic .ic-actions{position:static!important;opacity:1!important;transform:none!important;pointer-events:auto!important;background:none!important;padding:4px 10px 8px!important}
+  #pane-dash .ic .ic-body{padding-bottom:2px!important} }
 </style>
+
+<script>
+/* ═══════════ IMPORT IDEAS — adds, never replaces ═══════════
+   The existing "restore backup" wipes the tracker and puts a saved copy back. That is the right
+   tool for a migration and the wrong tool for "here are 14 products from this week's session".
+   This one merges: unseen names are added, names already here get the new thinking attached to
+   the record that exists, so a second look never becomes a second copy. */
+(function(){
+  function nm(x){ return String(x||'').toLowerCase().replace(/\(2nd look\)/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
+  function esc(x){ return String(x==null?'':x).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  function preview(pack){
+    var inc = (pack.data && pack.data.ideas) || [];
+    var have = {}; ideas.forEach(function(i){ have[nm(i.name)] = i; });
+    var fresh = [], merge = [];
+    inc.forEach(function(i){ (have[nm(i.name)] ? merge : fresh).push(i); });
+    return {inc:inc, fresh:fresh, merge:merge};
+  }
+
+  window.plMergeIdeaPack = function(pack){
+    var p = preview(pack), added=0, updated=0;
+    var have = {}; ideas.forEach(function(i){ have[nm(i.name)] = i; });
+    var base = Date.now();
+    p.inc.forEach(function(inc, ix){
+      var ex = have[nm(inc.name)];
+      if(ex){
+        var hadAnswers = ['reviews','improve','amzsell','chinese','better','tiktok','ads','comply']
+          .some(function(f){ return String(ex[f]==null?'':ex[f]).trim(); });
+        var t = (inc.myThoughts||'').trim();
+        if(t && (ex.myThoughts||'').indexOf(t.slice(0,40)) === -1)
+          ex.myThoughts = (ex.myThoughts ? ex.myThoughts.trim()+'\n\n' : '') + t;
+        var seen = {}; (ex.asins||[]).forEach(function(a){ seen[String(a.asin||'').toUpperCase()] = 1; });
+        (inc.asins||[]).forEach(function(a){
+          var k = String(a.asin||'').toUpperCase();
+          if(k && !seen[k]){ if(!ex.asins) ex.asins = []; ex.asins.push({asin:k, note:a.note||''}); seen[k] = 1; }
+        });
+        // fill blanks only — never overwrite something he has already decided
+        ['sv','price','tcs','ncomp','improve_note','ncomp_note',
+         'reviews','improve','amzsell','chinese','better','listing','tiktok','ads','comply'].forEach(function(f){
+          if(!String(ex[f]==null?'':ex[f]).trim() && String(inc[f]==null?'':inc[f]).trim()) ex[f] = inc[f];
+        });
+        // only carry the "check these" tally if his record had no answers of its own to begin with
+        if(inc._prefill && !ex._prefill && !hadAnswers) ex._prefill = inc._prefill;
+        if(inc.notes) ex.notes = (ex.notes ? ex.notes.trim()+'\n' : '') + inc.notes;
+        ex.editedAt = base;
+        updated++;
+      } else {
+        var rec = JSON.parse(JSON.stringify(inc));
+        rec.id = base + ix;                 // ms-style ids, same as a hand-added idea
+        rec._legacyId = String(rec.id);
+        rec.createdAt = rec.createdAt || base;
+        rec.editedAt = base;
+        delete rec._dbId;                   // a carried-over row id would UPDATE a row that isn't there
+        if(!Array.isArray(rec.asins)) rec.asins = [];
+        if(!Array.isArray(rec.scoreHistory)) rec.scoreHistory = [];
+        ideas.unshift(rec);
+        have[nm(rec.name)] = rec;
+        added++;
+      }
+    });
+    try{ persist(); }catch(e){}
+    try{ renderDash(); }catch(e){}
+    try{ updateNavCounts(); }catch(e){}
+    return {added:added, updated:updated};
+  };
+
+  function dialog(pack, fileName){
+    var p = preview(pack);
+    var wrap = document.createElement('div');
+    wrap.id = 'plImpWrap';
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:20px';
+    var row = function(i, kind){
+      return '<div style="display:flex;align-items:center;gap:8px;padding:5px 9px;border-bottom:1px solid var(--b1)">'
+        + '<span style="font-size:8.5px;font-weight:800;letter-spacing:.4px;padding:2px 6px;border-radius:5px;flex:none;'
+        + (kind==='new' ? 'background:rgba(0,229,160,.13);color:#4ADE80;border:1px solid rgba(0,229,160,.34)'
+                        : 'background:rgba(255,197,61,.13);color:#FFC53D;border:1px solid rgba(255,197,61,.34)')
+        + '">' + (kind==='new' ? 'NEW' : 'ADDS TO') + '</span>'
+        + '<span style="flex:1;min-width:0;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(i.name) + '</span>'
+        + '<span style="font-size:10.5px;color:var(--t4);flex:none">' + (i.sv ? Number(i.sv).toLocaleString() + ' SV · ' : '') + (i.asins||[]).length + ' ASIN' + ((i.asins||[]).length===1?'':'s') + '</span>'
+        + '</div>';
+    };
+    wrap.innerHTML =
+      '<div style="background:var(--s1);border:1px solid var(--b2);border-radius:16px;max-width:600px;width:100%;max-height:84vh;display:flex;flex-direction:column;overflow:hidden">'
+      + '<div style="padding:16px 18px 12px">'
+      +   '<div style="font-size:17px;font-weight:800;letter-spacing:-.3px">Add these ideas?</div>'
+      +   '<div style="font-size:11.5px;color:var(--t4);margin-top:3px">' + esc(fileName) + (pack.source ? ' · ' + esc(pack.source) : '') + '</div>'
+      +   '<div style="display:flex;gap:8px;margin-top:12px">'
+      +     '<div style="flex:1;background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:9px 11px"><div style="font-size:19px;font-weight:800;color:#4ADE80">' + p.fresh.length + '</div><div style="font-size:9.5px;color:var(--t4);letter-spacing:.4px">NEW IDEAS</div></div>'
+      +     '<div style="flex:1;background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:9px 11px"><div style="font-size:19px;font-weight:800;color:#FFC53D">' + p.merge.length + '</div><div style="font-size:9.5px;color:var(--t4);letter-spacing:.4px">ALREADY HERE</div></div>'
+      +     '<div style="flex:1;background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:9px 11px"><div style="font-size:19px;font-weight:800">' + p.inc.reduce(function(t,i){return t+(i.asins||[]).length;},0) + '</div><div style="font-size:9.5px;color:var(--t4);letter-spacing:.4px">ASINS</div></div>'
+      +   '</div>'
+      + '</div>'
+      + '<div style="overflow-y:auto;margin:0 18px;border:1px solid var(--b1);border-radius:10px">'
+      +   p.fresh.map(function(i){return row(i,'new');}).join('')
+      +   p.merge.map(function(i){return row(i,'merge');}).join('')
+      + '</div>'
+      + '<div style="margin:12px 18px;padding:9px 11px;border-radius:10px;background:rgba(0,229,160,.07);border:1px solid rgba(0,229,160,.22);font-size:11.5px;color:var(--t2);line-height:1.5">'
+      +   'Nothing you already have is replaced. The ' + p.merge.length + ' already here keep their score and answers — the new notes and any ASINs you were missing get attached to them.'
+      + '</div>'
+      + '<div style="display:flex;gap:8px;justify-content:flex-end;padding:0 18px 16px">'
+      +   '<button id="plImpNo" style="font:600 12px inherit;padding:8px 14px;border-radius:9px;background:var(--s3);border:1px solid var(--b2);color:var(--t2);cursor:pointer">Cancel</button>'
+      +   '<button id="plImpYes" style="font:700 12px inherit;padding:8px 16px;border-radius:9px;background:var(--accent);border:1px solid var(--accent);color:#fff;cursor:pointer">Add ' + p.fresh.length + ' · update ' + p.merge.length + '</button>'
+      + '</div></div>';
+    document.body.appendChild(wrap);
+    var close = function(){ wrap.remove(); };
+    wrap.addEventListener('click', function(e){ if(e.target===wrap) close(); });
+    document.getElementById('plImpNo').onclick = close;
+    document.getElementById('plImpYes').onclick = function(){
+      var r = window.plMergeIdeaPack(pack); close();
+      try{ showFlash('Added ' + r.added + ' · updated ' + r.updated + ' ✓'); }catch(e){}
+    };
+  }
+
+  window.plReadIdeaFile = function(file){
+    if(!file) return;
+    if(!/\.json$/i.test(file.name||'')){ try{ showFlash('That needs to be a .json file'); }catch(e){} return; }
+    var rd = new FileReader();
+    rd.onload = function(e){
+      var pack;
+      try{ pack = JSON.parse(e.target.result); }catch(err){ try{ showFlash("That file can't be read"); }catch(x){} return; }
+      if(!pack || !pack.data || !Array.isArray(pack.data.ideas)){ try{ showFlash('No ideas list in that file'); }catch(x){} return; }
+      if(pack.schema === 'pl-tracker-migration-backup' && pack.mode !== 'add'){
+        if(!confirm('That is a full backup, which REPLACES everything.\n\nAdd its ideas to what you have instead?\n\nOK = add · Cancel = stop')) return;
+      }
+      dialog(pack, file.name);
+    };
+    rd.readAsText(file);
+  };
+
+  window.plPickIdeaImport = function(){
+    var inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = '.json,application/json';
+    inp.onchange = function(){ window.plReadIdeaFile(inp.files[0]); };
+    inp.click();
+  };
+
+  /* drop a file anywhere on the page */
+  var depth = 0, zone = null;
+  function showZone(){
+    if(zone) return;
+    zone = document.createElement('div');
+    zone.style.cssText = 'position:fixed;inset:14px;z-index:9998;border:2px dashed var(--accent);border-radius:16px;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font:800 17px inherit;color:#fff;pointer-events:none;letter-spacing:-.3px';
+    zone.textContent = 'Drop the ideas file to add it';
+    document.body.appendChild(zone);
+  }
+  function hideZone(){ if(zone){ zone.remove(); zone = null; } depth = 0; }
+  window.addEventListener('dragenter', function(e){ if(!e.dataTransfer || [].indexOf.call(e.dataTransfer.types||[],'Files')<0) return; e.preventDefault(); depth++; showZone(); });
+  window.addEventListener('dragover',  function(e){ if(zone) e.preventDefault(); });
+  window.addEventListener('dragleave', function(){ if(zone && --depth <= 0) hideZone(); });
+  window.addEventListener('drop', function(e){
+    if(!zone) return; e.preventDefault(); hideZone();
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if(f) window.plReadIdeaFile(f);
+  });
+})();
+</script>
+
+<script>
+/* ═══════════ "CHECK THESE ANSWERS" ═══════════
+   An imported idea arrives with all nine checklist answers filled in, but some of those are a
+   read of Jack's notes rather than his words. A score you didn't give is worse than no score if
+   nothing tells you which is which — so any idea carrying guesses wears a badge until he's been
+   through it, and there's a filter to work only those. Clearing the badge is one click. */
+(function(){
+  function guesses(i){ return (i && i._prefill && +i._prefill.guess) || 0; }
+  function ideaById(id){ for(var k=0;k<ideas.length;k++) if(String(ideas[k].id)===String(id)) return ideas[k]; return null; }
+
+  window.plClearCheck = function(id, ev){
+    if(ev){ ev.stopPropagation(); ev.preventDefault(); }
+    var i = ideaById(id); if(!i) return;
+    delete i._prefill; i.editedAt = Date.now();
+    try{ persist(); }catch(e){}
+    try{ renderDash(); }catch(e){}
+    try{ showFlash('Marked as checked ✓'); }catch(e){}
+  };
+
+  window.plToggleCheckFilter = function(){
+    var g = document.querySelector('.idea-grid'); if(!g) return;
+    g.classList.toggle('only-check');
+    stamp();
+  };
+
+  function stamp(){
+    var grid = document.querySelector('.idea-grid'); if(!grid) return;
+    var only = grid.classList.contains('only-check'), n = 0;
+    [].forEach.call(grid.querySelectorAll('.ic'), function(card){
+      var m = (card.getAttribute('onclick')||'').match(/handleCardClick\(event,\s*([^)]+)\)/);
+      var i = m ? ideaById(m[1].trim()) : null;
+      var g = guesses(i);
+      card.classList.toggle('has-check', g > 0);
+      if(g > 0) n++;
+      var row = card.querySelector('.ic-src-age');
+      var old = card.querySelector('.ic-chk');
+      if(g > 0 && row && !old){
+        var b = document.createElement('button');
+        b.className = 'ic-tag ic-chk';
+        b.textContent = '⚑ check ' + g;
+        b.title = 'Import filled all nine answers. ' + g + ' of them are my read of your notes, not your words —\nopen the idea, the reasoning for each one is in Notes. Click this to mark it checked.';
+        b.setAttribute('onclick', 'plClearCheck(' + m[1].trim() + ', event)');
+        row.appendChild(b);
+      } else if(g === 0 && old){ old.remove(); }
+    });
+    var btn = document.getElementById('plChkFilter');
+    if(btn){
+      btn.style.display = (n || only) ? '' : 'none';
+      btn.textContent = only ? '⚑ Showing ' + n + ' to check — show all' : '⚑ ' + n + ' to check';
+      btn.classList.toggle('on', only);
+    }
+  }
+
+  function mountFilterBtn(){
+    if(document.getElementById('plChkFilter')) return;
+    var anchor = document.querySelector('.idea-grid'); if(!anchor || !anchor.parentNode) return;
+    var b = document.createElement('button');
+    b.id = 'plChkFilter'; b.className = 'plchk-btn'; b.style.display = 'none';
+    b.onclick = window.plToggleCheckFilter;
+    anchor.parentNode.insertBefore(b, anchor);
+  }
+
+  /* ── SCORED WELL, THEN NOTHING HAPPENED ──
+     A "top three by score" strip would just repeat the first three cards, since the list is
+     already sorted by score. What actually gets lost is the idea that scored well weeks ago and
+     was never moved on — Jack's own rule is that the pipeline should never be static, and this
+     is where things go quiet. Nothing stalled, no strip. */
+  var STALL_DAYS = 14;
+  function renderNext(){
+    var grid = document.querySelector('.idea-grid'); if(!grid || !grid.parentNode) return;
+    var host = document.getElementById('plNext');
+    var cut = Date.now() - STALL_DAYS*864e5;
+    var pick = ideas.filter(function(i){
+        if(i.inPipeline || i.in_pipeline) return false;
+        if(/^\[SAMPLE\]/.test(i.name||'')) return false;
+        var touched = +(i.editedAt || i.createdAt || 0);
+        if(!touched || touched > cut) return false;      // still warm — not stalled
+        try{ return score(i).pct >= 60; }catch(e){ return false; }
+      }).sort(function(a,b){ return score(b).pct - score(a).pct; }).slice(0,3);
+    if(!pick.length){ if(host) host.remove(); return; }
+    if(!host){ host = document.createElement('div'); host.id='plNext'; grid.parentNode.insertBefore(host, grid); }
+    host.className = 'plnext';
+    host.innerHTML =
+      '<div class="plnext-h"><b>Scored well, then stalled</b><span>'
+      + pick.length + ' scored 60%+ and ' + (pick.length===1?'has':'have') + ' not been touched in '
+      + STALL_DAYS + '+ days — still not in the Pipeline</span></div>'
+      + '<div class="plnext-row">' + pick.map(function(i){
+          var pct = score(i).pct, id = i.id;
+          var bits = [];
+          if(String(i.sv||'').trim())    bits.push(Number(i.sv).toLocaleString() + ' SV');
+          if(String(i.price||'').trim()) bits.push('£' + i.price);
+          if(String(i.ncomp||'').trim()) bits.push(i.ncomp + ' comp');
+          var days = Math.floor((Date.now() - (+(i.editedAt||i.createdAt||Date.now())))/864e5);
+          bits.push(days + 'd untouched');
+          return '<div class="plnext-c">'
+            + '<div class="plnext-t"><span class="plnext-p">' + pct + '%</span>'
+            + '<span class="plnext-n" title="' + esc(i.name) + '">' + esc(i.name) + '</span></div>'
+            + '<div class="plnext-m">' + (bits.join('  ·  ') || 'no numbers yet') + '</div>'
+            + '<button class="plnext-b" onclick="moveToPipeline(' + JSON.stringify(id) + ')">→ Pipeline</button>'
+            + '</div>';
+        }).join('') + '</div>';
+  }
+
+  function boot(){
+    var grid = document.querySelector('.idea-grid');
+    if(!grid){ return setTimeout(boot, 400); }
+    mountFilterBtn(); stamp(); renderNext();
+    var run = function(){ mountFilterBtn(); stamp(); renderNext(); };
+    new MutationObserver(run).observe(grid, {childList:true});
+    // PL swaps the whole grid element on some renders, so watch its parent too — but ignore the
+    // strip's own insertions or the observer retriggers itself forever
+    if(grid.parentNode) new MutationObserver(function(muts){
+      for(var k=0;k<muts.length;k++){
+        var added = muts[k].addedNodes;
+        for(var j=0;j<added.length;j++) if(added[j].id === 'plNext') return;
+      }
+      run();
+    }).observe(grid.parentNode, {childList:true});
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
 </body>
 </html>
