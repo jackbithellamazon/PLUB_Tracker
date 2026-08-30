@@ -16,7 +16,9 @@ GitHub Pages serves `index.html` automatically. First deploy: repo → Settings 
 ## Pushing an update
 
 1. Drag the new `docs` folder in (GitHub overwrites the changed files).
-2. Two lines near the bottom of `index.html`: **`BUILD`** is the version people see — moves by 0.1 each release. **`STAMP`** must change on **every** push, even a same-version fix — it's what forces browsers and GitHub Pages to drop the cached copy. (I bump both in every folder I send.)
+2. Two lines near the bottom of `index.html`: **`BUILD`** is the version people see — moves by **0.05** each release (0.1 → 0.15 → 0.2 …). **`STAMP`** must change on **every** push, even a same-version fix — it's what forces browsers and GitHub Pages to drop the cached copy. (I bump both in every folder I send.)
+
+   The version is shown in three places — the top-right chip, both sidebars, and inside every export file. Each app now reads it from a single `APP_VER` constant near the top of its script, so a bump is one edit per file and they cannot drift apart. It sat on v0.1 through a dozen releases because it used to be typed out in four separate places.
 3. Push. Live in about a minute. Refresh and check the chip top-right.
 
 **Updates never touch anyone's data.** Data lives in the browser, keyed to the site address — not in these files. Pushing new HTML changes the app, never the data.
@@ -47,9 +49,8 @@ These same backup files are what Phase 2 imports into the Supabase build. Keep t
 ## Phase plan
 
 1. **Now** — this build. Local save, live data from day one.
-2. **~1 week** — export backups → Supabase build with logins → import → confirm → carry on.
-3. **Week after** — multi-user testing on Supabase.
-4. **Later** — fold into the wider BDL hub.
+2. **Supabase is on hold** (decided 26 Aug). Local storage is the source of truth — what's in your browser is the real data, so the daily backup below is the only copy that exists off this laptop.
+3. **Later** — logins and shared data, if and when it's needed.
 
 ## v0.1 — what's in this release (UB)
 
@@ -163,4 +164,62 @@ Above the ideas list, up to three ideas that **scored 60%+, have not been touche
 - **New products entered Sourcing with the wrong checklist** — a hard-coded pair of tasks left over from Ready to Source, so a product arrived with 2 ticks instead of Sourcing's 8. Seeded from the stage definition now.
 - **Jack's "Send back" offered stages that no longer exist** (Ready to Source / Source). It would have parked a product on a stage with no column. One option now: Sourcing.
 - **Stale copy across the app** — buttons, toasts, history lines and the whole guide stage table still described six stages and "Ready to Source". All updated. The archive's "died late" count keeps the old stage names alongside the new ones so historical drops still count.
+
+## v0.15 — 26 Aug
+
+Everything above from "First month is scaled" onward ships as **v0.15**: five pipeline stages, part-month targets, paste-your-notes, the PL idea import with pre-filled checklists, the density pass, and the pre-ship fixes. Backups written by v0.1 still import into v0.15 — nothing checks the version number.
+
+## v0.2 — 26 Aug · Ideas page look
+
+- **The band row is a set of KPIs now, not a spreadsheet.** Seven flat cells with hairline dividers became: the total as an anchor, a **stacked bar showing the shape of the portfolio** at a glance, a plain-English read (*"10 scored 70%+ — those are the ones worth acting on"*), and six colour-coded chips. Each chip still filters on click, and now says so — the read line tells you what you're filtered to.
+- **Each band has its own colour** — Launch ASAP green through Holding grey — instead of three colours shared across six bands.
+- **Where ideas come from: one card, no nested boxes.** The source tiles were a box holding two boxes holding a badge. Now a single card with a colour spine that reflects how good the channel is, the hot/warm/cold mix bar, the numbers on one line, and the best idea from that source. Takes about half the vertical space.
+
+### Fixed: the date filters looked broken
+
+Every idea the first import created carried **today's** date, so *Today / This week / This month / All time* all returned the same list, sort-by-recent did nothing, and every card said "today". The filters were fine — the data was flat.
+
+The real creation dates are back (55 of them, recovered from the July backup; the 7 found on 26 Aug are genuinely new; 3 have no recorded date anywhere and say so in their notes). **Re-importing the corrected file repairs ideas already in the tracker** — the merge now takes the older of the two creation dates, so there is no need to wipe and start again.
+
+### Moving a product without doing the checklist (PL)
+
+Unticked tasks **never blocked a move** — the wording just made it look like they did. Two changes:
+
+- **Click any stage on the timeline, then "Move here →"** to jump straight to it. Six stages ahead or four back, one move, one confirmation. Whatever is unticked stays unticked and the History records where it jumped from.
+- The footer now reads **"4 tasks unticked — you can still move it"** instead of *"4 current tasks still open · stage changes need confirmation"*, and the confirmation asks whether you want to move it rather than whether it is "ready".
+
+### Add Idea — paste instead of typing (PL)
+
+**Add Idea → ⇩ Paste from your notes.** Paste a block and it fills the name, the four market numbers **and every ASIN it finds** — a page of Amazon links becomes a list of ASINs in one go, which also clears the "at least 1 ASIN is required" block. Anything already filled in is left alone, and the duplicate-name warning still fires.
+
+### Pipeline cards
+
+Eight products used to read as one thing repeated — same countdown, same "Find 3+ potential suppliers", same two boxed metrics, same full-width button. Now each card carries **its score**, a **pip row for stage tasks**, and one line of numbers (`80d to live · day 0 of 10 · 1/4 tasks`), with a colour spine that turns amber when waiting and red when overdue. About half the height, and the whole card is the click target.
+
+### Write it in your own words — it reads the checklist out of them
+
+Paste your sourcing notes as prose and it fills the numbers, the ASINs **and reads your wording into checklist answers**:
+
+- *"loads of uk sellers"* → **Chinese dominated: No**
+- *"really bad feedback so can be improved"* → **Can you improve: Yes**
+- *"dont know how to make it different"* → **Can you improve: No**
+- *"nobody is killing the market"* → **Reviews under 500: Yes**
+- *"ad cost will be way too high"* → **Heavy on ads: Yes**
+- *"nothing really on tiktok"* → **On TikTok: No** (not "yes" — it reads the negation)
+
+**Nothing is applied silently.** It shows each answer with the exact words that triggered it, you untick anything it got wrong, then Apply. It only ever fills blanks — an answer you gave by hand is never overwritten, and never re-proposed.
+
+**The Checklist tab still works exactly as before.** Answer all nine by hand if you want; the reading is an option, not a replacement. After applying it drops you on the Checklist tab so you can finish the ones it couldn't read.
+
+Honest about what it is: a phrase engine tuned to how you actually write (built from your own 51 notes), not a language model — the app is local-only with no backend and no API key, so there is nothing to call. It handles phrasing rather than just keywords, but it is rules. Check it.
+
+### Moving an old product to where it really is (PL workspace)
+
+For a product that already went through its early stages in real life, the workspace now has three speeds:
+
+- **Click a stage on the timeline → "Move here →"** — jump straight there, unticked tasks stay unticked.
+- **"Move here · tick everything before"** — same jump, but every earlier stage's tasks are marked done. That is the "hard move" for an old product: the work happened months ago, the app just never saw it. History records how many were ticked and why.
+- **"✓✓ Tick all"** on the current stage checklist — one click completes the stage instead of four.
+
+The timeline dots now show a *view* hint on hover so it is obvious they are clickable.
 
