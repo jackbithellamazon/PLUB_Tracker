@@ -1346,7 +1346,7 @@ body,.app{background:var(--bg)}
 <aside class="sidebar sb2">
   <div class="sn-brand">
     <div class="sn-mark" onclick="if(document.body.classList.contains('sb-min'))toggleSidebar()" title="Expand the sidebar" style="cursor:pointer"><svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="2.5" fill="#030304" opacity=".85"/><path d="M8.5 9V7a3.5 3.5 0 017 0v2" fill="none" stroke="#030304" stroke-width="2" stroke-linecap="round" opacity=".85"/></svg></div>
-    <div class="sn-brand-t"><div class="sn-name">Private Label</div><div class="sn-sub">Sourcing tracker · <i data-ver>v0.2</i></div></div>
+    <div class="sn-brand-t"><div class="sn-name">Private Label</div><div class="sn-sub">Sourcing tracker · <i data-ver>v0.35</i></div></div>
     <button class="sn-toggle" title="Collapse / expand" onclick="toggleSidebar()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5L5.5 8 10 12.5"/></svg></button>
     </div>
   <nav class="sn-nav">
@@ -1400,6 +1400,12 @@ function plPaintPage(id){ var tb=document.getElementById('appTopbar'); if(tb) tb
 try{ if(localStorage.getItem('pl_sb_min')==='1') document.body.classList.add('sb-min'); }catch(e){}
 </script>
 <header class="topbar" id="appTopbar">
+  <div class="xtabs" id="xtabs" style="display:none">
+    <button class="xt" onclick="try{parent.show('ub')}catch(e){}">UB</button>
+    <button class="xt on" onclick="try{parent.show('pl')}catch(e){}">PL</button>
+    <button class="xt" onclick="try{parent.show('pipe')}catch(e){}">Belt</button>
+    <span class="xver" data-ver>v0.35</span>
+  </div>
   <a class="tb-logo">
     <div class="tb-mark">
       <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
@@ -2071,6 +2077,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 // Build the DB row for one idea. Shared so the "did this row change?" snapshot
 // and the actual write always compare exactly the same payload.
 function _ideaRow(idea) {
+  try{ idea._pct = score(idea).pct; }catch(e){}
   const p = idea.pipeline || {};
   let pipeStatus = 'idea';
   if (idea.inPipeline) {
@@ -2662,7 +2669,7 @@ function renderDash(){
     const ageDays=Math.floor((nowTs-(n.createdAt||0))/(1000*60*60*24));
     const ageDate=n.createdAt?new Date(n.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'';
     const ageRel=ageDays===0?'today':ageDays===1?'yesterday':ageDays<7?ageDays+'d ago':ageDays<30?Math.floor(ageDays/7)+'w ago':Math.floor(ageDays/30)+'mo ago';
-    const ageLabel=ageDate+(ageDate?' · ':'')+ageRel;
+    const ageLabel=ageRel||ageDate;
     const ageOld=ageDays>14;
     const svClass=metricClass(sc.bd.sv.c);
     const prClass=metricClass(sc.bd.price.c);
@@ -2742,10 +2749,10 @@ function renderDash(){
         // why line — 2 lines now
         +(sc.why.length?'<div class="ic-why">'+sc.why.join(' · ')+'</div>':'')
         // metrics
-        +'<div class="ic-metrics">'
-          +'<div class="ic-metric '+svClass+'"><div class="ic-mv">'+(n.sv&&!isNaN(parseFloat(n.sv))?Number(parseFloat(n.sv)).toLocaleString():'—')+'</div><div class="ic-ml">Search Vol</div></div>'
-          +'<div class="ic-metric '+prClass+'"><div class="ic-mv">'+(n.price?'£'+n.price:'—')+'</div><div class="ic-ml">Price</div></div>'
-          +'<div class="ic-metric '+ncClass+'"><div class="ic-mv">'+(n.ncomp||'—')+'</div><div class="ic-ml">Competitors</div></div>'
+        +'<div class="ic-mline">'
+          +'<span class="'+svClass+'"><b>'+(n.sv&&!isNaN(parseFloat(n.sv))?Number(parseFloat(n.sv)).toLocaleString():'—')+'</b> SV</span><i>·</i>'
+          +'<span class="'+prClass+'"><b>'+(n.price?'£'+n.price:'—')+'</b></span><i>·</i>'
+          +'<span class="'+ncClass+'"><b>'+(n.ncomp||'—')+'</b> comp</span>'
         +'</div>'
       +'</div>'
       // action buttons — always visible
@@ -4854,7 +4861,7 @@ function productState(n){
   if(age>=Math.max(7,Math.floor(max*.75)))return {cls:'stuck',label:'Needs a push',reason:'No stage movement for '+num(age)+' days.'};
   return {cls:'good',label:'On track',reason:'Current stage is moving within its expected window.'};
 }
-function ideasAddedThisWeek(list){var wk=weekKey();return list.filter(function(n){return n.createdAt&&weekKey(n.createdAt)===wk;}).length;}
+function ideasAddedThisWeek(list){var wk=weekKey();return list.filter(function(n){return !n._imported&&n.createdAt&&weekKey(n.createdAt)===wk;}).length;}
 function pipelineAddedThisWeek(list){var wk=weekKey();return list.filter(function(n){var p=ensurePipe(n);return p.enteredAt&&weekKey(p.enteredAt)===wk;}).length;}
 function activePipelineProducts(){return getPipelineIdeas().filter(function(n){return !n.isSample&&ensurePipe(n).status==='active';});}
 function actionablePipelineProducts(){return activePipelineProducts().filter(function(n){return !getWaitInfo(n).onTrack;});}
@@ -4900,7 +4907,17 @@ function generateWeekPlan(){
   });
   saveWeekTasks(weekTasks);renderWeek();showFlash('This week’s smart plan is ready ✓');
 }
+function acGroupTile(g){
+  var first=g.items[0];
+  var chips=g.items.map(function(it){return '<button class="ac2-chip" onclick="event.stopPropagation();acOpenProduct('+it.productId+')">'+esc(it.product||it.title)+(it.day!=null?'<i>d'+num(it.day)+'</i>':'')+'</button>';}).join('');
+  return '<article class="ac2-tile grouped" onclick="acOpenProduct('+first.productId+')">'
+    +'<div class="ac2-tile-top"><span class="ac2-badge">This week ×'+g.items.length+'</span></div>'
+    +'<h3>'+esc(first.title)+' — '+g.items.length+' products</h3>'
+    +'<div class="ac2-next">'+esc(first.next)+'</div>'
+    +'<div class="ac2-chips">'+chips+'</div></article>';
+}
 function acTile(item){
+  if(item.groupItems) return acGroupTile({items:item.groupItems});
   var cls=item.kind||'action', product=item.product?'<div class="ac2-product">'+esc(item.product)+(item.stage?' <span>· '+esc(item.stage)+'</span>':'')+'</div>':'';
   var meta='';
   if(item.type==='product')meta='Day '+num(item.day)+' · Target live '+esc(item.target)+(item.remaining?' · '+num(item.remaining)+' task'+(item.remaining===1?'':'s')+' left':'');
@@ -4913,39 +4930,100 @@ function acTile(item){
     +'<h3>'+esc(item.title)+'</h3>'+product+'<div class="ac2-next">'+esc(item.next)+'</div><p>'+meta+'</p>'
     +'<button class="ac2-open" onclick="event.stopPropagation();'+click+'">'+action+' <span>→</span></button></article>';
 }
-function acKpi(label,val,sub,cls){return '<div class="ac2-kpi '+cls+'"><div class="ac2-kpi-label">'+esc(label)+'</div><div class="ac2-kpi-val">'+esc(val)+'</div><div class="ac2-kpi-sub">'+esc(sub)+'</div></div>';}
+function acKpi(label,val,sub,cls,pct,badge,badgeCls){
+  var HUE={red:'#FF5470',blue:'#3B9EFF',purple:'#A78BFF',cyan:'#22D3EE',green:'#00E5A0',amber:'#FFC53D'};
+  var c=HUE[cls]||'#3B9EFF', R=19, C=2*Math.PI*R;
+  var off = pct==null ? 0 : C*(1-Math.min(100,pct)/100);
+  var ringCol = pct==null ? 'color-mix(in srgb,'+c+' 45%,transparent)' : c;
+  return '<div class="ac2-kpi rk '+cls+'" style="--c:'+c+'">'
+    +'<div class="rk-top"><span class="rk-label">'+esc(label)+'</span>'
+    +(badge?'<span class="rk-badge '+(badgeCls||'')+'">'+esc(badge)+'</span>':'')+'</div>'
+    +'<div class="rk-mid">'
+      +'<div class="rk-ring"><svg viewBox="0 0 48 48">'
+        +'<circle cx="24" cy="24" r="'+R+'" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="5"/>'
+        +'<circle cx="24" cy="24" r="'+R+'" fill="none" stroke="'+ringCol+'" stroke-width="5" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 24 24)"/></svg>'
+        +'<span class="rk-pct">'+(pct==null?'':Math.min(100,Math.round(pct))+'<i>%</i>')+'</span></div>'
+      +'<div class="rk-nums"><div class="rk-val">'+esc(val)+'</div><div class="rk-sub">'+esc(sub)+'</div></div>'
+    +'</div></div>';
+}
 function acSection(title,count,items,empty,extraClass){
   return '<section class="ac2-section '+(extraClass||'')+'"><div class="ac2-section-hd"><h2>'+esc(title)+'</h2><span>'+num(count)+'</span></div>'+(items.length?'<div class="ac2-grid">'+items.map(acTile).join('')+'</div>':'<div class="ac2-empty">'+esc(empty)+'</div>')+'</section>';
 }
 function renderWeek(){
   try{processRollover();}catch(e){console.error('rollover',e);}
   var d=getActionCentreData(), thisWeek=weekKey();
+  var _mNow=new Date(), _mDay=_mNow.getDate(), _mDays=new Date(_mNow.getFullYear(),_mNow.getMonth()+1,0).getDate(), _mPace=_mDay/_mDays;
+  function _mSame(ts){ if(!ts) return false; var x=new Date(ts); return x.getFullYear()===_mNow.getFullYear()&&x.getMonth()===_mNow.getMonth(); }
+  var MK=(brandState&&brandState.plMonthlyK)||{ideas:12,pipeline:4,launches:1};
+  var mIdeas=ideas.filter(function(n){return _mSame(n.createdAt) && !n._imported;}).length;
+  var mMoved=ideas.filter(function(n){var p=n.pipeline||{};return p.enteredAt&&_mSame(p.enteredAt);}).length;
+  var mLaunch=ideas.filter(function(n){var p=n.pipeline||{};return p.launchedAt&&_mSame(p.launchedAt);}).length;
+  function _mBadge(a,t){var e=Math.round(t*_mPace);return a>=t?['HIT','ok']:a>=e?['ON TRACK','ok']:['BEHIND','bad'];}
+  function _mSub(t){return 'expected '+Math.round(t*_mPace)+' by today · monthly';}
   var manualDone=weekTasks.filter(function(t){return t.done&&t.doneAt&&weekKey(t.doneAt)===thisWeek;});
   var productEvents=[];d.active.forEach(function(n){(ensurePipe(n).history||[]).forEach(function(h){if(h.ts&&weekKey(h.ts)===thisWeek)productEvents.push({n:n,h:h});});});
   productEvents.sort(function(a,b){return b.h.ts-a.h.ts;});
-  var weekItems=d.week.slice(0,9), isMore=d.week.length>9;
-  var header='<div class="ac2-header"><div><div class="ac2-eyebrow">ACTION CENTRE · '+weekRangeLabel()+'</div><h1>What needs pushing this week</h1><p>Overdue first. Then the next real step for each product — no calendar noise.</p></div><div class="ac2-header-actions"><button class="ac2-btn primary" onclick="generateWeekPlan()">Build this week’s plan</button><button class="ac2-btn" onclick="editWeekTargets()">Edit KPIs</button></div></div>';
+  // identical next-steps collapse into one card — eight "Finish Sourcing · Find 3+ suppliers"
+  // tiles told him nothing eight times
+  var _wgMap={}, _wg=[];
+  d.week.forEach(function(it){
+    if(it.type!=='product'){ _wg.push(it); return; }
+    var k=(it.title||'')+'|'+(it.next||'');
+    if(_wgMap[k]){ _wgMap[k].groupItems.push(it); return; }
+    var slot={groupItems:[it], title:it.title, next:it.next, type:'product'};
+    _wgMap[k]=slot; _wg.push(slot);
+  });
+  _wg=_wg.map(function(x){ return (x.groupItems && x.groupItems.length===1) ? x.groupItems[0] : x; });
+  var weekItems=_wg.slice(0,9), isMore=_wg.length>9;
+  var header='<div class="ac2-header"><div><div class="ac2-eyebrow">ACTION CENTRE · '+weekRangeLabel()+'</div><h1>Are things moving?</h1><p>Weekly and monthly progress first — then what needs pushing.</p></div><div class="ac2-header-actions"><button class="ac2-btn" onclick="editWeekTargets()">Weekly targets</button><button class="ac2-btn" onclick="plEditMonthlyK()">Monthly targets</button></div></div>';
+  // the movement verdict — entered · moved forward · launched vs stuck · untouched, this week
+  var wkAdvanced=productEvents.filter(function(e){return e.h.type==='advance';}).length;
+  var wkLaunched=productEvents.filter(function(e){return e.h.type==='launch';}).length;
+  var touchedIds={}; productEvents.forEach(function(e){touchedIds[e.n.id]=1;});
+  var wkUntouched=d.active.filter(function(n){return !touchedIds[n.id];}).length;
+  var movingOk = (d.moved+wkAdvanced+wkLaunched)>0;
+  var flowCell=function(v,l,hot){return '<div class="acf-cell'+(hot&&v?' hot':'')+'"><b>'+num(v)+'</b><span>'+l+'</span></div>';};
+  var flow='<div class="ac2-flowline '+(movingOk?'ok':'quiet')+'">'
+    +'<div class="acf-verdict">'+(movingOk
+        ? '✓ Moving — '+num(d.moved)+' entered · '+num(wkAdvanced)+' moved forward this week'
+        : '⚠ Quiet week — nothing has entered or moved forward yet')+'</div>'
+    +'<div class="acf-cells">'
+      +flowCell(d.moved,'entered')+flowCell(wkAdvanced,'moved forward')+flowCell(wkLaunched,'launched')
+      +flowCell(d.stuck.length,'need a push',true)+flowCell(wkUntouched,'untouched this week',true)
+    +'</div></div>';
+  // weekly pace as bars — pro-rated like the month: on Tuesday you are judged against
+  // Tuesday's share of the target, not the whole week's. And weeks vary, so falling behind
+  // pace reads amber ("behind pace"), never red — the MONTH above is the real judge.
+  var _wDow=((_mNow.getDay()+6)%7), _wFrac=Math.max(0,Math.min(1,(_wDow + (_mNow.getHours()*60+_mNow.getMinutes())/1440)/7));
+  var wkBar=function(l,a,t){
+    var p=Math.min(100,t?a/t*100:100), exp=t*_wFrac;
+    var st = a>=t?['hit','hit']: a>=exp?['on pace','ok']: ['behind pace','lag'];
+    return '<div class="acw-cell"><span class="acw-l">'+l+'</span><b class="acw-v">'+num(a)+'<i>/'+num(t)+'</i></b>'
+      +'<span class="acw-st '+st[1]+'">'+st[0]+'</span>'
+      +'<div class="acw-bar"><em style="width:'+p+'%" class="'+st[1]+'"></em><u style="left:'+Math.min(100,_wFrac*100)+'%"></u></div></div>';};
+  var weekbars='<div class="ac2-weekrow"><span class="acw-t">This week<i>day '+(_wDow+1)+' of 7</i></span>'
+    +wkBar('New ideas',d.newIdeas,d.k.ideasPerWeek)
+    +wkBar('Into Pipeline',d.moved,d.k.pipelineAdds)
+    +wkBar('In Sourcing',d.sourcing,d.k.minSourcing)
+    +'<span class="acw-note">weeks vary — the month is the real target</span></div>';
   var top='<div class="ac2-kpis">'
-    +acKpi('Overdue',num(d.overdue.length),d.overdue.length?'Open these first':'Nothing overdue','red')
-    +acKpi('This week',num(d.week.length+d.stuck.length),'Real next steps','blue')
-    +acKpi('Ideas added',num(d.newIdeas)+' / '+num(d.k.ideasPerWeek),'Weekly target','purple')
-    +acKpi('Into Pipeline',num(d.moved)+' / '+num(d.k.pipelineAdds),'Weekly target','cyan')
-    +acKpi('Active products',num(d.active.length),num(d.actionable.length)+' need a next step','green')
+    +acKpi('Overdue',num(d.overdue.length),d.overdue.length?'Open these first':'Nothing overdue','red',null,
+           d.overdue.length?'ACT':'CLEAR', d.overdue.length?'bad':'ok')
+    +acKpi('This week',num(d.week.length+d.stuck.length),'Real next steps','blue',null,null)
+    +(function(){var b=_mBadge(mIdeas,MK.ideas);return acKpi('Ideas added',num(mIdeas)+' / '+num(MK.ideas),_mSub(MK.ideas),'purple',MK.ideas?mIdeas/MK.ideas*100:null,b[0],b[1]);})()
+    +(function(){var b=_mBadge(mMoved,MK.pipeline);return acKpi('Into Pipeline',num(mMoved)+' / '+num(MK.pipeline),_mSub(MK.pipeline),'cyan',MK.pipeline?mMoved/MK.pipeline*100:null,b[0],b[1]);})()
+    +(function(){var b=_mBadge(mLaunch,MK.launches);return acKpi('Launched',num(mLaunch)+' / '+num(MK.launches),_mSub(MK.launches),'green',MK.launches?mLaunch/MK.launches*100:null,b[0],b[1]);})()
+    +acKpi('Active products',num(d.active.length),num(d.actionable.length)+' need a next step','amber',null,null)
     +'</div>';
   var overdue=acSection('Overdue — deal with this first',d.overdue.length,d.overdue,'Nothing is overdue right now.','ac2-overdue');
-  var weekly=acSection('This week’s actions',d.week.length,weekItems,'No open actions yet. Add an idea or build a plan.', '');
-  if(isMore)weekly=weekly.replace('</section>','<button class="ac2-show" onclick="toggleAcAll()">Show all '+num(d.week.length)+' actions →</button></section>');
-  var kpis='<section class="ac2-section"><div class="ac2-section-hd"><h2>Weekly KPIs</h2><button class="ac2-link" onclick="editWeekTargets()">Edit targets</button></div><div class="ac2-kpi-lines">'
-    +'<div><span>New ideas</span><b>'+num(d.newIdeas)+' / '+num(d.k.ideasPerWeek)+'</b><i><em style="width:'+Math.min(100,d.k.ideasPerWeek?d.newIdeas/d.k.ideasPerWeek*100:100)+'%"></em></i></div>'
-    +'<div><span>Moved into Pipeline</span><b>'+num(d.moved)+' / '+num(d.k.pipelineAdds)+'</b><i><em style="width:'+Math.min(100,d.k.pipelineAdds?d.moved/d.k.pipelineAdds*100:100)+'%"></em></i></div>'
-    +'<div><span>Products in Sourcing</span><b>'+num(d.sourcing)+' / '+num(d.k.minSourcing)+'</b><i><em style="width:'+Math.min(100,d.k.minSourcing?d.sourcing/d.k.minSourcing*100:100)+'%"></em></i></div>'
-    +'</div></section>';
+  var weekly=acSection('This week’s actions',_wg.length,weekItems,'No open actions yet. Add an idea or build a plan.', '');
+  if(isMore)weekly=weekly.replace('</section>','<button class="ac2-show" onclick="toggleAcAll()">Show all '+num(_wg.length)+' actions →</button></section>');
   var stuck=acSection('Needs a push',d.stuck.length,d.stuck,'No products are drifting right now.','');
   var gaps=acSection('Pipeline gaps',d.gaps.length,d.gaps,'Pipeline coverage looks healthy.','');
   var completed=(manualDone.length||productEvents.length)?'<details class="ac2-completed"><summary>Completed this week <span>'+num(manualDone.length+productEvents.length)+'</span></summary><div>'
     +manualDone.map(function(t){return '<p>✓ '+esc(t.text)+'</p>';}).join('')
     +productEvents.slice(0,12).map(function(e){return '<p>✓ '+esc(cleanName(e.n))+' · '+String(e.h.text||'').replace(/<[^>]*>/g,'')+'</p>';}).join('')+'</div></details>':'';
-  document.getElementById('weekAlerts').innerHTML='<div class="ac2-shell">'+header+top+overdue+weekly+kpis+stuck+gaps+completed+'</div>';
+  document.getElementById('weekAlerts').innerHTML='<div class="ac2-shell">'+header+top+weekbars+flow+overdue+weekly+stuck+gaps+completed+'</div>';
   document.getElementById('weekFocus').innerHTML='';document.getElementById('weekMomentum').innerHTML='';document.getElementById('weekKpis').innerHTML='';document.getElementById('weekList').innerHTML='';
 }
 function toggleAcAll(){
@@ -5044,8 +5122,8 @@ function hideStageTask(id,sid,key){
 }
 function confirmAdvance(id){
   var n=ideas.find(function(x){return x.id===id;});if(!n)return;var p=ensurePipe(n),next=p.stage>=7?'mark this product as Launched':'move to '+stageById(p.stage+1).name;
-  if(!confirm('Move '+cleanName(n)+' — '+next+'?\n\nUnticked tasks stay as they are; you can always move it back.'))return;
-  prodStageView=null;pipeAdvance(id);
+  plConfirm2({title:'Move '+cleanName(n)+'?', body:'Ready to '+next+'. Unticked tasks stay as they are; you can always move it back.', ok:'Move it →',
+    onOk:function(){ prodStageView=null; pipeAdvance(id); }});
 }
 function renderProdWork(n,p){
   var cur=p.stage, view=prodStageView||cur, stage=stageById(view), isCurrent=view===cur&&p.status==='active';
@@ -5653,20 +5731,27 @@ updateLastSaved();
       ['green','Live',launched.length,'products live on Amazon'],
       ['slate','Dropped',dropped.length,'kept for future reference']
     ];
-    document.getElementById('pipeKpiRow').className='pipe-kpi-row pl-kpis';
-    document.getElementById('pipeKpiRow').innerHTML=kpis.map(function(k){return '<div class="pl-kpi '+k[0]+'"><div class="pl-kpi-n">'+plCount(k[2])+'</div><div class="pl-kpi-l">'+k[1]+'</div><div class="pl-kpi-sub">'+k[3]+'</div></div>';}).join('');
+    var KMAP={ 'In progress':'active','Need attention':'attention','Waiting':'waiting','Near launch':'near','Live':'launched','Dropped':'dropped' };
+    var KHUE={ blue:'#3B9EFF', pink:'#FF5470', amber:'#FFC53D', purple:'#A78BFF', green:'#00E5A0', slate:'#8B8B95' };
+    document.getElementById('pipeKpiRow').className='pipe-kpi-row plk-row';
+    document.getElementById('pipeKpiRow').innerHTML=kpis.map(function(k){
+      var key=KMAP[k[1]], on=pipeFilter===key;
+      return '<button class="plk '+(on?'on':'')+'" style="--c:'+KHUE[k[0]]+'" onclick="setPipeFilter(\''+key+'\')">'
+        +'<span class="plk-n">'+plCount(k[2])+'</span>'
+        +'<span class="plk-t"><b>'+k[1]+'</b><i>'+k[3]+'</i></span>'
+      +'</button>';}).join('');
     document.querySelector('.pipe-toolbar').className='pipe-toolbar pl-toolbar';
-    document.getElementById('pipeFilter').innerHTML='<div class="pl-toolbar-left"><div class="pl-filter">'+[
-      ['active','Active',active.length],['attention','Needs action',overdue.length],['waiting','Waiting',waiting.length],['near','Near launch',near.length],['launched','Live',launched.length],['dropped','Dropped',dropped.length]
-    ].map(function(f){return '<button class="'+(pipeFilter===f[0]?'active':'')+'" onclick="setPipeFilter(\''+f[0]+'\')">'+f[1]+' <span class="count">'+plCount(f[2])+'</span></button>';}).join('')+'</div></div><select class="pl-sort" onchange="setPipeSort(this.value)"><option value="urgency" '+(pipeSort==='urgency'?'selected':'')+'>Sort: urgency</option><option value="launch" '+(pipeSort==='launch'?'selected':'')+'>Sort: days to launch</option><option value="stage" '+(pipeSort==='stage'?'selected':'')+'>Sort: stage time</option><option value="updated" '+(pipeSort==='updated'?'selected':'')+'>Sort: recently updated</option><option value="name" '+(pipeSort==='name'?'selected':'')+'>Sort: product name</option></select>';
+    document.getElementById('pipeFilter').innerHTML='<div class="pl-toolbar-left"><span class="plk-hint">'+(pipeFilter==='active'?'Showing everything in progress':'Filtered — click the highlighted tile to see it, or In progress to reset')+'</span></div><select class="pl-sort" onchange="setPipeSort(this.value)"><option value="urgency" '+(pipeSort==='urgency'?'selected':'')+'>Sort: urgency</option><option value="launch" '+(pipeSort==='launch'?'selected':'')+'>Sort: days to launch</option><option value="stage" '+(pipeSort==='stage'?'selected':'')+'>Sort: stage time</option><option value="updated" '+(pipeSort==='updated'?'selected':'')+'>Sort: recently updated</option><option value="name" '+(pipeSort==='name'?'selected':'')+'>Sort: product name</option></select>';
 
     var health='<div class="pl-health">'+PIPE_STAGES.map(function(stage){var items=plStageCounts(active,stage),od=items.filter(function(n){return plCardState(n)==='overdue';}).length,wt=items.filter(function(n){return plCardState(n)==='waiting';}).length;return '<div class="pl-health-stage" style="--acc:'+stage.color+'" onclick="document.querySelector(\'[data-stage=\\\''+stage.id+'\\\']\').scrollIntoView({behavior:\'smooth\',block:\'nearest\',inline:\'center\'})"><div class="pl-health-name">'+plEsc(stage.name)+'</div><div class="pl-health-meta"><b>'+plCount(items.length)+'</b> in stage · target '+plCount(getStageDays(stage.id))+'d'+(od?' <span class="pl-health-alert">· '+od+' late</span>':'')+(wt?' · '+wt+' waiting':'')+'</div></div>';}).join('')+'</div>';
-    var board='<div class="pipe-board pl-board" id="pipeBoard">';
+    var _tmpl=PIPE_STAGES.map(function(st){ return plStageCounts(active,st).length ? 'minmax(230px,330px)' : '46px'; }).join(' ');
+    var board='<div class="pipe-board pl-board" id="pipeBoard" style="grid-template-columns:'+_tmpl+';justify-content:start">';
     if(pipeFilter==='dropped'){
       board+='<div class="pl-tab-empty" style="grid-column:1/-1">Dropped products are kept in the archive below with their supplier, sample, notes and journey history.</div>';
     }else{
       var scoped=plSortProducts(all.filter(plInScope));
-      board+=PIPE_STAGES.map(function(stage){var list=scoped.filter(function(n){return plEnsure(n).stage===stage.id;});var allStage=plStageCounts(active,stage);var od=allStage.filter(function(n){return plCardState(n)==='overdue';}).length;var wt=allStage.filter(function(n){return plCardState(n)==='waiting';}).length;return '<section class="pipe-col pl-col" data-stage="'+stage.id+'" style="--acc:'+stage.color+'"><div class="pl-col-hd"><div class="pl-col-title"><span class="pl-col-dot"></span><span class="pl-col-name">'+plEsc(stage.name)+'</span><span class="pl-col-count">'+plCount(allStage.length)+'</span></div><div class="pl-col-meta"><span>Target '+plCount(getStageDays(stage.id))+' days</span>'+(od?'<span class="bad">'+od+' overdue</span>':'')+(wt?'<span class="wait">'+wt+' waiting</span>':'')+'</div></div><div class="pl-col-body">'+(list.length?list.map(plPipelineCard).join(''):'<div class="pl-empty"><div><b>No products here</b>Target '+plCount(getStageDays(stage.id))+' days</div></div>')+'</div></section>';}).join('');
+      board+=PIPE_STAGES.map(function(stage){var list=scoped.filter(function(n){return plEnsure(n).stage===stage.id;});var allStage=plStageCounts(active,stage);var od=allStage.filter(function(n){return plCardState(n)==='overdue';}).length;var wt=allStage.filter(function(n){return plCardState(n)==='waiting';}).length;if(!allStage.length){return '<section class="pipe-col pl-col plslim" data-stage="'+stage.id+'" style="--acc:'+stage.color+'" title="'+plEsc(stage.name)+' — empty · target '+plCount(getStageDays(stage.id))+'d"><span class="plslim-c">0</span><b>'+plEsc(stage.name)+'</b></section>';}
+      return '<section class="pipe-col pl-col" data-stage="'+stage.id+'" style="--acc:'+stage.color+'"><div class="pl-col-hd"><div class="pl-col-title"><span class="pl-col-dot"></span><span class="pl-col-name">'+plEsc(stage.name)+'</span><span class="pl-col-count">'+plCount(allStage.length)+'</span></div><div class="pl-col-meta"><span>Target '+plCount(getStageDays(stage.id))+' days</span>'+(od?'<span class="bad">'+od+' overdue</span>':'')+(wt?'<span class="wait">'+wt+' waiting</span>':'')+'</div></div><div class="pl-col-body">'+(list.length?list.map(plPipelineCard).join(''):'<div class="pl-empty"><div><b>No products here</b>Target '+plCount(getStageDays(stage.id))+' days</div></div>')+'</div></section>';}).join('');
     }
     board+='</div>';
     document.getElementById('pipeBoardWrap').innerHTML=health+board;
@@ -6052,7 +6137,15 @@ document.addEventListener('mousedown', function(e){
     var footer=document.getElementById('prodFooter');if(!footer)return;
     if(p.status==='rejected'){footer.innerHTML='<span style="color:#f39ba6;font-weight:850;font-size:12px">Dropped at '+safe(stageById(p.rejectStage||p.stage).name)+' · full history kept</span><button class="pl-footer-advance" style="margin-left:auto" onclick="reopenProduct('+n.id+');plReturnToCurrentStage()">↺ Re-open product</button>';return;}
     var canBack=p.stage>1||p.status==='launched',tasks=tasksForStage(n,p.stage)||[],left=tasks.filter(function(t){return !p.steps[t.key];}).length,atLast=p.stage>=7,advanceLabel=atLast?'Mark live':('Advance to '+safe(stageById(p.stage+1).name)+' →'),warning=left?left+' task'+(left===1?'':'s')+' unticked — you can still move it':'Checklist complete';
-    footer.innerHTML='<button class="prod-move-back" '+(!canBack?'disabled':'')+' onclick="plMoveBackFromFooter('+n.id+')">← Move back</button><button class="prod-reject" onclick="openReject('+n.id+')">Drop product</button>'+(previewStage&&previewStage!==p.stage?'<button class="pl-footer-current" onclick="plReturnToCurrentStage()">Return to current stage</button>':'')+'<span class="pl-footer-help">'+warning+'</span><button class="pl-footer-advance" onclick="plAdvanceFromFooter('+n.id+')">'+advanceLabel+'</button>';
+    if(previewStage && previewStage!==p.stage){
+      var tgt=stageById(previewStage);
+      footer.innerHTML='<button class="pl-footer-current" onclick="plReturnToCurrentStage()">← Back to '+safe(stageById(p.stage).name)+'</button>'
+        +'<span class="pl-footer-help">Viewing '+safe(tgt.name)+' — the product is still in '+safe(stageById(p.stage).name)+'</span>'
+        +(previewStage>p.stage?'<button class="pl-footer-advance ghost" onclick="plJumpToStage('+n.id+','+previewStage+',true)">Move here · tick everything before</button>':'')
+        +'<button class="pl-footer-advance" onclick="plJumpToStage('+n.id+','+previewStage+')">Move to '+safe(tgt.name)+' →</button>';
+      return;
+    }
+    footer.innerHTML='<button class="prod-move-back" '+(!canBack?'disabled':'')+' onclick="plMoveBackFromFooter('+n.id+')">← Move back</button><button class="prod-reject" onclick="openReject('+n.id+')">Drop product</button><span class="pl-footer-help">'+warning+'</span><button class="pl-footer-advance" onclick="plAdvanceFromFooter('+n.id+')">'+advanceLabel+'</button>';
   }
 
   /* Stepping one stage at a time through six confirmations, ticking boxes he does not want to
@@ -6068,7 +6161,13 @@ document.addEventListener('mousedown', function(e){
       : 'Move '+cleanName(n)+' straight to '+target.name+'?\n\nSkipping '+fromName+
         (Math.abs(sid-from)>1 ? ' and everything between' : '') +
         '. Anything left unticked stays unticked — nothing is lost, and you can move it back.';
-    if(!confirm(msg)) return;
+    plConfirm2({title:'Move '+cleanName(n)+' → '+target.name,
+      body:msg.split('\n\n')[1]||msg, ok: tickPrior?'Move & tick earlier stages':'Move it',
+      hue: tickPrior?'#00E5A0':'var(--brand,#7C6CFF)',
+      onOk:function(){ _plDoJump(n,p,sid,from,fromName,target,tickPrior); }});
+    return;
+  };
+  function _plDoJump(n,p,sid,from,fromName,target,tickPrior){
     var ticked=0;
     if(tickPrior && sid>from){
       for(var st=1; st<sid; st++){
@@ -6084,7 +6183,7 @@ document.addEventListener('mousedown', function(e){
     previewStage=null; prodStageView=null;
     persist(); renderPipeline(); renderProdIfOpen(id); updateNavCounts();
     showFlash(esc(cleanName(n))+' → '+target.name+(ticked?' · '+ticked+' ticked':''));
-  };
+  }
   window.plShowStagePreview=function(sid){previewStage=sid;if(typeof window.setProdSubtab==='function')window.setProdSubtab('work');else window.renderProduct();};
   window.plReturnToCurrentStage=function(){previewStage=null;if(typeof window.setProdSubtab==='function')window.setProdSubtab('work');else window.renderProduct();};
   window.plMoveBackFromFooter=function(id){previewStage=null;window.pipeMoveBack(id);};
@@ -6586,7 +6685,7 @@ html,body{background:radial-gradient(950px 540px at 50% -210px,rgba(163,163,170,
     if(items.length){
       section.innerHTML=head+'<div class="ac2-grid">'+items.map(planTile).join('')+'</div>';
     }else{
-      section.innerHTML=head+'<div class="ac2-plan-empty"><span>Build a focused list from overdue work, next Pipeline tasks, weekly KPIs and any Pipeline gaps.</span><button onclick="generateWeekPlan()">Build plan</button></div>';
+      return;   // no plan built — the page is a movement tracker, not a pitch for a feature he doesn't use
     }
     var overdue=root.querySelector('.ac2-overdue');
     if(overdue)overdue.insertAdjacentElement('afterend',section);
@@ -7423,6 +7522,200 @@ body.sb-min .sb2 .sn-mark{width:28px;height:28px}
 .ac2-kpi-lines>div{font-size:11.5px!important} .ac2-kpi-lines b{font-variant-numeric:tabular-nums}
 .ac2-completed summary{font-size:11.5px!important;color:var(--t3)!important}
 
+/* ═══════ PL BOARD — colour does the talking, empty stages step aside ═══════ */
+.pl-board{display:grid!important;gap:8px!important}
+.pl-col{background:linear-gradient(180deg,color-mix(in srgb,var(--acc) 6%,var(--s1)),var(--s1) 120px)!important;
+  border:1px solid color-mix(in srgb,var(--acc) 22%,var(--b1))!important;border-top:2px solid var(--acc)!important;border-radius:13px!important}
+.pl-col-hd{background:transparent!important;border-bottom:1px solid color-mix(in srgb,var(--acc) 15%,var(--b1))!important}
+.pl-col-count{background:color-mix(in srgb,var(--acc) 16%,transparent)!important;color:var(--acc)!important;border:1px solid color-mix(in srgb,var(--acc) 40%,transparent)!important}
+.pl-col.plslim{display:flex!important;flex-direction:column!important;align-items:center!important;gap:8px!important;
+  padding:9px 0!important;min-height:120px!important;background:transparent!important;border-style:dashed!important;
+  border-top-style:solid!important;opacity:.6!important;cursor:default!important}
+.pl-col.plslim b{writing-mode:vertical-rl;font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--acc)}
+.plslim-c{font-size:9.5px;font-weight:800;color:var(--t4);background:var(--s2);border:1px solid var(--b1);border-radius:99px;padding:1px 6px}
+/* cards: score-tinted, chip not bare number */
+.plc{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 7%,var(--s2)),var(--s2) 75%)!important;
+  border-color:color-mix(in srgb,var(--c) 26%,var(--b1))!important}
+.plc-score{background:color-mix(in srgb,var(--c) 15%,transparent);border:1px solid color-mix(in srgb,var(--c) 40%,transparent);
+  border-radius:7px;padding:2px 7px;font-size:12px}
+.plc-pips{height:5px}
+.plc-next::before{content:'Next · ';color:var(--c);font-weight:800}
+.plc-next.done::before{content:''}
+
+
+/* one bar: shell tabs live here now */
+.xtabs{display:flex;align-items:center;gap:3px;background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:3px;margin-right:10px;flex:none}
+.xt{font:750 11px inherit;color:var(--t3);background:none;border:none;border-radius:99px;padding:5px 11px;cursor:pointer;transition:color .13s,background .13s}
+.xt:hover{color:var(--t1)} .xt.on{background:#232329;color:var(--t1);box-shadow:inset 0 0 0 1px var(--b2)}
+.xver{font-size:9px;font-weight:800;color:var(--t4);padding:0 8px 0 5px}
+/* dead-space diet: page headers earn a third of what they took */
+.page-eyebrow,[class*=pane] .sec-eyebrow{font-size:8.5px!important;margin-bottom:1px!important}
+.page-title{font-size:19px!important;margin-bottom:1px!important;letter-spacing:-.4px!important}
+.page-sub,.page-desc{font-size:11px!important;margin-bottom:8px!important}
+.page-notes{margin:0 0 9px!important}
+.page-notes summary{padding:6px 11px!important;font-size:9px!important}
+.pl-tabs,.seg-tabs{margin-bottom:9px!important}
+
+
+/* ═══════ STYLED DIALOGS — no more grey browser boxes on the daily path ═══════ */
+.plm-wrap{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(3,3,5,.66);backdrop-filter:blur(3px);padding:18px}
+.plm-wrap.open{display:flex}
+.plm-card{width:100%;max-width:420px;background:var(--s1);border:1px solid var(--b2);border-radius:15px;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.55)}
+.plm-bar{height:3px;background:var(--brand,#7C6CFF)}
+.plm-card h3{font-size:15.5px;font-weight:800;letter-spacing:-.3px;padding:15px 18px 4px}
+.plm-p{font-size:12px;color:var(--t3);line-height:1.55;padding:0 18px 6px}
+.plm-fld{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 18px}
+.plm-fld span{font-size:11.5px;color:var(--t2);font-weight:650}
+.plm-fld input{width:110px;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:7px 10px;font:600 12.5px inherit;color:var(--t1);text-align:right}
+.plm-fld input[type=text]{width:100%;text-align:left}
+.plm-fld input:focus{border-color:var(--brand,#7C6CFF);outline:none}
+.plm-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px 15px}
+.plm-btn{font:700 12px inherit;padding:8px 15px;border-radius:9px;cursor:pointer;border:1px solid var(--b2);background:var(--s3);color:var(--t2)}
+.plm-btn.primary{background:var(--brand,#7C6CFF);border-color:var(--brand,#7C6CFF);color:#fff;box-shadow:0 2px 14px color-mix(in srgb,var(--brand,#7C6CFF) 35%,transparent)}
+.plm-btn.danger{background:rgba(255,84,112,.14);border-color:rgba(255,84,112,.5);color:#FF8FA3}
+.plm-btn:hover{filter:brightness(1.12)}
+/* Add Idea modal — colour where it means something */
+.modal-hd{border-bottom:2px solid transparent!important;border-image:linear-gradient(90deg,var(--brand,#7C6CFF),#22D3EE) 1!important}
+.mtab.active{color:var(--brand-t,#C4B2FF)!important;box-shadow:inset 0 -2px 0 var(--brand,#7C6CFF)!important}
+.sec-hd{color:#C4B2FF!important;border-left:3px solid var(--brand,#7C6CFF)!important;padding-left:9px!important}
+.modal-ft .btn.primary{box-shadow:0 2px 14px color-mix(in srgb,var(--brand,#7C6CFF) 40%,transparent)!important}
+
+
+.acw-t i{display:block;font-size:8.5px;font-weight:700;letter-spacing:.3px;color:var(--t4);text-transform:none;margin-top:2px;font-style:normal}
+.acw-st{float:right;font-size:8.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin-right:7px;margin-top:1px}
+.acw-st.hit{color:#4ADE80} .acw-st.ok{color:#7FB5FF} .acw-st.lag{color:#FFC53D}
+.acw-bar{position:relative}
+.acw-bar em.ok{background:#3B9EFF} .acw-bar em.lag{background:#FFC53D}
+.acw-bar u{position:absolute;top:-2px;bottom:-2px;width:2px;border-radius:2px;background:rgba(255,255,255,.45)}
+.acw-note{flex-basis:100%;font-size:9.5px;color:var(--t4);text-align:right;margin-top:-3px}
+
+
+/* weekly pace bars — the week feeds the month */
+.ac2-weekrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:10px 14px;margin-bottom:9px}
+.acw-t{font-size:9.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--t4);flex:none}
+.acw-cell{flex:1;min-width:150px}
+.acw-l{font-size:10px;color:var(--t3);font-weight:650}
+.acw-v{float:right;font-size:12px;font-weight:850;color:var(--t1);font-variant-numeric:tabular-nums}
+.acw-v i{font-style:normal;font-size:10px;color:var(--t4);font-weight:700}
+.acw-bar{height:5px;border-radius:99px;background:var(--b1);margin-top:5px;overflow:hidden}
+.acw-bar em{display:block;height:100%;border-radius:99px;background:var(--brand,#7C6CFF);transition:width .3s}
+.acw-bar em.hit{background:#00E5A0}
+/* the movement verdict */
+.ac2-flowline{display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-radius:12px;padding:11px 14px;margin-bottom:12px;border:1px solid}
+.ac2-flowline.ok{background:rgba(0,229,160,.06);border-color:rgba(0,229,160,.3)}
+.ac2-flowline.quiet{background:rgba(255,197,61,.06);border-color:rgba(255,197,61,.35)}
+.acf-verdict{font-size:12.5px;font-weight:800;flex:1;min-width:240px}
+.ac2-flowline.ok .acf-verdict{color:#4ADE80}
+.ac2-flowline.quiet .acf-verdict{color:#FFC53D}
+.acf-cells{display:flex;gap:7px;flex-wrap:wrap}
+.acf-cell{display:flex;align-items:baseline;gap:5px;background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:5px 10px}
+.acf-cell b{font-size:14px;font-weight:850;color:var(--t1);font-variant-numeric:tabular-nums}
+.acf-cell span{font-size:9.5px;color:var(--t4);font-weight:650}
+.acf-cell.hot{border-color:rgba(255,84,112,.4)} .acf-cell.hot b{color:#FF7A90}
+
+
+/* grouped action card */
+.ac2-tile.grouped h3{margin-bottom:2px}
+.ac2-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.ac2-chip{font:650 10.5px inherit;color:var(--t2);background:var(--s2);border:1px solid var(--b2);border-radius:99px;
+  padding:4px 10px;cursor:pointer;transition:border-color .13s,color .13s}
+.ac2-chip:hover{color:var(--t1);border-color:var(--brand,#7C6CFF)}
+.ac2-chip i{font-style:normal;color:var(--t4);margin-left:5px;font-size:9px}
+
+
+/* chrome merge: the shell bar already says which app this is — the sidebar repeating it was dead weight */
+.sn-brand{height:34px!important;min-height:34px!important;padding:0 10px!important}
+.sn-brand-t{display:none!important}
+
+
+/* Action Centre KPI ring cards — the UB style he pointed at */
+.ac2-kpi.rk{display:flex;flex-direction:column;gap:8px;padding:12px 14px!important;border-radius:13px!important;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 8%,var(--s1)),var(--s1) 70%)!important;
+  border:1px solid color-mix(in srgb,var(--c) 30%,var(--b1))!important;border-top:2px solid var(--c)!important}
+.rk-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rk-label{font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--t2)}
+.rk-badge{font-size:8.5px;font-weight:850;letter-spacing:.6px;padding:2px 7px;border-radius:99px;border:1px solid}
+.rk-badge.ok{color:#4ADE80;border-color:rgba(0,229,160,.4);background:rgba(0,229,160,.1)}
+.rk-badge.bad{color:#FF7A90;border-color:rgba(255,84,112,.4);background:rgba(255,84,112,.1)}
+.rk-mid{display:flex;align-items:center;gap:11px}
+.rk-ring{position:relative;width:48px;height:48px;flex:none}
+.rk-ring svg{width:48px;height:48px}
+.rk-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:850;color:var(--t1);font-variant-numeric:tabular-nums}
+.rk-pct i{font-size:7.5px;font-style:normal;margin-left:1px;color:var(--t3)}
+.rk-val{font-size:21px;font-weight:850;letter-spacing:-.8px;line-height:1;color:var(--t1);font-variant-numeric:tabular-nums}
+.rk-sub{font-size:10px;color:var(--t4);margin-top:3px}
+
+
+/* ideas card metrics on one line */
+.ic-mline{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--t3);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.ic-mline b{font-size:12.5px;font-weight:800;color:var(--t1);letter-spacing:-.3px}
+.ic-mline i{font-style:normal;color:var(--t4)}
+.ic-mline .good b{color:#4ADE80} .ic-mline .bad b{color:#FF7A90} .ic-mline .warn b{color:#FFC53D}
+
+
+/* ═══════ PIPELINE — the KPIs are the filter, one compact row ═══════ */
+#pane-pipeline .page-title{font-size:24px!important;margin-bottom:2px!important}
+#pane-pipeline .page-title::before{font-size:9.5px!important}
+#pane-pipeline .page-sub,#pane-pipeline .page-desc{font-size:11.5px!important;margin-bottom:8px!important}
+.plk-row{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px;margin-bottom:10px}
+.plk{position:relative;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:11px;cursor:pointer;
+  font-family:inherit;text-align:left;overflow:hidden;background:var(--s1);border:1px solid var(--b1);
+  transition:border-color .15s,background .15s,transform .08s}
+.plk::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c);opacity:.8}
+.plk:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--c) 45%,transparent)}
+.plk.on{background:color-mix(in srgb,var(--c) 12%,var(--s1));border-color:color-mix(in srgb,var(--c) 55%,transparent)}
+.plk.on::before{width:4px;opacity:1}
+.plk-n{flex:none;font-size:24px;font-weight:850;letter-spacing:-1.1px;line-height:1;color:var(--c);font-variant-numeric:tabular-nums}
+.plk-t{min-width:0;display:flex;flex-direction:column;gap:1px}
+.plk-t b{font-size:11px;font-weight:750;color:var(--t1);line-height:1.2;white-space:nowrap}
+.plk-t i{font-style:normal;font-size:9.5px;color:var(--t4);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plk-hint{font-size:10.5px;color:var(--t4)}
+/* health strip: one thin scrollable line, not a second header row */
+.pl-health{border-radius:10px!important}
+.pl-health-stage{min-width:118px!important;padding:6px 10px!important}
+.pl-health-name{font-size:9px!important}
+.pl-health-meta{font-size:9.5px!important}
+/* empty columns whisper instead of shout */
+.pl-empty{min-height:0!important;padding:10px!important;font-size:10px!important;border-style:dashed!important;
+  background:transparent!important;border-color:var(--b1)!important}
+.pl-empty b{font-size:8.5px!important;margin-bottom:1px!important}
+.pl-col-body{min-height:60px!important}
+.pl-col-hd{padding:8px 10px 6px!important}
+
+
+/* ═══════ WORKSPACE STEPPER — a progress bar, not seven grey dots ═══════ */
+#prodStepper{padding:14px 18px 10px!important}
+.prod-step-line{height:3px!important;top:15px!important;border-radius:99px!important;background:var(--b2)!important}
+.prod-step-line.done{background:linear-gradient(90deg,#00E5A0,#4ADE80)!important}
+.prod-step-dot{width:30px!important;height:30px!important;border-radius:10px!important;font-size:11.5px!important;
+  transition:transform .15s,box-shadow .15s,border-color .15s,background .15s!important}
+.prod-step-dot.done{background:#00E5A0!important;border-color:#00E5A0!important;color:#04180d!important;font-weight:800!important}
+.prod-step-dot.current{background:var(--brand)!important;border-color:var(--brand)!important;color:#fff!important;
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--brand) 25%,transparent),0 0 18px color-mix(in srgb,var(--brand) 45%,transparent)!important}
+.prod-step:hover .prod-step-dot{transform:translateY(-2px)!important;border-color:var(--brand)!important}
+.prod-step.preview .prod-step-dot{border-color:#FFC53D!important;box-shadow:0 0 0 3px rgba(255,197,61,.28)!important;color:#FFC53D!important}
+.prod-step-label,.prod-step>div:last-child{font-size:10px!important;letter-spacing:.2px!important}
+.prod-step.preview::after{content:'viewing'!important;color:#FFC53D!important;opacity:1!important}
+
+/* ═══════ STAGE PREVIEW — the move actions are the point of the panel ═══════ */
+.pl-stage-preview{background:linear-gradient(180deg,color-mix(in srgb,#FFC53D 7%,var(--s1)),var(--s1) 55%)!important;
+  border:1px solid color-mix(in srgb,#FFC53D 30%,var(--b1))!important;border-radius:14px!important}
+.pl-stage-preview-kicker{color:#FFC53D!important;font-weight:800!important;letter-spacing:.6px!important}
+.pl-stage-preview-jump{font-size:12.5px!important;padding:9px 16px!important;border-radius:10px!important;
+  box-shadow:0 2px 12px color-mix(in srgb,var(--brand,#7C6CFF) 35%,transparent)}
+.pl-preview-list .pl-preview-row,.pl-preview-list>div{border-radius:9px}
+.pl-preview-foot,.pl-stage-preview .pl-preview-foot{color:var(--t4)!important}
+
+/* footer buttons carry the same weight as the panel */
+.pl-footer-advance{font-weight:800!important;border-radius:10px!important;
+  box-shadow:0 2px 12px color-mix(in srgb,var(--brand,#7C6CFF) 30%,transparent)!important}
+.pl-footer-advance.ghost{background:transparent!important;border:1px solid color-mix(in srgb,var(--brand,#7C6CFF) 50%,transparent)!important;
+  color:var(--brand,#7C6CFF)!important;box-shadow:none!important;margin-right:8px!important}
+.pl-footer-advance.ghost:hover{background:color-mix(in srgb,var(--brand,#7C6CFF) 12%,transparent)!important}
+.pl-footer-current{border-radius:10px!important}
+.prod-reject{border-radius:10px!important}
+
+
 .pl-stage-preview-jump.all{background:transparent;border-color:color-mix(in srgb,var(--brand,#7C6CFF) 45%,transparent);color:var(--brand,#7C6CFF)}
 .pl-stage-preview-jump.all:hover{background:color-mix(in srgb,var(--brand,#7C6CFF) 14%,transparent)}
 .pl-stage-preview-head{flex-wrap:wrap;gap:8px}
@@ -7432,7 +7725,7 @@ body.sb-min .sb2 .sn-mark{width:28px;height:28px}
 .pl-task-add-btn.tickall:hover{background:rgba(0,229,160,.12)}
 /* the timeline is clickable — say so */
 .prod-step:hover .prod-step-dot{border-color:var(--brand)!important;transform:translateY(-1px)}
-.prod-step::after{content:'view';position:absolute;top:40px;font-size:8px;font-weight:800;letter-spacing:.5px;
+.prod-step::after{content:'view';position:absolute;top:-13px;font-size:8px;font-weight:800;letter-spacing:.5px;
   text-transform:uppercase;color:var(--brand);opacity:0;transition:opacity .15s;pointer-events:none}
 .prod-step:hover::after{opacity:.9}
 
@@ -7603,7 +7896,7 @@ body.sb-min .sb2 .sn-mark{width:28px;height:28px}
 
 <script>
 /* ── THE VERSION PEOPLE SEE. Bump by 0.05 every release, in step with UB. ── */
-var APP_VER = '0.2';
+var APP_VER = '0.35';
 document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'+APP_VER; });
 /* ═══════════ IMPORT IDEAS — adds, never replaces ═══════════
    The existing "restore backup" wipes the tracker and puts a saved copy back. That is the right
@@ -7655,6 +7948,7 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
         updated++;
       } else {
         var rec = JSON.parse(JSON.stringify(inc));
+        rec._imported = true;   // bulk-added, so it never counts toward the "ideas added" target
         rec.id = base + ix;                 // ms-style ids, same as a hand-added idea
         rec._legacyId = String(rec.id);
         rec.createdAt = rec.createdAt || base;
@@ -7895,6 +8189,86 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
    that already has something in it. */
 (function(){
   var PASTE_HTML = '';
+  setTimeout(function(){
+    try{
+      var dirty=false;
+      var IMP=/Imported 26 Aug 2026|sourcing session doc|Rebuilt from your own export/;
+      ideas.forEach(function(n){
+        if(!n._imported && IMP.test(n.notes||'')){ n._imported=true; dirty=true; }
+        var p; try{ p=score(n).pct; }catch(e){ return; } if(n._pct!==p){ n._pct=p; dirty=true; } });
+      if(dirty) persist();
+    }catch(e){}
+  }, 2500);
+  function plmHost(){
+    var h=document.getElementById('plm2');
+    if(h) return h;
+    h=document.createElement('div'); h.id='plm2'; h.className='plm-wrap';
+    h.innerHTML='<div class="plm-card"><div class="plm-bar"></div><h3 id="plmTitle"></h3><div id="plmBody"></div><div class="plm-foot" id="plmFoot"></div></div>';
+    h.addEventListener('click',function(e){ if(e.target===h) plmClose(); });
+    document.body.appendChild(h);
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') plmClose(); });
+    return h;
+  }
+  function plmClose(){ var h=document.getElementById('plm2'); if(h) h.classList.remove('open'); }
+  window.plConfirm2=function(o){
+    var h=plmHost();
+    h.querySelector('.plm-bar').style.background=o.hue||'var(--brand,#7C6CFF)';
+    document.getElementById('plmTitle').textContent=o.title||'Are you sure?';
+    document.getElementById('plmBody').innerHTML='<p class="plm-p">'+(o.body||'')+'</p>';
+    document.getElementById('plmFoot').innerHTML=
+      '<button class="plm-btn ghost" id="plmNo">Cancel</button>'
+      +'<button class="plm-btn '+(o.danger?'danger':'primary')+'" id="plmYes">'+(o.ok||'Confirm')+'</button>';
+    document.getElementById('plmNo').onclick=plmClose;
+    document.getElementById('plmYes').onclick=function(){ plmClose(); o.onOk&&o.onOk(); };
+    h.classList.add('open');
+    setTimeout(function(){ document.getElementById('plmYes').focus(); },40);
+  };
+  window.plForm2=function(o){
+    var h=plmHost();
+    h.querySelector('.plm-bar').style.background=o.hue||'var(--brand,#7C6CFF)';
+    document.getElementById('plmTitle').textContent=o.title||'';
+    document.getElementById('plmBody').innerHTML=(o.sub?'<p class="plm-p">'+o.sub+'</p>':'')
+      + o.fields.map(function(f,ix){ return '<label class="plm-fld"><span>'+f.label+'</span><input type="number" min="0" id="plmF'+ix+'" value="'+f.value+'"></label>'; }).join('');
+    document.getElementById('plmFoot').innerHTML=
+      '<button class="plm-btn ghost" id="plmNo">Cancel</button><button class="plm-btn primary" id="plmYes">'+(o.ok||'Save')+'</button>';
+    var save=function(){ var vals=o.fields.map(function(f,ix){ var v=parseInt(document.getElementById('plmF'+ix).value,10); return isNaN(v)?f.value:Math.max(0,v); }); plmClose(); o.onSave&&o.onSave(vals); };
+    document.getElementById('plmNo').onclick=plmClose;
+    document.getElementById('plmYes').onclick=save;
+    h.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('keydown',function(e){ if(e.key==='Enter') save(); }); });
+    h.classList.add('open');
+    setTimeout(function(){ var f=document.getElementById('plmF0'); if(f){ f.focus(); f.select(); } },40);
+  };
+  // weekly targets: three chained prompts become one form
+  window.editWeekTargets=function(){
+    var k=getWeekKpiSettings();
+    plForm2({title:'Weekly targets', sub:'Pro-rated through the week — a slow Tuesday is not a failure.',
+      fields:[{label:'New ideas added / week',value:k.ideasPerWeek},{label:'Moved into Pipeline / week',value:k.pipelineAdds},{label:'Minimum products in Sourcing',value:k.minSourcing}],
+      onSave:function(v){ k.ideasPerWeek=v[0]; k.pipelineAdds=v[1]; k.minSourcing=v[2]; persist(); renderWeek(); showFlash('Weekly targets updated ✓'); }});
+  };
+  // add-task prompt becomes a form too
+  var _origAddCustom = window.addCustomTask;
+  window.addCustomTask=function(id,sid){
+    var n=ideas.find(function(x){return x.id===id;}); if(!n) return;
+    var h=plmHost();
+    h.querySelector('.plm-bar').style.background='#22D3EE';
+    document.getElementById('plmTitle').textContent='Add a task to '+stageById(sid).name;
+    document.getElementById('plmBody').innerHTML='<label class="plm-fld"><span>What needs doing?</span><input type="text" id="plmT" placeholder="e.g. chase the supplier for the sample invoice"></label>';
+    document.getElementById('plmFoot').innerHTML='<button class="plm-btn ghost" id="plmNo">Cancel</button><button class="plm-btn primary" id="plmYes">Add task</button>';
+    var save=function(){ var v=(document.getElementById('plmT').value||'').trim(); if(!v) return; plmClose();
+      var p=ensurePipe(n); p.customTasks[sid]=p.customTasks[sid]||[]; p.customTasks[sid].push({id:'c'+Date.now(),label:v}); persist(); renderProduct(); };
+    document.getElementById('plmNo').onclick=plmClose;
+    document.getElementById('plmYes').onclick=save;
+    document.getElementById('plmT').addEventListener('keydown',function(e){ if(e.key==='Enter') save(); });
+    h.classList.add('open');
+    setTimeout(function(){ document.getElementById('plmT').focus(); },40);
+  };
+  window.plEditMonthlyK=function(){
+    var MK=(brandState&&brandState.plMonthlyK)||{ideas:12,pipeline:4,launches:1};
+    plForm2({title:'Monthly targets', sub:'Judged at calendar pace — the rings expect today\'s share, not the whole month.',
+      fields:[{label:'Ideas added / month',value:MK.ideas},{label:'Into the Pipeline / month',value:MK.pipeline},{label:'Launched / month',value:MK.launches}],
+      onSave:function(v){ brandState.plMonthlyK={ideas:v[0],pipeline:v[1],launches:v[2]}; persist(); renderWeek(); showFlash('Monthly targets saved ✓'); }});
+  };
+  try{ if(window.parent!==window && typeof window.parent.show==='function') document.getElementById('xtabs').style.display='flex'; }catch(e){}
   window.plPasteToggle=function(){
     var w=document.getElementById('plPasteWrap'); if(!w) return;
     // the approval panel replaces the box's contents; restore it so a second paste is possible

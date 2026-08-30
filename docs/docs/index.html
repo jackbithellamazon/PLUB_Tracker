@@ -44,15 +44,44 @@ iframe.show{display:block;animation:frameIn .18s cubic-bezier(.4,0,.2,1)}
 .p-pill{font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);display:flex;gap:6px;align-items:center}
 .p-pill i{width:7px;height:7px;border-radius:50%;font-style:normal} .p-pill.ub i{background:var(--cyan)} .p-pill.pl i{background:var(--violet)} .p-pill.stuck{color:#FF8FA3;border-color:rgba(255,84,112,.45);background:rgba(255,84,112,.12)} .p-pill.wait{color:#FFDC85;border-color:rgba(255,197,61,.45);background:rgba(255,197,61,.12)}
 .p-wrap{overflow-x:auto;padding-bottom:8px}
-.p-cols{display:grid;grid-template-columns:repeat(8,minmax(150px,1fr));gap:8px;min-width:1240px}
+.p-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-bottom:10px}
+.p-kpi{display:flex;align-items:center;gap:11px;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 8%,var(--s1)),var(--s1) 70%);border:1px solid color-mix(in srgb,var(--c) 30%,var(--b1));border-top:2px solid var(--c);border-radius:12px;padding:10px 13px}
+.p-kpi-ring{position:relative;width:42px;height:42px;flex:none}
+.p-kpi-ring svg{width:42px;height:42px}
+.p-kpi-ring span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:850;color:var(--t1);font-variant-numeric:tabular-nums}
+.p-kpi-ring span i{font-size:6.5px;font-style:normal;color:var(--t3);margin-left:1px}
+.p-kpi-t{min-width:0;flex:1}
+.p-kpi-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.p-kpi-top b{font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--t2)}
+.p-kpi-b{font-size:8px;font-weight:850;letter-spacing:.5px;padding:1px 6px;border-radius:99px;border:1px solid}
+.p-kpi-b.ok{color:#4ADE80;border-color:rgba(0,229,160,.4);background:rgba(0,229,160,.1)}
+.p-kpi-b.bad{color:#FF7A90;border-color:rgba(255,84,112,.4);background:rgba(255,84,112,.1)}
+.p-kpi-v{font-size:18px;font-weight:850;letter-spacing:-.7px;line-height:1.1;color:var(--t1);font-variant-numeric:tabular-nums}
+.p-kpi-v i{font-size:11px;font-style:normal;font-weight:700;color:var(--t3)}
+.p-kpi-s{font-size:9.5px;color:var(--t4);margin-top:2px}
+.p-flow{display:flex;flex-direction:column;gap:7px;background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:11px 14px;margin-bottom:10px}
+.p-flowbar{display:flex;gap:2px;height:9px;border-radius:99px;overflow:hidden}
+.p-flowbar span{border-radius:99px;min-width:6px;transition:flex .3s}
+.p-flowread{font-size:11.5px;color:var(--t3)} .p-flowread b{color:var(--t1);font-weight:800}
+.p-cols{display:grid;gap:8px;min-width:0;justify-content:start}
+body.nobar .bar{display:none}
+body.nobar .stage{inset:0}
 .p-col{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:9px 9px 8px;border-top:2px solid var(--b2);min-height:140px}
+.p-col.slim{min-height:140px;padding:8px 0;display:flex;flex-direction:column;align-items:center;gap:8px;background:transparent;border-style:dashed;border-top-style:solid;opacity:.65}
+.p-col.slim b{writing-mode:vertical-rl;font-size:9.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--t4)}
+.p-col.slim .c0{font-size:10px;font-weight:800;color:var(--t4);background:var(--s2);border:1px solid var(--b1);border-radius:99px;padding:1px 6px}
 .p-col-h{display:flex;align-items:center;gap:6px;margin-bottom:8px}
 .p-col-h b{font-size:11.5px;font-weight:800;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .p-col-h .c{font-size:10.5px;font-weight:800;color:var(--t3);background:var(--s3);border:1px solid var(--b2);border-radius:999px;padding:1px 7px;font-variant-numeric:tabular-nums}
-.p-col.c-ideas{border-top-color:var(--violet)} .p-col.c-sourcing{border-top-color:var(--cyan)} .p-col.c-validating{border-top-color:var(--pink)} .p-col.c-samples{border-top-color:var(--blue)} .p-col.c-ordered{border-top-color:var(--orange)} .p-col.c-ready{border-top-color:var(--amber)} .p-col.c-launching{border-top-color:#4ADE80} .p-col.c-launched{border-top-color:var(--green);background:color-mix(in srgb,var(--green) 6%,var(--s1))}
-.p-card{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:8px 9px;margin-bottom:6px;cursor:pointer;transition:border-color .14s,transform .08s}
-.p-card:hover{border-color:var(--b3)} .p-card:active{transform:scale(.985)}
-.p-card.stuck{border-color:rgba(255,84,112,.5)}
+.p-col.c-sourcing{border-top-color:var(--cyan)} .p-col.c-validating{border-top-color:var(--pink)} .p-col.c-samples{border-top-color:var(--blue)} .p-col.c-ordered{border-top-color:var(--orange)} .p-col.c-ready{border-top-color:var(--amber)} .p-col.c-launching{border-top-color:#4ADE80} .p-col.c-launched{border-top-color:var(--green);background:color-mix(in srgb,var(--green) 6%,var(--s1))}
+.p-card{position:relative;overflow:hidden;background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:8px 9px 8px 12px;margin-bottom:6px;cursor:pointer;transition:border-color .14s,transform .08s}
+.p-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--b2)}
+.p-card.ub::before{background:var(--cyan)} .p-card.pl::before{background:var(--violet)}
+.p-card:hover{border-color:var(--b3);transform:translateY(-1px)} .p-card:active{transform:scale(.985)}
+.p-card.stuck{border-color:rgba(255,84,112,.5)} .p-card.stuck::before{background:#FF5470}
+.p-card .sc{float:right;font-size:12px;font-weight:850;letter-spacing:-.4px;color:var(--green);font-variant-numeric:tabular-nums}
+.p-more{font-size:10.5px;font-weight:700;color:var(--t3);text-align:center;padding:8px 6px;border:1px dashed var(--b2);border-radius:9px;cursor:pointer;transition:color .14s,border-color .14s}
+.p-more:hover{color:var(--t1);border-color:var(--b3)}
 .p-card .t{font-size:12px;font-weight:700;line-height:1.3;color:var(--t1);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .p-card .m{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}
 .app-chip{font-size:9px;font-weight:800;letter-spacing:.6px;padding:2px 6px;border-radius:5px} .app-chip.ub{background:rgba(34,211,238,.16);color:var(--cyan)} .app-chip.pl{background:rgba(167,139,255,.18);color:#C4B2FF}
@@ -84,8 +113,8 @@ iframe.show{display:block;animation:frameIn .18s cubic-bezier(.4,0,.2,1)}
 </div>
 <script>
 // BUILD is the version people see — moves by 0.05 a release; STAMP is what actually busts the cache. Bump STAMP every push.
-var BUILD = '0.2';
-var STAMP = '2026-08-26zj';
+var BUILD = '0.35';
+var STAMP = '2026-08-30p';
 document.getElementById('buildChip').textContent = 'v' + BUILD;
 
 var FRAMES = { ub: document.getElementById('f_ub'), pl: document.getElementById('f_pl') };
@@ -101,6 +130,12 @@ function show(app){
   if (app!=='pipe') ensureLoaded(app);
   Object.keys(FRAMES).forEach(function(k){ FRAMES[k].classList.toggle('show', k === app); });
   document.getElementById('pipe').classList.toggle('show', app==='pipe');
+  document.body.classList.toggle('nobar', app!=='pipe');
+  // keep the in-app pills' active state honest
+  Object.keys(FRAMES).forEach(function(k){ try{
+    var xd=FRAMES[k].contentDocument, btns=xd?xd.querySelectorAll('#xtabs .xt'):[];
+    if(btns.length===3){ btns[0].classList.toggle('on',app==='ub'); btns[1].classList.toggle('on',app==='pl'); btns[2].classList.toggle('on',app==='pipe'); }
+  }catch(e){} });
   document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('on', t.dataset.app === app); });
   try { localStorage.setItem(TAB_KEY, app); } catch(e){}
   if (app==='pipe') renderPipe();
@@ -110,7 +145,6 @@ document.getElementById('tabs').addEventListener('click', function(e){ var b = e
 
 /* ══════════ merged pipeline: both apps' stores → one board ══════════ */
 var COLS = [
-  {key:'ideas',      name:'Ranked ideas'},
   {key:'sourcing',   name:'Sourcing'},
   {key:'validating', name:'Validating'},
   {key:'samples',    name:'Samples'},
@@ -133,7 +167,6 @@ function readStores(){
   var cards = [];
   if(ub){
     var age = (ub.settings && ub.settings.ageing) || {};
-    (ub.ideas||[]).forEach(function(i){ if(i.status==='Ranked' && !i.killed) cards.push({app:'ub', col:'ideas', title:i.title||'Untitled idea', stage:(i.score!=null? i.score+'%' : 'ranked'), days:days(i.created), over:false, wait:false}); });
     (ub.pipeline||[]).forEach(function(p){
       var col = UB_MAP[p.stage]||'sourcing', d = days(p.entered), waiting = !!(p.waiting && p.waiting.until && new Date(p.waiting.until) > new Date());
       cards.push({app:'ub', col:col, title:p.title, stage:UB_NAMES[p.stage]||p.stage, days:d, over: !waiting && d!=null && age[p.stage]!=null && d > age[p.stage], wait:waiting});
@@ -143,11 +176,12 @@ function readStores(){
   if(pl){
     (pl.ideas||[]).forEach(function(r){
       var i = r.data||{}; var p = i.pipeline||{};
-      if(!i.inPipeline){ cards.push({app:'pl', col:'ideas', title:i.name||r.name||'Untitled', stage:(i.score&&i.score.pct!=null? i.score.pct+'%' : 'idea'), days:days(i.createdAt), over:false, wait:false}); return; }
+      if(!i.inPipeline){ return; }
+      var sp=(i._pct!=null)? i._pct : ((i.score&&i.score.pct!=null)?i.score.pct:null);
       if(p.status==='launched' || r.pipeline_status==='launched'){ cards.push({app:'pl', col:'launched', title:i.name||r.name, stage:'live on Amazon', days:null}); return; }
       if(p.status==='rejected' || r.pipeline_status==='dropped') return;
       var st = Number(p.stage)||1, col = PL_MAP[st]||'sourcing', d = days(p.lastMoved||p.enteredAt), waiting = p.status==='waiting' || (p.waitingUntil && new Date(p.waitingUntil) > new Date());
-      cards.push({app:'pl', col:col, title:i.name||r.name, stage:PL_NAMES[st]||('Stage '+st), days:d, over: !waiting && d!=null && d > (PL_TARGET[st]||14), wait:waiting});
+      cards.push({app:'pl', col:col, title:i.name||r.name, score:sp, stage:PL_NAMES[st]||('Stage '+st), days:d, over: !waiting && d!=null && d > (PL_TARGET[st]||14), wait:waiting});
     });
   }
   return {cards:cards, haveUb:!!ub, havePl:!!pl};
@@ -160,22 +194,72 @@ function renderPipe(){
   var ubN = cards.filter(function(c){return c.app==='ub' && c.col!=='launched';}).length, plN = cards.filter(function(c){return c.app==='pl' && c.col!=='launched';}).length;
   var stuck = cards.filter(function(c){return c.over;}).length, wait = cards.filter(function(c){return c.wait;}).length, launched = cards.filter(function(c){return c.col==='launched';}).length;
   paintPipeN();
+  // Empty stages collapse to slim rails so the products that DO exist get the screen.
+  var HUES = {sourcing:'#22D3EE', validating:'#E879C7', samples:'#3B9EFF', ordered:'#FF8A3D', ready:'#FFC53D', launching:'#4ADE80', launched:'#00E5A0'};
+  var byCol = {}; COLS.forEach(function(c){ byCol[c.key]=cards.filter(function(x){return x.col===c.key;}); });
+  var card = function(x){ return '<div class="p-card '+x.app+(x.over?' stuck':'')+'" onclick="show(\''+x.app+'\')" title="Open in '+(x.app==='ub'?'Unique Bundles':'Private Label')+'">'
+      + (x.score!=null?'<span class="sc">'+x.score+'%</span>':'')
+      + '<div class="t">'+esc(x.title)+'</div>'
+      + '<div class="m"><span class="app-chip '+x.app+'">'+(x.app==='ub'?'UB':'PL')+'</span>'
+      + (x.days!=null ? '<span class="d'+(x.over?' over':x.wait?' wait':'')+'">'+(x.wait?'waiting · ':'')+x.days+'d'+(x.over?' · stuck':'')+'</span>' : '')
+      + '</div>'+(x.score==null?'<div class="s">'+esc(x.stage)+'</div>':'')+'</div>'; };
+  var template = COLS.map(function(c){ return byCol[c.key].length ? 'minmax(185px,330px)' : '44px'; }).join(' ');
   var cols = COLS.map(function(c){
-    var rows = cards.filter(function(x){return x.col===c.key;}).sort(function(a,b){ return (b.over?1:0)-(a.over?1:0) || (b.days||0)-(a.days||0); });
+    var rows = byCol[c.key];
+    if(!rows.length) return '<div class="p-col slim c-'+c.key+'" title="'+c.name+' — empty"><span class="c0">0</span><b>'+c.name+'</b></div>';
+    rows = rows.slice().sort(function(a,b){ return (b.over?1:0)-(a.over?1:0) || (b.days||0)-(a.days||0); });
     return '<div class="p-col c-'+c.key+'"><div class="p-col-h"><b>'+c.name+'</b><span class="c">'+rows.length+'</span></div>'
-      + (rows.length ? rows.map(function(x){ return '<div class="p-card'+(x.over?' stuck':'')+'" onclick="show(\''+x.app+'\')" title="Open in '+(x.app==='ub'?'Unique Bundles':'Private Label')+'">'
-          + '<div class="t">'+esc(x.title)+'</div>'
-          + '<div class="m"><span class="app-chip '+x.app+'">'+(x.app==='ub'?'UB':'PL')+'</span>'
-          + (x.days!=null ? '<span class="d'+(x.over?' over':x.wait?' wait':'')+'">'+(x.wait?'waiting · ':'')+x.days+'d'+(x.over?' · stuck':'')+'</span>' : '')
-          + '</div><div class="s">'+esc(x.stage)+'</div></div>'; }).join('')
-        : '<div class="p-empty">'+(c.key==='launched'?'none this month':'empty')+'</div>') + '</div>';
+      + rows.map(card).join('') + '</div>';
   }).join('');
+  // the flow bar: the shape of the whole belt in one line
+  var flowSegs = COLS.filter(function(c){return byCol[c.key].length;}).map(function(c){
+    return '<span style="flex:'+byCol[c.key].length+';background:'+HUES[c.key]+'" title="'+c.name+' · '+byCol[c.key].length+'"></span>'; }).join('');
+  var moving = cards.filter(function(x){return x.col!=='launched';}).length;
+  var flowRead = moving
+    ? '<b>'+moving+'</b> in the pipelines'
+      + (stuck?' · <b style="color:#FF8FA3">'+stuck+' stuck</b>':'') + (wait?' · '+wait+' waiting':'')
+      + ' · '+(launched?'<b style="color:var(--green)">'+launched+' launched this month</b>':'0 launched this month')
+    : 'Nothing in the pipelines yet — promote your best ideas from each app';
+  // ── combined monthly KPIs: UB + PL against both apps' targets ──
+  var ub2=null, pl2=null;
+  try{ ub2=JSON.parse(localStorage.getItem('ub_tracker_v1')||'null'); }catch(e){}
+  try{ pl2=JSON.parse(localStorage.getItem('pl_sourcing_v1')||'null'); }catch(e){}
+  function tgt(id){ var k=((ub2&&ub2.settings&&ub2.settings.kpis)||[]).filter(function(x){return x.id===id&&x.on!==false;})[0]; return k?(+k.target||0):0; }
+  var ubEv=(ub2&&ub2.events)||[];
+  var ubIdeas=ubEv.filter(function(e){return e.type==='ideas'&&sameMonth(e.at);}).length;
+  var ubMoved=ubEv.filter(function(e){return e.type==='moved'&&sameMonth(e.at);}).length;
+  var ubLaunch=ubEv.filter(function(e){return e.type==='launches'&&sameMonth(e.at);}).length;
+  var plRows=(pl2&&pl2.ideas)||[];
+  var plBS=((pl2&&pl2.brand_state)||[])[0]; plBS=(plBS&&plBS.data)||{};
+  var MK=plBS.plMonthlyK||{ideas:12,pipeline:4,launches:1};
+  var plIdeas=plRows.filter(function(r){return r.data&&sameMonth(r.data.createdAt)&&!r.data._imported;}).length;
+  var plMoved=plRows.filter(function(r){var p=(r.data&&r.data.pipeline)||{};return p.enteredAt&&sameMonth(p.enteredAt);}).length;
+  var plLaunch=plRows.filter(function(r){var p=(r.data&&r.data.pipeline)||{};return p.launchedAt&&sameMonth(p.launchedAt);}).length;
+  var now=new Date(), mPace=now.getDate()/new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  function ring(label,a,t,ua,pa,hue){
+    var pct=t?Math.min(100,a/t*100):0, R=17, C=2*Math.PI*R, off=C*(1-pct/100);
+    var exp=Math.round(t*mPace), st=a>=t?['HIT','ok']:a>=exp?['ON TRACK','ok']:['BEHIND','bad'];
+    return '<div class="p-kpi" style="--c:'+hue+'">'
+      +'<div class="p-kpi-ring"><svg viewBox="0 0 42 42"><circle cx="21" cy="21" r="'+R+'" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="4.5"/>'
+      +'<circle cx="21" cy="21" r="'+R+'" fill="none" stroke="'+hue+'" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 21 21)"/></svg>'
+      +'<span>'+Math.round(pct)+'<i>%</i></span></div>'
+      +'<div class="p-kpi-t"><div class="p-kpi-top"><b>'+label+'</b><span class="p-kpi-b '+st[1]+'">'+st[0]+'</span></div>'
+      +'<div class="p-kpi-v">'+a+'<i>/'+t+'</i></div>'
+      +'<div class="p-kpi-s">UB '+ua+' · PL '+pa+' · expected '+exp+' by today</div></div></div>';
+  }
+  var kpiRow='<div class="p-kpis">'
+    + ring('Ideas captured', ubIdeas+plIdeas, tgt('ideas')+MK.ideas, ubIdeas, plIdeas, '#A78BFF')
+    + ring('Into the pipelines', ubMoved+plMoved, (tgt('moved')||0)+MK.pipeline, ubMoved, plMoved, '#22D3EE')
+    + ring('Launched', ubLaunch+plLaunch, tgt('launches')+MK.launches, ubLaunch, plLaunch, '#00E5A0')
+    +'</div>';
   document.getElementById('pipe').innerHTML =
     '<div class="p-head"><div><div class="p-eyebrow">Both trackers · one belt</div><div class="p-title">Pipeline</div><div class="p-sub">Everything moving across Unique Bundles and Private Label, in plain stages. Click a card to open it in its app.</div></div>'
     + '<div class="p-summary"><span class="p-pill ub"><i></i>'+ubN+' UB</span><span class="p-pill pl"><i></i>'+plN+' PL</span>'
     + (stuck?'<span class="p-pill stuck">'+stuck+' stuck</span>':'') + (wait?'<span class="p-pill wait">'+wait+' waiting</span>':'')
     + '<span class="p-pill" style="color:var(--green);border-color:rgba(0,229,160,.4)">'+launched+' launched this month</span></div></div>'
-    + '<div class="p-wrap"><div class="p-cols">'+cols+'</div></div>'
+    + kpiRow
+    + '<div class="p-flow"><div class="p-flowbar">'+(flowSegs||'<span style="flex:1;background:var(--b2)"></span>')+'</div><div class="p-flowread">'+flowRead+'</div></div>'
+    + '<div class="p-wrap"><div class="p-cols" style="grid-template-columns:'+template+'">'+cols+'</div></div>'
     + '<div class="p-foot">Reads what each app has saved in this browser' + ((!st.haveUb||!st.havePl)?' — ' + (!st.haveUb?'Unique Bundles':'Private Label') + ' has not been opened here yet':'') + '. Updates live as you work in either tab.</div>';
 }
 window.addEventListener('storage', function(e){ if(e.key==='ub_tracker_v1' || e.key==='pl_sourcing_v1'){ if(document.getElementById('pipe').classList.contains('show')) renderPipe(); else paintPipeN(); } });
