@@ -16,7 +16,7 @@ GitHub Pages serves `index.html` automatically. First deploy: repo → Settings 
 ## Pushing an update
 
 1. Drag the new `docs` folder in (GitHub overwrites the changed files).
-2. Two lines near the bottom of `index.html`: **`BUILD`** is the version people see — moves by **0.05** each release (0.1 → 0.15 → 0.2 …). **`STAMP`** must change on **every** push, even a same-version fix — it's what forces browsers and GitHub Pages to drop the cached copy. (I bump both in every folder I send.)
+2. Two lines near the bottom of `index.html`: **`BUILD`** is the version people see — moves by **0.05** per PUSH to the live site (0.25 → 0.3 → 0.35 …). Folders that never get pushed don't use up a number; only `STAMP` changes between them. **`STAMP`** must change on **every** push, even a same-version fix — it's what forces browsers and GitHub Pages to drop the cached copy. (I bump both in every folder I send.)
 
    The version is shown in three places — the top-right chip, both sidebars, and inside every export file. Each app now reads it from a single `APP_VER` constant near the top of its script, so a bump is one edit per file and they cannot drift apart. It sat on v0.1 through a dozen releases because it used to be typed out in four separate places.
 3. Push. Live in about a minute. Refresh and check the chip top-right.
@@ -180,4 +180,105 @@ Everything above from "First month is scaled" onward ships as **v0.15**: five pi
 Every idea the first import created carried **today's** date, so *Today / This week / This month / All time* all returned the same list, sort-by-recent did nothing, and every card said "today". The filters were fine — the data was flat.
 
 The real creation dates are back (55 of them, recovered from the July backup; the 7 found on 26 Aug are genuinely new; 3 have no recorded date anywhere and say so in their notes). **Re-importing the corrected file repairs ideas already in the tracker** — the merge now takes the older of the two creation dates, so there is no need to wipe and start again.
+
+### Moving a product without doing the checklist (PL)
+
+Unticked tasks **never blocked a move** — the wording just made it look like they did. Two changes:
+
+- **Click any stage on the timeline, then "Move here →"** to jump straight to it. Six stages ahead or four back, one move, one confirmation. Whatever is unticked stays unticked and the History records where it jumped from.
+- The footer now reads **"4 tasks unticked — you can still move it"** instead of *"4 current tasks still open · stage changes need confirmation"*, and the confirmation asks whether you want to move it rather than whether it is "ready".
+
+### Add Idea — paste instead of typing (PL)
+
+**Add Idea → ⇩ Paste from your notes.** Paste a block and it fills the name, the four market numbers **and every ASIN it finds** — a page of Amazon links becomes a list of ASINs in one go, which also clears the "at least 1 ASIN is required" block. Anything already filled in is left alone, and the duplicate-name warning still fires.
+
+### Pipeline cards
+
+Eight products used to read as one thing repeated — same countdown, same "Find 3+ potential suppliers", same two boxed metrics, same full-width button. Now each card carries **its score**, a **pip row for stage tasks**, and one line of numbers (`80d to live · day 0 of 10 · 1/4 tasks`), with a colour spine that turns amber when waiting and red when overdue. About half the height, and the whole card is the click target.
+
+### Write it in your own words — it reads the checklist out of them
+
+Paste your sourcing notes as prose and it fills the numbers, the ASINs **and reads your wording into checklist answers**:
+
+- *"loads of uk sellers"* → **Chinese dominated: No**
+- *"really bad feedback so can be improved"* → **Can you improve: Yes**
+- *"dont know how to make it different"* → **Can you improve: No**
+- *"nobody is killing the market"* → **Reviews under 500: Yes**
+- *"ad cost will be way too high"* → **Heavy on ads: Yes**
+- *"nothing really on tiktok"* → **On TikTok: No** (not "yes" — it reads the negation)
+
+**Nothing is applied silently.** It shows each answer with the exact words that triggered it, you untick anything it got wrong, then Apply. It only ever fills blanks — an answer you gave by hand is never overwritten, and never re-proposed.
+
+**The Checklist tab still works exactly as before.** Answer all nine by hand if you want; the reading is an option, not a replacement. After applying it drops you on the Checklist tab so you can finish the ones it couldn't read.
+
+Honest about what it is: a phrase engine tuned to how you actually write (built from your own 51 notes), not a language model — the app is local-only with no backend and no API key, so there is nothing to call. It handles phrasing rather than just keywords, but it is rules. Check it.
+
+### Moving an old product to where it really is (PL workspace)
+
+For a product that already went through its early stages in real life, the workspace now has three speeds:
+
+- **Click a stage on the timeline → "Move here →"** — jump straight there, unticked tasks stay unticked.
+- **"Move here · tick everything before"** — same jump, but every earlier stage's tasks are marked done. That is the "hard move" for an old product: the work happened months ago, the app just never saw it. History records how many were ticked and why.
+- **"✓✓ Tick all"** on the current stage checklist — one click completes the stage instead of four.
+
+The timeline dots now show a *view* hint on hover so it is obvious they are clickable.
+
+## In this push — 30 Aug · workspace stepper + move actions everywhere
+
+- **The stepper is a real progress bar now**: green gradient line for done, done stages solid green, the current stage glowing brand-purple, and the stage you are viewing ringed amber with a "VIEWING" tag above it. Hovering any stage lifts it and shows "view".
+- **The move actions are impossible to miss.** While viewing another stage, they appear **top and bottom**: in the amber preview panel ("Move here →" and "Move here · tick everything before") and in the footer, which switches to a move footer — *"Viewing Samples — the product is still in Sourcing · [Move here · tick everything before] [Move to Samples →]"*. Back on the current stage, the footer returns to normal.
+- Preview panel tinted amber so "you are looking at somewhere else" reads at a glance.
+
+## In this push — 30 Aug · Pipeline page compacted, KPIs become the filter
+
+The six KPI tiles and the six filter tabs underneath were the same six numbers shown twice. Now **the KPIs are the filter**: one compact row of colour-coded chips — big coloured number, label, one-line sub — click one to filter the board, click **In progress** to reset. The active chip is tinted so you can see what you're filtered to; the duplicate tab row is gone (only the sort dropdown stays).
+
+Everything else on the page tightened: smaller page header, the stage health strip is one thin scrollable line, empty columns are a whisper instead of a 112px dashed shout, and column headers lost their padding. The board now fits on screen where it used to need a scroll before you saw a single product.
+
+## In this push — 30 Aug · combined Pipeline rebuilt, ring KPIs, ideas cards tightened
+
+**Combined Pipeline tab (the shell):**
+- A **flow bar** up top shows the whole belt's shape in one line, with a plain read: *"1 in motion · 57 ranked ideas behind them · 0 launched this month"*.
+- **Ranked ideas cap at the best five by score** (with "+52 more — best five shown"); it is a backlog, not a flow, and 51 cards were drowning the board.
+- **Empty stages collapse to slim rails** — a thin strip with the name sideways — so the stages with products get the screen.
+- Cards carry an app-coloured spine (UB cyan / PL violet), the score, days, and stuck/waiting states.
+- To rank properly, **PL now stamps each idea's score into its saved data** (`_pct`) — the score used to exist only while the app was running, which is why the combined board once showed the worst ideas as "best".
+
+**PL Action Centre:** the five KPI tiles are now **ring cards in the UB style** — progress ring against the weekly target with a HIT/BEHIND badge, decorative ring for plain counts, CLEAR/ACT on overdue.
+
+**PL Ideas cards:** the three boxed metrics became one line — **9,282 SV · £20 · 2 comp** — with the threshold colours kept on the numbers; the age chip shows "4d ago" instead of repeating the date twice. Cards are another ~40px shorter.
+
+## In this push — 30 Aug · monthly KPIs everywhere, cleaner chrome, pipeline = pipeline
+
+- **PL Action Centre runs on monthly targets now**, same model as UB: calendar pace, "expected N by today", ring cards with HIT / ON TRACK / BEHIND. Defaults: **12 ideas · 4 into pipeline · 1 launch** a month — change them via the **Monthly targets** button in the header.
+- **The combined Pipeline tab opens with three combined monthly rings** — Ideas captured, Into the pipelines, Launched — UB + PL added together against both apps' targets, each showing the UB/PL split and the expected pace.
+- **Ranked ideas are off the combined board.** It shows only products actually in a pipeline; backlogs live in each app's Ideas page.
+- **Sidebar/topbar merged**: the sidebar's own brand row (which repeated what the top bar already says) is gone — the nav starts immediately, collapse toggle kept.
+
+## In this push — 30 Aug · Action Centre actions grouped, imports don't count
+
+- **Identical next-steps collapse into one card.** Eight "Finish Sourcing · Find 3+ potential suppliers" tiles are now one card — *"Finish Sourcing — 8 products"* — with a chip per product that opens it directly.
+- **Imported ideas no longer count toward "Ideas added".** That KPI is about finding ideas, not filing them — bulk imports are stamped and excluded (on the PL Action Centre and the combined ring both). Ideas you type in yourself still count. Existing imports are back-stamped automatically on first open.
+- **Decision: PL keeps its 7 stages.** They describe a genuinely different process from UB's 5 — samples, supplier contact, no Jack-validation step — and the combined Pipeline tab already translates both into common stages. Forcing UB's model on PL would have made its stages lie.
+
+## In this push — 30 Aug · the Action Centre answers "are things moving?"
+
+Jack's definition of the page: *"it's more a KPI tracker — are things moving and actually progressing."* Rebuilt to answer exactly that, top to bottom:
+
+1. **Monthly rings** (unchanged) — the month's targets at calendar pace.
+2. **This-week bars** — new ideas · into Pipeline · in Sourcing against the weekly targets, as progress bars that turn green on hit. The week feeds the month.
+   The bars are **pro-rated through the week** — day 3 of 7 judges you against day 3's share of the target, with a pace tick on each bar. Falling behind pace reads amber, never red: weeks vary, and the note on the row says it — *"weeks vary — the month is the real target"*.
+3. **The movement verdict** — a green *"✓ Moving — 6 entered · 2 moved forward this week"* or an amber *"⚠ Quiet week"*, with counts for entered / moved forward / launched / need a push / untouched this week.
+
+**"Build this week's plan" is gone** from the header, and the empty plan section no longer pitches itself — a plan that was built still shows. **Weekly targets** and **Monthly targets** buttons sit in the header. Weekly and monthly "ideas added" now agree: imports count in neither.
+
+## In this push — 30 Aug · real dialogs, not browser boxes
+
+The daily-path popups on PL were native browser dialogs — grey, unstylable, and the targets editors were three chained prompts. All replaced with styled in-app modals:
+
+- **Move confirmations** (Advance, Move here, Move here + tick) — dark card, blurred backdrop, colour-coded bar (green when ticking earlier stages), Enter/Esc work.
+- **Monthly targets** and **Weekly targets** — one form each with all three fields, instead of prompt → prompt → prompt.
+- **Add task** — a proper input with placeholder text.
+
+Add Idea modal got a colour pass too: gradient header rule, brand-lit active tab, coloured section headers, glowing save button.
 
