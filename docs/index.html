@@ -188,8 +188,8 @@ body.nobar .stage{inset:0}
 </div>
 <script>
 // BUILD is the version people see — moves by 0.05 a release; STAMP is what actually busts the cache. Bump STAMP every push.
-var BUILD = '0.55';
-var STAMP = '2026-08-31f';
+var BUILD = '0.75';
+var STAMP = '2026-08-31j';
 document.getElementById('buildChip').textContent = 'v' + BUILD;
 
 var FRAMES = { ub: document.getElementById('f_ub'), pl: document.getElementById('f_pl') };
@@ -229,7 +229,7 @@ var COLS = [
   {key:'launched',   name:'Launched'}
 ];
 var UB_MAP = { sourcing:'sourcing', jack_validation:'validating', prepare_to_launch:'ready', buy_receive:'ordered', live:'launching', ready_to_source:'sourcing', source:'sourcing', order_purchase:'ordered', launch:'launching' };
-var UB_NAMES = { ready_to_source:'Ready to Source', source:'Source', jack_validation:'Jack Validation', prepare_to_launch:'Prepare to Launch', order_purchase:'Order / Purchase', launch:'Launch' };
+var UB_NAMES = { sourcing:'Sourcing', jack_validation:'Jack Validation', prepare_to_launch:'Listing & test', buy_receive:'Buy & receive', live:'Live', ready_to_source:'Ready to Source', source:'Source', order_purchase:'Order / Purchase', launch:'Launch' };
 var PL_MAP = { 1:'sourcing', 2:'sourcing', 3:'samples', 4:'samples', 5:'ordered', 6:'ready', 7:'launching' };
 var PL_NAMES = { 1:'Sourcing', 2:'Contact & Pricing', 3:'Ordering Samples', 4:'Samples', 5:'Purchase', 6:'Prepare to Launch', 7:'Launch' };
 var PL_TARGET = { 1:10, 2:14, 3:7, 4:10, 5:28, 6:15, 7:10 };
@@ -269,14 +269,23 @@ function readStores(){
 var UB_STAGE_ORDER = [['sourcing','Sourcing'],['jack_validation','Jack Validation'],['prepare_to_launch','Listing & test'],['buy_receive','Buy & receive'],['live','Live']];
 var PL_STAGE_ORDER = [[1,'Sourcing'],[2,'Contact & Pricing'],[3,'Ordering Samples'],[4,'Samples'],[5,'Purchase'],[6,'Prepare to Launch'],[7,'Launch']];
 var PL_MIN_D = {1:1,2:1,3:1,4:2,5:1,6:1,7:1};
-function weekStart(){ var d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d.getTime(); }
-function weekFrac(){ var n=new Date(), dow=(n.getDay()+6)%7; return Math.max(.02,Math.min(1,(dow+(n.getHours()*60+n.getMinutes())/1440)/7)); }
+// Monthly window + calendar pace. These KPIs are monthly targets in both apps'
+// Settings; a 7-day window made a quiet Monday read as failure and never matched
+// the numbers the user actually set.
+function monthStart(){ var d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).getTime(); }
+function monthEnd(){ var d=new Date(); return new Date(d.getFullYear(), d.getMonth()+1, 1).getTime(); }
+function monthDays(){ var n=new Date(); return new Date(n.getFullYear(), n.getMonth()+1, 0).getDate(); }
+function monthPace(){ var n=new Date();
+  return Math.max(.02, Math.min(1, ((n.getDate()-1) + (n.getHours()*60+n.getMinutes())/1440) / monthDays())); }
+function weekStart(){ return monthStart(); }   // aliases so callers below stay put
+function weekFrac(){ return monthPace(); }
 function fmtH(h){ if(!(h>0)) return '0h'; var m=Math.round(h*60);
   return m<60 ? m+'m' : (m%60===0 ? (m/60)+'h' : Math.floor(m/60)+'h '+(m%60)+'m'); }
 function plBrand(pl){ try{ return (pl.brand_state&&pl.brand_state[0]&&pl.brand_state[0].data)||{}; }catch(e){ return {}; } }
 
 function sideUB(ub){
-  var ws=weekStart(), inWk=function(x){ var t=x? new Date(x).getTime():0; return isFinite(t)&&t>=ws; };
+  var ws=monthStart(), me=monthEnd();
+  var inWk=function(x){ var t=x? new Date(x).getTime():0; return isFinite(t)&&t>=ws&&t<me; };
   if(!ub) return null;
   var pipe=(ub.pipeline||[]), ev=(ub.events||[]), log=(ub.sessionLog||[]);
   var waiting=0, needsUs=0;
@@ -286,7 +295,7 @@ function sideUB(ub){
   var mins=log.filter(function(x){ return inWk(x.date); }).reduce(function(a,x){ return a+(x.mins||0); },0);
   if(ub.session && ub.session.start>=ws) mins += Math.max(0,Math.round((Date.now()-ub.session.start)/60000));
   var kh=((ub.settings&&ub.settings.kpis)||[]).filter(function(k){return k.id==='hours';})[0];
-  var tgt=Math.round(((kh&&kh.target)||32)/4.345*10)/10;
+  var tgt=(kh&&kh.target)||32;   // UB's hours KPI was always a monthly figure
   var mins2=(ub.settings&&ub.settings.minStage)||{};
   var stages=UB_STAGE_ORDER.map(function(p){
     var c=pipe.filter(function(x){ return (x.stage===p[0]) || (p[0]==='sourcing'&&(x.stage==='source'||x.stage==='ready_to_source'))
@@ -304,22 +313,22 @@ function sideUB(ub){
 }
 function sidePL(pl){
   if(!pl) return null;
-  var ws=weekStart(), B=plBrand(pl), rows=(pl.ideas||[]);
+  var ws=monthStart(), me=monthEnd(), B=plBrand(pl), rows=(pl.ideas||[]);
   var act=[], waiting=0, needsUs=0, moved=0, touched=0, entered=0, launched=0, ideasIn=0;
   rows.forEach(function(r){
     var i=r.data||{}, p=i.pipeline||{};
-    if(i.createdAt && new Date(i.createdAt).getTime()>=ws && !i._imported) ideasIn++;
-    if(p.enteredAt && p.enteredAt>=ws) entered++;
-    if(p.launchedAt && p.launchedAt>=ws) launched++;
+    if(i.createdAt && new Date(i.createdAt).getTime()>=ws && new Date(i.createdAt).getTime()<me && !i._imported) ideasIn++;
+    if(p.enteredAt && p.enteredAt>=ws && p.enteredAt<me) entered++;
+    if(p.launchedAt && p.launchedAt>=ws && p.launchedAt<me) launched++;
     if(!i.inPipeline || p.status==='rejected' || p.status==='launched') return;
     act.push(i);
     var due=p.waitingUntil? new Date(p.waitingUntil).getTime():0;
     if(p.waitingFor && (!due || due>=Date.now())) waiting++; else needsUs++;
     var h=p.history||[];
-    if(h.some(function(x){ return x.ts>=ws && (x.type==='advance'||x.type==='launch'); })) moved++;
-    if(h.some(function(x){ return x.ts>=ws; })) touched++;
+    if(h.some(function(x){ return x.ts>=ws && x.ts<me && (x.type==='advance'||x.type==='launch'); })) moved++;
+    if(h.some(function(x){ return x.ts>=ws && x.ts<me; })) touched++;
   });
-  var mins=((B.plSess)||[]).filter(function(x){return x.at>=ws;}).reduce(function(a,x){return a+(x.mins||0);},0);
+  var mins=((B.plSess)||[]).filter(function(x){return x.at>=ws && x.at<me;}).reduce(function(a,x){return a+(x.mins||0);},0);
   if(B.plRun && B.plRun.start>=ws) mins += Math.max(0,Math.round((Date.now()-B.plRun.start)/60000));
   var minC=(B.settings&&B.settings.minStage)||{};
   var stages=PL_STAGE_ORDER.map(function(p){
@@ -327,7 +336,8 @@ function sidePL(pl){
     var mn=(typeof minC[p[0]]==='number')?minC[p[0]]:PL_MIN_D[p[0]];
     return {name:p[1], count:c, min:mn, state: c===0?'empty' : c<mn?'low':'ok'}; });
   return {app:'pl', who:'Jack', label:'Private Label',
-    hrs:mins/60, tgt:(typeof B.plWeeklyHours==='number'? B.plWeeklyHours : 20),
+    hrs:mins/60, tgt:(typeof B.plMonthlyHours==='number'? B.plMonthlyHours
+            : (typeof B.plWeeklyHours==='number'? Math.round(B.plWeeklyHours*52/12) : 87)),
     ideasIn:ideasIn, entered:entered, moved:moved, launched:launched,
     active:act.length, waiting:waiting, needsUs:needsUs, touched:touched, stages:stages,
     empties:stages.filter(function(x){return x.count===0;}).length };
@@ -343,7 +353,7 @@ function sideVerdict(d){
   var H=fmtH(d.hrs), T=fmtH(d.tgt), tone, line, sub;
   if(!onHours && !moving){
     tone='bad'; line='Not sourcing and not moving.';
-    sub=H+' of '+T+' this week, nothing advanced a stage. This is the week that costs a launch in three months.';
+    sub=H+' of '+T+' this month, nothing advanced a stage. This is how you lose a launch three months out.';
   } else if(!onHours && moving && mode==='pipeline'){
     tone='ok'; line='Moving the pipeline, not sourcing — and that is right.';
     sub=d.needsUs+' products needed real work; '+(d.moved+d.launched)+' moved forward on '+H+' of sourcing. The hours give way to pipeline work by design.';
@@ -376,114 +386,224 @@ function ovPerson(d){
   var modeLab=v.mode==='source'?'Source more':v.mode==='pipeline'?'Pipeline first':'Balanced';
   return '<div class="ov-p '+d.app+'" onclick="show(\''+d.app+'\')">'
     +'<div class="ov-p-h"><span class="who">'+d.who+'</span><b>'+d.label+'</b><span class="mode '+v.mode+'">'+modeLab+'</span></div>'
-    +'<div class="ov-hrs"><b>'+fmtH(d.hrs)+'<i> / '+fmtH(d.tgt)+' this week</i></b>'
+    +'<div class="ov-hrs"><b>'+fmtH(d.hrs)+'<i> / '+fmtH(d.tgt)+' this month</i></b>'
       +'<em><u class="'+cls+'" style="width:'+pct.toFixed(1)+'%"></u><s style="left:'+(weekFrac()*100).toFixed(1)+'%"></s></em></div>'
     +'<div class="ov-say '+v.tone+'">'+v.line+'<small>'+v.sub+'</small></div>'
     +'<div class="ov-n">'+n(d.ideasIn,'ideas')+n(d.entered,'entered')+n(d.moved,'moved',d.moved?'go':'')
       +n(d.launched,'launched',d.launched?'go':'')+n(d.needsUs,'need us')+n(d.waiting,'waiting',d.waiting?'wait':'')
       +n(d.empties,'empty stages',d.empties?'bad':'')+'</div></div>';
 }
+// same avatar rule as both apps, so one product reads identically everywhere
+function ovAvatar(name,size){
+  var h=0, str=String(name||'?');
+  for(var i=0;i<str.length;i++) h=(h*31+str.charCodeAt(i))>>>0;
+  var HUES=['#7C5CFF','#22D3EE','#00E5A0','#FFC53D','#FF8A3D','#FF5CC8','#3B9EFF','#A78BFF'];
+  var c=HUES[h%HUES.length];
+  var ini=String(name||'?').trim().split(/\s+/).slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()||'?';
+  return '<span class="pav'+(size==='sm'?' sm':'')+'" style="--av:'+c+'">'+esc(ini)+'</span>';
+}
 function ovAns(q,a,sub,k){ return '<div class="ov-ans '+k+'"><div class="q">'+q+'</div><div class="a">'+a+'</div><div class="s">'+sub+'</div></div>'; }
 
-function renderOverview(ub, pl, monthly){
+/* ════════════════════════════════════════════════════════════════════
+   OVERVIEW — rebuilt. Same rail, same bar, same cards as UB and PL.
+   No merged stage columns: UB and PL are different processes and forcing
+   them into shared invented columns was the thing that made the board
+   unreadable. Two lanes, honest about their own stages, plus one ranked
+   queue that says what to actually do next.
+   ════════════════════════════════════════════════════════════════════ */
+var OV_NAV = [
+  {k:'pipe', label:'Overview',        c:'#A78BFF', ic:'<circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="10" r="3" fill="currentColor"/>'},
+  {k:'ub',   label:'Unique Bundles',  c:'#7C5CFF', ic:'<rect x="3" y="7.5" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 7.5V6a3.5 3.5 0 017 0v1.5" fill="none" stroke="currentColor" stroke-width="1.6"/>'},
+  {k:'pl',   label:'Private Label',   c:'#22D3EE', ic:'<rect x="3" y="4" width="4" height="12" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="8" y="4" width="4" height="8.5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="4" width="4" height="5.5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.6"/>'}
+];
+function ovRail(){
+  // the other two rails carry live counts; this one looked inert without them
+  var C={ub:0,pl:0,pipe:0};
+  try{
+    var cds=readStores().cards.filter(function(c){return c.col!=='launched';});
+    C.ub=cds.filter(function(c){return c.app==='ub';}).length;
+    C.pl=cds.filter(function(c){return c.app==='pl';}).length;
+    C.pipe=cds.filter(function(c){return c.over||c.wait===false&&c.days>=7;}).length;
+  }catch(e){}
+  return '<aside class="sidebar sb2 ov-rail">'
+    +'<div class="sn-brand"><div class="sn-mark"><svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="2.5" fill="#030304" opacity=".85"/><path d="M8.5 9V7a3.5 3.5 0 017 0v2" fill="none" stroke="#030304" stroke-width="2" stroke-linecap="round" opacity=".85"/></svg></div>'
+      +'<div class="sn-brand-t"><div class="sn-name">PLUB</div><div class="sn-sub">Sourcing tracker</div></div></div>'
+    +'<nav class="sn-nav"><div class="sn-sec"><span>Work</span></div>'
+    + OV_NAV.map(function(n){
+        var b=C[n.k]||0;
+        return '<button class="nav-item ntab'+(n.k==='pipe'?' active':'')+'" style="--c:'+n.c+'" onclick="show(\''+n.k+'\')">'
+          +'<span class="sn-ic"><svg viewBox="0 0 20 20">'+n.ic+'</svg></span><span class="sn-t">'+n.label+'</span>'
+          +(b?'<span class="nav-badge">'+b+'</span>':'')+'</button>';
+      }).join('')
+    +'<div class="sn-spacer"></div></nav>'
+    +'<div class="sn-foot"><div class="sn-av">J</div><div class="sn-foot-t"><div class="sn-user">Jack</div>'
+      +'<div class="sn-role">Both belts</div></div><span class="sn-saved"><i></i></span></div></aside>';
+}
+
+/* ── who owns what, and what the next move is ────────────────────────── */
+function ovNext(c){
+  if(c.over)  return {p:'HIGH',  t:'Past its '+c.stage+' target — '+c.days+' days in', b:'Work now'};
+  if(c.waitExpired) return {p:'HIGH', t:'Waiting date has passed — chase it', b:'Chase it'};
+  if(c.wait)  return {p:'LOW',  t:'Waiting on somebody else — nothing to do', b:'View'};
+  if(c.cold)  return {p:'MED',  t:'Untouched for '+c.days+' days', b:'Continue'};
+  return {p:'LOW', t:'On track in '+c.stage, b:'Review'};
+}
+function ovQueue(cards){
+  var rank={HIGH:0,MED:1,LOW:2};
+  return cards.filter(function(c){return c.col!=='launched';})
+    .map(function(c){ var n=ovNext(c); return {c:c,n:n}; })
+    .sort(function(a,b){ return rank[a.n.p]-rank[b.n.p] || (b.c.days||0)-(a.c.days||0); });
+}
+
+function renderOverview(ub, pl, m, cards){
   var U=sideUB(ub), L=sidePL(pl), sides=[U,L].filter(Boolean);
-  if(!sides.length) return '';
+  if(!sides.length) return ''
+    +'<div class="ov-first"><div class="ov-first-h">Nothing has been opened in this browser yet</div>'
+    +'<p>This page reads whatever the two trackers have saved here. Open one and it fills in on its own.</p>'
+    +'<div class="ov-first-s">'
+      +'<div class="ov-first-c" onclick="show(\'ub\')"><b>1</b><span>Open Unique Bundles</span><i>Add ideas, rank them, move the best into the pipeline</i></div>'
+      +'<div class="ov-first-c" onclick="show(\'pl\')"><b>2</b><span>Open Private Label</span><i>Same idea, seven stages, sample-led</i></div>'
+      +'<div class="ov-first-c"><b>3</b><span>Come back here</span><i>One verdict, one queue, both belts</i></div>'
+    +'</div></div>';
+  // a side that has never been opened is a fact, not a zero
+  var absent=[]; if(!U) absent.push({k:'ub',n:'Unique Bundles',w:'Becki'});
+  if(!L) absent.push({k:'pl',n:'Private Label',w:'Jack'});
+  var missHtml = absent.length ? '<div class="ov-miss">'
+    + absent.map(function(a){ return '<div class="ov-miss-r"><b>'+a.n+' has not been opened in this browser</b>'
+        +'<span>'+a.w+'\u2019s numbers are missing from everything on this page \u2014 targets, queue and belts below are '
+        +(absent.length>1?'empty':'one side only')+'.</span>'
+        +'<button class="ov-go" onclick="show(\''+a.k+'\')">Open '+a.n+' \u2192</button></div>'; }).join('')
+    + '</div>' : '';
+
   var moved=sides.reduce(function(a,d){return a+d.moved;},0);
   var launched=sides.reduce(function(a,d){return a+d.launched;},0);
   var entered=sides.reduce(function(a,d){return a+d.entered;},0);
   var ideasIn=sides.reduce(function(a,d){return a+d.ideasIn;},0);
   var waiting=sides.reduce(function(a,d){return a+d.waiting;},0);
   var empties=sides.reduce(function(a,d){return a+d.empties;},0);
-  var hrs=sides.reduce(function(a,d){return a+d.hrs;},0), tgt=sides.reduce(function(a,d){return a+d.tgt;},0);
+  var hrs=sides.reduce(function(a,d){return a+d.hrs;},0);
+  var tgt=sides.reduce(function(a,d){return a+d.tgt;},0);
   var exp=tgt*weekFrac();
-  // the scaling score: movement is the point, so it carries the most weight
-  var parts=[
-    Math.min(1,(moved+launched)/4)*40,          // things actually progressed
-    Math.min(1,tgt? hrs/Math.max(0.1,exp):1)*22, // sourcing happening at pace
-    Math.min(1,ideasIn/3)*13,                    // ideas coming in
-    (empties===0?15: empties===1?8: empties<=2?4:0),  // belt populated
-    Math.min(1,launched/1)*10                    // launches landing
-  ];
-  var sc=Math.round(parts.reduce(function(a,b){return a+b;},0));
-  // an empty stage is a launch that never happens, so it caps the headline no matter
-  // how good this week looked — three or more empty can never read as "yes"
-  if(empties>=3) sc=Math.min(sc,58);
-  if(empties>=5) sc=Math.min(sc,44);
-  var tone = sc>=70?'ok': sc>=45?'warn':'bad';
-  var head, sub;
-  if(sc>=70){ head='Yes — the machine is running.';
-    sub=moved+launched+' moved forward and '+ideasIn+' new idea'+(ideasIn===1?'':'s')+' this week across both belts'+(empties?', though '+empties+' stage'+(empties===1?' is':'s are')+' empty':'')+'. Keep feeding it and launches become inevitable.'; }
-  else if(sc>=45){ head = empties>=3 ? 'Moving — but the belt has holes in it.' : 'Partly — moving, but not at scaling speed.';
-    sub = empties>=3
-      ? (moved+launched)+' moved forward this week, but '+empties+' stages are empty. Every empty stage is a launch that simply will not arrive in three months. Fill them before anything else.'
-      : (moved+launched)+' moved forward this week on '+fmtH(hrs)+' of sourcing. This is one-step-forward pace, not a machine.'; }
-  else { head='No — this is not scaling.';
-    sub=(moved+launched)===0 ? 'Nothing moved forward this week on either side'+(hrs>0?', despite '+fmtH(hrs)+' of sourcing':' and '+fmtH(hrs)+' sourced')+'. Twelve months of this is how a pipeline dies quietly.'
-      : (moved+launched)+' moved on '+fmtH(hrs)+' of sourcing, '+empties+' stages empty. The belt is thin — the launches three months out are the ones being lost.'; }
+  var q=ovQueue(cards||[]);
+  var hot=q.filter(function(x){return x.n.p==='HIGH';}).length;
+  var cold=(cards||[]).filter(function(c){return c.cold && c.col!=='launched';}).length;
 
-  var m=monthly||{};
-  var mPace=(function(){ var n=new Date(); return n.getDate()/new Date(n.getFullYear(),n.getMonth()+1,0).getDate(); })();
-  var onT=function(a,t){ if(!t) return 'm'; return a>=t?'y': a>=t*mPace?'y':'n'; };
-  var answers=''
-    + ovAns('On target this month?', (m.lTgt? (m.lAct>=m.lTgt*mPace?'On pace':'Behind'):'—'),
-        (m.lAct||0)+' of '+(m.lTgt||0)+' launches · expected '+Math.round((m.lTgt||0)*mPace)+' by today', onT(m.lAct,m.lTgt))
-    + ovAns('Enough ideas?', (m.iTgt? (m.iAct>=m.iTgt*mPace?'Yes':'No'):'—'),
-        (m.iAct||0)+' of '+(m.iTgt||0)+' this month · '+ideasIn+' this week', onT(m.iAct,m.iTgt))
-    + ovAns('Products moving?', (moved+launched)?'Yes':'No',
-        (moved+launched)+' advanced a stage this week · '+entered+' entered', (moved+launched)?'y':'n')
-    + ovAns('Any stage empty?', empties?String(empties):'None',
-        empties? 'each one is a launch missing ~3 months out' : 'every stage on both belts is populated', empties?'n':'y')
-    + ovAns('Anything stuck?', (m.stuck||0)?String(m.stuck):'None',
-        (m.stuck||0)? 'past its stage target — open these first' : 'nothing past its stage target', (m.stuck||0)?'m':'y')
-    + ovAns('Waiting on others?', waiting?String(waiting):'None',
-        waiting? 'our part is done on these — leave them' : 'nothing blocked externally', 'm')
-    + ovAns('Getting launches out?', launched? String(launched)+' this week' : (m.lAct||0)+' this month',
-        (m.lAct||0)+' of '+(m.lTgt||0)+' monthly target',
-        (m.lAct||0)>=(m.lTgt||0) ? 'y' : (m.lAct||0)>0 ? 'm' : (m.lTgt? 'n':'m'));
+  /* the headline is a sentence, not a score */
+  var tone,head,sub;
+  var scope = sides.length>1 ? 'across both sides' : 'on '+sides[0].label;
+  if(empties>=3){ tone='bad'; head='The belt has holes in it.';
+    sub=empties+' stages are empty '+scope+'. Each one is a launch that will not arrive in about three months.'; }
+  else if(hot){ tone='warn'; head='This week needs a push.';
+    sub=hot+' product'+(hot===1?'':'s')+' past target'+(cold?' and '+cold+' untouched':'')+'. '+moved+' moved forward so far.'; }
+  else if(moved+launched===0){ tone='warn'; head='Nothing has moved yet this month.';
+    sub=fmtH(hrs)+' sourced of '+fmtH(tgt)+' this month. Movement is the whole point — push one product forward today.'; }
+  else { tone='ok'; head='Both belts are moving.';
+    sub=moved+' moved forward, '+entered+' entered, '+ideasIn+' new idea'+(ideasIn===1?'':'s')+' this month.'; }
 
-  // what needs doing next — ranked, and it says WHO
-  var steps=[];
-  sides.forEach(function(d){
-    var v=sideVerdict(d);
-    var em=d.stages.filter(function(x){return x.state==='empty';});
-    if(em.length){
-      var names=em.map(function(x){return x.name;});
-      // Jack Validation is Jack's decision queue even though it lives on Becki's belt
-      var owner = (d.app==='ub' && names.length===1 && names[0]==='Jack Validation') ? 'Jack' : d.who;
-      steps.push({p:1,
-        t: em.length===1 ? names[0]+' is empty on '+d.label
-                         : em.length+' stages empty on '+d.label+' — '+names.join(', '),
-        s: owner+' — move something in. Each empty stage is a launch that will not arrive about three months from now.',
-        app:d.app, a:'Open '+d.app.toUpperCase()});
-    }
-    var low=d.stages.filter(function(x){return x.state==='low';});
-    if(low.length) steps.push({p:2, t:low.length+' stage'+(low.length===1?'':'s')+' below minimum on '+d.label,
-      s:low.map(function(x){return x.name+' '+x.count+'/'+x.min;}).join(' · '), app:d.app, a:'Open '+d.app.toUpperCase()});
-    if(v.mode==='source' && !v.onHours)
-      steps.push({p:2, t:d.who+' should be sourcing', s:'little left to progress and '+fmtH(Math.max(0,v.exp-d.hrs))+' behind this week\u2019s pace', app:d.app, a:'Open '+d.app.toUpperCase()});
-    if(v.mode==='pipeline')
-      steps.push({p:3, t:d.who+' should stay on the pipeline', s:d.needsUs+' products need real work — listings, images, suppliers, prep', app:d.app, a:'Open '+d.app.toUpperCase()});
-    if(d.waiting) steps.push({p:4, t:d.waiting+' waiting on somebody else ('+d.label+')', s:'our part is done — do not count these against the week', app:d.app, a:'Open '+d.app.toUpperCase()});
-  });
-  steps.sort(function(a,b){ return a.p-b.p; });
-  var next = steps.length ? '<div class="ov-next"><div class="ov-next-h">What needs doing next</div>'
-    + steps.slice(0,5).map(function(x,i){ return '<div class="ov-step p'+Math.min(3,x.p)+'" onclick="show(\''+x.app+'\')">'
-        +'<em>'+(i+1)+'</em><div class="ov-step-t">'+esc(x.t)+'<span>'+esc(x.s)+'</span></div>'
-        +'<span class="ov-step-a">'+esc(x.a)+' \u2192</span></div>'; }).join('') + '</div>' : '';
+  /* four quiet stats with small icon tiles — not six glowing rainbow cards */
+  var stat=function(v,l,s2,c,ic){
+    return '<div class="ov-stat" style="--c:'+c+'"><span class="ov-si"><svg viewBox="0 0 20 20">'+ic+'</svg></span>'
+      +'<div><b>'+v+'</b><span class="ov-sl">'+l+'</span><span class="ov-ss">'+s2+'</span></div></div>'; };
+  var IC={bolt:'<path d="M11 2L4 11h5l-1 7 7-9h-5z" fill="currentColor"/>',
+          clock:'<circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 5.5V10l3 2" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/>',
+          up:'<path d="M4 14l4-4 3 3 5-6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+          pause:'<rect x="6" y="5" width="3" height="10" rx="1" fill="currentColor"/><rect x="11" y="5" width="3" height="10" rx="1" fill="currentColor"/>'};
+  var stats='<div class="ov-stats">'
+    +stat(hot,'Need action',hot?'past target':'nothing overdue','#FF5470',IC.bolt)
+    +stat(moved+launched,'Moved forward','this month','#00E5A0',IC.up)
+    +stat(cold,'Untouched',cold?'no movement yet':'all touched','#FFC53D',IC.clock)
+    +stat(waiting,'Waiting','on somebody else','#22D3EE',IC.pause)
+    +'</div>';
 
-  return '<div class="ov">'
-    +'<div class="ov-hero '+tone+'"><div class="ov-hero-l"><div class="ov-q">Are we scaling?</div>'
-      +'<div class="ov-a">'+head+'<small>'+sub+'</small></div></div>'
-      +'<div class="ov-score"><b>'+sc+'</b><span>scaling<br>score</span></div></div>'
-    +'<div class="ov-people">'+ovPerson(L)+ovPerson(U)+'</div>'
-    +'<div class="ov-answers">'+answers+'</div>'
-    +next+'</div>';
+  /* targets, both sides, one card */
+  var bar=function(l,a,t,c){
+    if(!t) return '<div class="ov-t"><div class="ov-t-h"><span>'+l+'</span><b>'+a+'<i> so far</i></b></div>'
+      +'<div class="ov-t-bar no-t"><em style="width:100%;--c:'+c+'"></em></div>'
+      +'<div class="ov-t-n">no target set</div></div>';
+    var p=Math.min(100,a/t*100), e=t*monthPace();
+    var st=a>=t?'hit':a>=e?'':'lag';
+    return '<div class="ov-t"><div class="ov-t-h"><span>'+l+'</span><b>'+a+'<i> / '+t+'</i></b></div>'
+      +'<div class="ov-t-bar"><em class="'+st+'" style="width:'+p.toFixed(0)+'%;--c:'+c+'"></em>'
+      +'<u style="left:'+(monthPace()*100).toFixed(0)+'%"></u></div>'
+      +'<div class="ov-t-n">'+(a>=t?'hit':a>=e?'on pace':'behind pace')+' · expected '+Math.round(t*monthPace())+' by today</div></div>'; };
+  var targets='<section class="ov-card"><div class="ov-card-h"><h3>This month</h3>'
+    +'<span class="ov-card-s">day '+new Date().getDate()+' of '+monthDays()+' · the marker is where today should be</span></div>'
+    +'<div class="ov-ts">'
+      +bar('Sourcing hours', Math.round(hrs*10)/10, Math.round(tgt*10)/10, '#A78BFF')
+      +bar('Ideas added', ideasIn, m.iTgt||12, '#7C5CFF')
+      +bar('Moved forward', moved+launched, 0, '#00E5A0')
+      +bar('Launched', launched, m.lTgt||3, '#22D3EE')
+    +'</div></section>';
+
+  /* the ranked queue — what to actually do next, across both belts */
+  var rows=q.slice(0,8).map(function(x){
+    var c=x.c, n=x.n;
+    return '<tr onclick="show(\''+c.app+'\')">'
+      +'<td><span class="ov-p '+n.p.toLowerCase()+'">'+n.p+'</span></td>'
+      +'<td><span class="ov-prod">'+ovAvatar(c.title,'sm')
+        +'<b>'+esc(c.title)+'</b><span class="ov-app '+c.app+'">'+(c.app==='ub'?'UB':'PL')+'</span></span></td>'
+      +'<td><span class="ov-stage">'+esc(c.stage)+'</span></td>'
+      +'<td class="ov-na">'+esc(n.t)+'</td>'
+      +'<td class="ov-age">'+(c.days!=null?c.days+'d':'—')+'</td>'
+      +'<td><button class="ov-go">'+n.b+' →</button></td></tr>';
+  }).join('');
+  var queue='<section class="ov-card"><div class="ov-card-h"><h3>Priority queue</h3>'
+    +'<span class="ov-card-s">'+q.length+' active across both belts · worst first</span></div>'
+    +(rows?'<div class="ov-tw"><table class="ov-tbl"><thead><tr><th>Priority</th><th>Product</th><th>Stage</th><th>Next action</th><th>Age</th><th></th></tr></thead><tbody>'
+      +rows+'</tbody></table></div>'
+      +(q.length>8?'<div class="ov-more">'+(q.length-8)+' more not shown</div>':'')
+      :'<div class="ov-blank">Nothing in either pipeline yet.</div>')
+    +'</section>';
+
+  /* two lanes — each belt keeps its own real stages */
+  var lane=function(d){
+    if(!d) return '';
+    var mx=Math.max.apply(null,d.stages.map(function(x){return x.count;}).concat([1]));
+    return '<div class="ov-lane '+d.app+'">'
+      +'<div class="ov-lane-h"><span class="ov-app '+d.app+'">'+(d.app==='ub'?'UB':'PL')+'</span>'
+        +'<b>'+d.label+'</b><span class="ov-lane-s">'+d.who+' · '+d.active+' active</span>'
+        +'<button class="ov-open" onclick="show(\''+d.app+'\')">Open →</button></div>'
+      +'<div class="ov-flow">'+d.stages.map(function(x,i){
+          var cls = x.count===0?'zero' : x.count<x.min?'low':'ok';
+          return (i?'<span class="ov-arrow">›</span>':'')
+            +'<div class="ov-node '+cls+'" title="'+esc(x.name)+' — '+x.count+' of '+x.min+' minimum">'
+            +'<b>'+x.count+'</b><span>'+esc(x.name)+'</span>'
+            +'<em style="width:'+Math.round(x.count/mx*100)+'%"></em>'
+            +(x.count===0?'<i>empty</i>':'')+'</div>';
+        }).join('')+'</div></div>';
+  };
+  var lanes='<section class="ov-card"><div class="ov-card-h"><h3>The two belts</h3>'
+    +'<span class="ov-card-s">each keeps its own stages — they are different processes</span></div>'
+    +'<div class="ov-lanes">'+lane(L)+lane(U)+'</div></section>';
+
+  /* one nudge, the single most useful sentence right now */
+  var nudge='';
+  var worst=sides.slice().sort(function(a,b){return b.empties-a.empties;})[0];
+  if(empties>0 && worst){
+    var em=worst.stages.filter(function(x){return x.count===0;}).map(function(x){return x.name;});
+    nudge='<div class="ov-nudge"><span class="ov-ni"><svg viewBox="0 0 20 20">'+IC.bolt+'</svg></span>'
+      +'<div><b>Fill '+esc(em[0])+' on '+esc(worst.label)+'</b>'
+      +'<span>'+(em.length>1?em.length+' stages are empty ('+em.map(esc).join(', ')+'). ':'')
+      +worst.who+' owns this. An empty stage now is a missing launch about three months out.</span></div>'
+      +'<button class="ov-go" onclick="show(\''+worst.app+'\')">Open '+(worst.app==='ub'?'UB':'PL')+' →</button></div>';
+  } else if(hrs<exp*0.85){
+    nudge='<div class="ov-nudge"><span class="ov-ni"><svg viewBox="0 0 20 20">'+IC.clock+'</svg></span>'
+      +'<div><b>Sourcing is behind for the month</b><span>'+fmtH(hrs)+' of '+fmtH(tgt)+' logged, '
+      +fmtH(Math.max(0,exp-hrs))+' behind where today sits.</span></div>'
+      +'<button class="ov-go" onclick="show(\'pl\')">Start a session →</button></div>';
+  }
+
+  return missHtml+'<div class="ov-hero '+tone+'"><div><div class="eyebrow">'+(sides.length>1?'Both belts':esc(sides[0].label))+' · this month</div>'
+      +'<h2 class="ov-head">'+head+'</h2><p class="ov-sub">'+sub+'</p></div></div>'
+    + stats + nudge + targets + queue + lanes;
 }
+
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function activeCount(){ try{ return readStores().cards.filter(function(c){return c.col!=='launched';}).length; }catch(e){ return 0; } }
-function paintPipeN(){ var a=activeCount(); var n=document.getElementById('pipeN'); n.textContent=a; n.classList.toggle('show',a>0); }
+function paintPipeN(){ var n=document.getElementById('pipeN'); if(!n) return; var a=activeCount(); n.textContent=a; n.classList.toggle('show',a>0); }
 function renderPipe(){
   var st = readStores(), cards = st.cards;
+  cards.forEach(function(c){ c.cold = c.days!=null && c.days>=7 && !c.wait; });
   var ubN = cards.filter(function(c){return c.app==='ub' && c.col!=='launched';}).length, plN = cards.filter(function(c){return c.app==='pl' && c.col!=='launched';}).length;
   var stuck = cards.filter(function(c){return c.over;}).length, wait = cards.filter(function(c){return c.wait;}).length, launched = cards.filter(function(c){return c.col==='launched';}).length;
   paintPipeN();
@@ -541,7 +661,7 @@ function renderPipe(){
       +'<div class="p-kpi-s">UB '+ua+' · PL '+pa+' · expected '+exp+' by today</div></div></div>';
   }
   // ── the combined movement line: what actually happened across BOTH trackers this week ──
-  var wkAgo=Date.now()-7*86400000;
+  var wkAgo=monthStart();
   var inWk=function(iso){ if(!iso) return false; var t=new Date(iso).getTime(); return isFinite(t)&&t>=wkAgo; };
   var uEv=(ub2&&ub2.events)||[];
   var wEnter = uEv.filter(function(e){return e.type==='moved'&&inWk(e.at);}).length;
@@ -565,7 +685,7 @@ function renderPipe(){
   var wCell=function(v,l,hot){return '<div class="pw-cell'+(hot&&v?' hot':'')+'"><b>'+v+'</b><span>'+l+'</span></div>';};
   var weekLine='<div class="p-week '+(wOk?'ok':'quiet')+'">'
     +'<div class="pw-verdict">'+(wOk
-      ? '✓ Both belts moving — '+wEnter+' entered · '+wFwd+' moved forward this week'
+      ? '✓ Both belts moving — '+wEnter+' entered · '+wFwd+' moved forward this month'
         +' <i>(UB '+uEnterW+'·'+uFwdW+' / PL '+pEnterW+'·'+pFwdW+')</i>'
       : '⚠ Quiet week across both trackers — nothing entered or moved forward')+'</div>'
     +'<div class="pw-cells">'+wCell(wEnter,'entered')+wCell(wFwd,'moved forward')+wCell(wLaunch,'launched')
@@ -577,18 +697,26 @@ function renderPipe(){
     +'</div>';
   var overview='';
   try{ overview = renderOverview(ub2, pl2, {iAct:ubIdeas+plIdeas, iTgt:tgt('ideas')+MK.ideas,
-        lAct:ubLaunch+plLaunch, lTgt:tgt('launches')+MK.launches, stuck:stuck}); }
+        lAct:ubLaunch+plLaunch, lTgt:tgt('launches')+MK.launches,
+        mTgt:(tgt('moved')||0)+MK.pipeline, stuck:stuck}, cards); }
   catch(e){ console.error('overview',e); }
   document.getElementById('pipe').innerHTML =
-    '<div class="p-head"><div><div class="p-eyebrow">Unique Bundles + Private Label \u00b7 one scaling view</div><div class="p-title">Overview</div><div class="p-sub">Are we scaling, is anything moving, and where should the time go this week.</div></div>'
-    + '<div class="p-summary"><span class="p-pill ub"><i></i>'+ubN+' UB</span><span class="p-pill pl"><i></i>'+plN+' PL</span>'
-    + (stuck?'<span class="p-pill stuck">'+stuck+' stuck</span>':'') + (wait?'<span class="p-pill wait">'+wait+' waiting</span>':'')
-    + '<span class="p-pill" style="color:var(--green);border-color:rgba(0,229,160,.4)">'+launched+' launched this month</span></div></div>'
-    + overview
-    + kpiRow
-    + '<div class="p-flow"><div class="p-flowbar">'+(flowSegs||'<span style="flex:1;background:var(--b2)"></span>')+'</div><div class="p-flowread">'+flowRead+'</div></div>'
-    + '<div class="p-wrap"><div class="p-cols" style="grid-template-columns:'+template+'">'+cols+'</div></div>'
-    + '<div class="p-foot">Reads what each app has saved in this browser' + ((!st.haveUb||!st.havePl)?' — ' + (!st.haveUb?'Unique Bundles':'Private Label') + ' has not been opened here yet':'') + '. Updates live as you work in either tab.</div>';
+    ovRail()
+    + '<div class="ov-main">'
+      + '<div class="topbar ov-bar"><b class="ov-bar-t">Overview</b>'
+        + '<span class="ov-bar-tabs">'
+          + '<button onclick="show(\'ub\')">UB</button>'
+          + '<button onclick="show(\'pl\')">PL</button>'
+          + '<button class="on">Overview</button></span>'
+        + '<span class="ov-bar-sp"></span>'
+        + '<span class="chip">local \u00b7 v' + BUILD + '</span></div>'
+      + '<div class="pane ov-pane">'
+        + '<div class="page-hd"><div><div class="eyebrow">Unique Bundles + Private Label</div>'
+          + '<div class="page-title">Overview</div>'
+          + '<div class="page-sub">Are we scaling, is anything moving, and where should the time go this month.</div></div></div>'
+        + overview
+      + '</div>'
+    + '</div>';
 }
 window.addEventListener('storage', function(e){ if(e.key==='ub_tracker_v1' || e.key==='pl_sourcing_v1'){ if(document.getElementById('pipe').classList.contains('show')) renderPipe(); else paintPipeN(); } });
 
@@ -597,5 +725,382 @@ try { last = localStorage.getItem(TAB_KEY) || 'ub'; } catch(e){}
 show(last);
 setTimeout(function(){ ensureLoaded('ub'); ensureLoaded('pl'); paintPipeN(); }, 1500);
 </script>
+<style>
+/* ══ OVERVIEW — uses the app chrome, not a third look ══ */
+#pipe{display:none}
+#pipe.show{display:grid!important;grid-template-columns:auto minmax(0,1fr);height:100vh;overflow:hidden;background:var(--bg)}
+.ov-main{min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.ov-bar{flex:none}
+.ov-bar-t{font-size:13px;font-weight:850;color:var(--t1);letter-spacing:-.2px}
+.ov-bar-tabs{display:flex;gap:2px;background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:3px;margin-left:10px}
+.ov-bar-tabs button{border:0;background:transparent;color:var(--t4);font:800 11.5px var(--sans);
+  padding:4px 12px;border-radius:99px;cursor:pointer;transition:all .14s var(--ease)}
+.ov-bar-tabs button:hover{color:var(--t1)}
+.ov-bar-tabs button.on{background:linear-gradient(180deg,rgba(124,92,255,.3),rgba(124,92,255,.14));
+  color:#fff;box-shadow:0 1px 8px rgba(124,92,255,.3)}
+.ov-bar-sp{flex:1}
+#pipe .chip{font:700 11px var(--sans);color:var(--t4);background:var(--s2);border:1px solid var(--b2);padding:4px 10px;border-radius:99px}
+.ov-pane{flex:1;overflow-y:auto;padding:18px 22px 48px!important;max-width:1720px}
+.ov-rail{display:flex;flex-direction:column}
+
+/* hero */
+.ov-hero{border-radius:var(--r-lg);padding:15px 18px;margin-bottom:11px;border:1px solid}
+.ov-hero.ok{background:linear-gradient(180deg,rgba(0,229,160,.09),transparent);border-color:rgba(0,229,160,.3)}
+.ov-hero.warn{background:linear-gradient(180deg,rgba(255,197,61,.09),transparent);border-color:rgba(255,197,61,.32)}
+.ov-hero.bad{background:linear-gradient(180deg,rgba(255,84,112,.09),transparent);border-color:rgba(255,84,112,.36)}
+.ov-head{margin:5px 0 0;font-size:22px;font-weight:850;letter-spacing:-.6px;line-height:1.2}
+.ov-hero.ok .ov-head{color:#4ADE80} .ov-hero.warn .ov-head{color:#FFC53D} .ov-hero.bad .ov-head{color:#FF7A90}
+.ov-sub{margin:5px 0 0;font-size:12.5px;color:var(--t3);line-height:1.55;max-width:780px}
+
+/* four quiet stats */
+.ov-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:9px;margin-bottom:11px}
+.ov-stat{display:flex;gap:11px;align-items:center;border:1px solid var(--b1);border-radius:var(--r-md);
+  padding:11px 13px;background:var(--s1);box-shadow:var(--sh-card)}
+.ov-si{flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:var(--c);
+  background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 34%,transparent)}
+.ov-si svg{width:17px;height:17px}
+.ov-stat b{display:block;font-size:21px;font-weight:850;color:var(--t1);line-height:1.05;letter-spacing:-.7px}
+.ov-sl{display:block;font-size:11px;font-weight:800;color:var(--t2);margin-top:2px}
+.ov-ss{display:block;font-size:10px;color:var(--t4);margin-top:1px}
+
+/* cards */
+.ov-card{border:1px solid var(--b1);border-radius:var(--r-lg);background:var(--s1);
+  box-shadow:var(--sh-card);margin-bottom:11px;overflow:hidden}
+.ov-card-h{display:flex;align-items:baseline;gap:10px;padding:13px 16px 11px;border-bottom:1px solid var(--b1)}
+.ov-card-h h3{margin:0;font-size:14px;font-weight:850;color:var(--t1);letter-spacing:-.2px}
+.ov-card-s{font-size:11px;color:var(--t4);margin-left:auto}
+
+/* week targets */
+.ov-ts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;padding:14px 16px}
+.ov-t-h{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.ov-t-h span{font-size:11px;font-weight:750;color:var(--t3)}
+.ov-t-h b{font-size:14px;font-weight:850;color:var(--t1)}
+.ov-t-h b i{font-style:normal;font-size:11px;font-weight:700;color:var(--t4)}
+.ov-t-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.07);position:relative;overflow:hidden}
+.ov-t-bar em{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--c);transition:width .35s var(--ease)}
+.ov-t-bar em.hit{background:#00E5A0} .ov-t-bar em.lag{background:#FFC53D}
+.ov-t-n{margin-top:5px;font-size:10px;font-weight:700;color:var(--t4)}
+.ov-t-bar.no-t em{opacity:.22}
+.ov-t-bar u{position:absolute;top:-3px;width:2px;height:12px;background:rgba(255,255,255,.5);border-radius:2px}
+
+/* priority queue */
+.ov-tw{overflow-x:auto}
+.ov-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.ov-tbl th{text-align:left;font:800 9.5px var(--sans);letter-spacing:.9px;text-transform:uppercase;
+  color:var(--t4);padding:9px 14px;border-bottom:1px solid var(--b1);white-space:nowrap}
+.ov-tbl td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.045);vertical-align:middle}
+.ov-tbl tbody tr{cursor:pointer;transition:background .13s var(--ease)}
+.ov-tbl tbody tr:hover{background:rgba(255,255,255,.028)}
+.ov-tbl tbody tr:last-child td{border-bottom:0}
+.ov-tbl b{color:var(--t1);font-weight:800}
+.ov-p{display:inline-block;font:900 9px var(--sans);letter-spacing:.8px;padding:3px 8px;border-radius:99px}
+.ov-p.high{background:rgba(255,84,112,.15);border:1px solid rgba(255,84,112,.42);color:#FF93A6}
+.ov-p.med{background:rgba(255,197,61,.14);border:1px solid rgba(255,197,61,.4);color:#FFD066}
+.ov-p.low{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--t4)}
+.ov-app{display:inline-block;font:900 8.5px var(--sans);letter-spacing:.6px;padding:2px 6px;border-radius:5px;margin-right:5px}
+.ov-app.ub{background:rgba(124,92,255,.18);border:1px solid rgba(167,139,255,.42);color:#C9B8FF}
+.ov-app.pl{background:rgba(34,211,238,.15);border:1px solid rgba(34,211,238,.4);color:#7DE4F5}
+.ov-stage{font-size:11px;color:var(--t3);white-space:nowrap}
+.ov-na{color:var(--t3);font-size:11.5px;max-width:320px}
+.ov-age{color:var(--t4);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ov-go{border:1px solid rgba(167,139,255,.4);background:rgba(124,92,255,.13);color:#C9B8FF;
+  font:800 11px var(--sans);padding:5px 11px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all .14s var(--ease)}
+.ov-go:hover{background:rgba(124,92,255,.28);color:#fff}
+.ov-more{padding:9px 14px;font-size:11px;color:var(--t4);border-top:1px solid var(--b1)}
+
+/* two lanes */
+.ov-lanes{display:flex;flex-direction:column;gap:12px;padding:14px 16px}
+.ov-lane-h{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.ov-lane-h b{font-size:13px;font-weight:850;color:var(--t1)}
+.ov-lane-s{font-size:11px;color:var(--t4)}
+.ov-open{margin-left:auto;border:1px solid var(--b2);background:var(--s2);color:var(--t3);
+  font:800 11px var(--sans);padding:5px 11px;border-radius:8px;cursor:pointer}
+.ov-open:hover{border-color:var(--b3);color:var(--t1)}
+.ov-flow{display:flex;align-items:stretch;gap:5px;overflow-x:auto;padding-bottom:3px}
+.ov-node{flex:1;min-width:96px;border:1px solid var(--b1);border-radius:var(--r-sm);padding:9px 10px 8px;
+  background:var(--s2);position:relative;transition:border-color .14s var(--ease)}
+.ov-node b{display:block;font-size:17px;font-weight:850;color:var(--t1);line-height:1;font-variant-numeric:tabular-nums}
+.ov-node span{display:block;font-size:9.5px;color:var(--t4);margin-top:4px;font-weight:700;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ov-node em{display:block;height:3px;border-radius:99px;background:var(--green);margin-top:6px;min-width:2px}
+.ov-node i{display:block;font-style:normal;font-size:8.5px;font-weight:850;color:#FFC53D;margin-top:3px;letter-spacing:.5px}
+.ov-node.ok{border-color:rgba(0,229,160,.3)} .ov-node.ok b{color:#4ADE80}
+.ov-node.low{border-color:rgba(255,197,61,.34)} .ov-node.low b{color:#FFC53D} .ov-node.low em{background:#FFC53D}
+.ov-node.zero{border-style:dashed;border-color:rgba(255,84,112,.36);background:rgba(255,84,112,.04)}
+.ov-node.zero b{color:#FF7A90} .ov-node.zero em{background:rgba(255,255,255,.08)}
+.ov-arrow{align-self:center;color:var(--b3);font-size:14px;flex:none}
+
+/* one nudge */
+.ov-nudge{display:flex;align-items:center;gap:12px;border:1px solid rgba(167,139,255,.3);border-radius:var(--r-md);
+  padding:12px 15px;margin-bottom:11px;background:linear-gradient(90deg,rgba(124,92,255,.11),transparent)}
+.ov-ni{flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:#C9B8FF;
+  background:rgba(124,92,255,.18);border:1px solid rgba(167,139,255,.42)}
+.ov-ni svg{width:17px;height:17px}
+.ov-nudge b{display:block;font-size:12.5px;font-weight:850;color:var(--t1)}
+.ov-nudge span{display:block;font-size:11.5px;color:var(--t3);margin-top:2px;line-height:1.5}
+.ov-nudge .ov-go{margin-left:auto}
+.ov-blank{padding:26px 16px;text-align:center;color:var(--t4);font-size:12px}
+
+/* the shell's own bar is redundant now that Overview carries app chrome */
+.bar{display:none!important}
+.stage{position:fixed;inset:0!important}   /* .bar is hidden — never reserve space for it */
+</style>
+<style>
+/* the rail markup is shared with the apps, so the rail CSS has to be too */
+.sidebar.sb2{width:236px;flex-shrink:0;display:flex;flex-direction:column;background:#050507;
+  border-right:1px solid var(--b1);position:relative;z-index:30;padding:0;font-family:var(--sans)}
+.sb2 .sn-brand{display:flex;align-items:center;gap:10px;padding:14px 14px 10px;min-height:62px}
+.sb2 .sn-mark{width:36px;height:36px;border-radius:11px;flex:none;
+  background:linear-gradient(135deg,#7C5CFF,#A78BFF);display:flex;align-items:center;justify-content:center}
+.sb2 .sn-mark svg{width:22px;height:22px}
+.sb2 .sn-brand-t{min-width:0}
+.sb2 .sn-name{font-size:14px;font-weight:800;letter-spacing:-.3px;white-space:nowrap;color:var(--t1)}
+.sb2 .sn-sub{font-size:10.5px;color:var(--t4);margin-top:1px;white-space:nowrap}
+.sb2 .sn-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 10px 6px;display:flex;flex-direction:column}
+.sb2 .sn-sec{display:flex;align-items:center;gap:8px;padding:13px 8px 4px;font-size:9px;font-weight:800;
+  letter-spacing:1.5px;text-transform:uppercase;color:#5E5E6C;white-space:nowrap}
+.sb2 .sn-sec::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.06)}
+.sb2 .sn-spacer{flex:1;min-height:10px}
+.sb2 .nav-item{display:flex;align-items:center;gap:10px;width:100%;padding:7px;border-radius:10px;
+  margin:0 0 1px;color:#9A9AA8;font-size:13px;font-weight:650;position:relative;text-align:left;
+  background:none;border:none;cursor:pointer;font-family:inherit;transition:all .14s var(--ease)}
+.sb2 .nav-item:hover{background:rgba(255,255,255,.045);color:#F2F2F6}
+.sb2 .sn-ic{width:24px;height:24px;border-radius:7px;flex:none;display:flex;align-items:center;
+  justify-content:center;background:transparent;color:#75757F;transition:all .14s var(--ease)}
+.sb2 .sn-ic svg{width:18px;height:18px}
+.sb2 .nav-item:hover .sn-ic{color:#C6C6D2}
+.sb2 .sn-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb2 .nav-item.active{color:#fff;font-weight:800;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--c) 20%,transparent),color-mix(in srgb,var(--c) 5%,transparent) 72%,transparent)}
+.sb2 .nav-item.active .sn-ic{background:color-mix(in srgb,var(--c) 20%,transparent);color:var(--c)}
+.sb2 .nav-item.active::before{content:'';position:absolute;left:-10px;top:5px;bottom:5px;width:3px;
+  border-radius:0 3px 3px 0;background:var(--c);box-shadow:0 0 12px color-mix(in srgb,var(--c) 65%,transparent)}
+.sb2 .sn-foot{display:flex;align-items:center;gap:9px;padding:10px 12px;
+  border-top:1px solid rgba(255,255,255,.06);min-height:54px}
+.sb2 .sn-av{width:30px;height:30px;border-radius:8px;flex:none;
+  background:linear-gradient(135deg,#7C5CFF,#A78BFF);display:flex;align-items:center;
+  justify-content:center;font-size:11.5px;font-weight:800;color:#fff}
+.sb2 .sn-foot-t{min-width:0}
+.sb2 .sn-user{font-size:12px;font-weight:700;white-space:nowrap;color:var(--t1)}
+.sb2 .sn-role{font-size:9.5px;color:var(--t4);text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}
+.sb2 .sn-saved{margin-left:auto;width:14px;height:14px;border-radius:50%;display:flex;
+  align-items:center;justify-content:center;flex:none}
+.sb2 .sn-saved i{width:7px;height:7px;border-radius:50%;background:var(--green);display:block}
+</style>
+
+
+<style>
+.ov-miss{margin-bottom:11px}
+.ov-miss-r{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid rgba(255,197,61,.36);
+  border-radius:var(--r-md);padding:12px 15px;background:rgba(255,197,61,.06);margin-bottom:7px}
+.ov-miss-r b{font-size:12.5px;font-weight:850;color:#FFC53D;flex:none}
+.ov-miss-r span{font-size:11.5px;color:var(--t3);line-height:1.5;flex:1;min-width:220px}
+.ov-miss-r .ov-go{margin-left:auto}
+.ov-first{border:1px solid var(--b1);border-radius:var(--r-lg);background:var(--s1);
+  box-shadow:var(--sh-card);padding:22px 20px}
+.ov-first-h{font-size:18px;font-weight:850;color:var(--t1);letter-spacing:-.4px}
+.ov-first p{margin:6px 0 16px;font-size:12.5px;color:var(--t3);line-height:1.55;max-width:640px}
+.ov-first-s{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:9px}
+.ov-first-c{border:1px solid var(--b1);border-radius:var(--r-md);background:var(--s2);padding:13px 15px;cursor:pointer;
+  transition:border-color .14s var(--ease)}
+.ov-first-c:hover{border-color:rgba(167,139,255,.45)}
+.ov-first-c b{display:grid;place-items:center;width:22px;height:22px;border-radius:7px;font-size:11px;font-weight:900;
+  background:rgba(124,92,255,.18);border:1px solid rgba(167,139,255,.42);color:#C9B8FF;margin-bottom:8px}
+.ov-first-c span{display:block;font-size:13px;font-weight:850;color:var(--t1)}
+.ov-first-c i{display:block;font-style:normal;font-size:11px;color:var(--t4);margin-top:3px;line-height:1.45}
+</style>
+<style>
+.pav{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;flex:none;
+  font:850 10px var(--sans);letter-spacing:.2px;color:var(--av);
+  background:color-mix(in srgb,var(--av) 16%,transparent);
+  border:1px solid color-mix(in srgb,var(--av) 42%,transparent)}
+.pav.sm{width:22px;height:22px;border-radius:7px;font-size:9px}
+.ov-prod{display:flex;align-items:center;gap:9px;min-width:0}
+.ov-prod b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ov-prod .ov-app{margin-left:2px;flex:none}
+</style>
+<!-- plub-design-system --><style>
+/* ══════════════════════════════════════════════════════════════════════
+   PLUB DESIGN SYSTEM — one copy, byte-identical in ub.html, pl.html and
+   index.html. If a value needs to change it changes HERE, in all three.
+   ══════════════════════════════════════════════════════════════════════ */
+:root,[data-theme="dark"],[data-theme="light"]{
+  /* ground + surfaces */
+  --bg:#030304!important; --surface:#0A0A0C!important;
+  --s1:#0A0A0C!important; --s2:#0F0F12!important; --s3:#17171B!important; --s4:#1E1E24!important;
+  --sidebar:#050507!important;
+  /* lines */
+  --b1:#1E1E24!important; --b2:#2A2A31!important; --b3:#3A3A43!important;
+  /* type — t4 is the quiet one; PL used to run it 12% brighter than UB */
+  --t1:#F5F5F8!important; --t2:#C6C7D0!important; --t3:#9698A4!important; --t4:#787A87!important;
+  /* accents */
+  --brand:#A78BFF!important; --brand-d:#171425!important; --brand-t:#C4B2FF!important;
+  --brand-b:rgba(167,139,255,.45)!important; --brand-h:#B9A3FF!important;
+  --accent:#A78BFF!important; --accent2:#22D3EE!important;
+  --green:#00E5A0!important; --gd:rgba(0,229,160,.14)!important; --gt:#5FFFC8!important; --gb:rgba(0,229,160,.45)!important;
+  --amber:#FFC53D!important; --ad:rgba(255,197,61,.14)!important; --at:#FFDC85!important; --ab:rgba(255,197,61,.45)!important;
+  --red:#FF5470!important;   --rd:rgba(255,84,112,.14)!important; --rt:#FF8FA3!important; --rb:rgba(255,84,112,.46)!important;
+  --blue:#3B9EFF!important;  --bd:rgba(59,158,255,.14)!important; --bt:#8CC8FF!important; --bb:rgba(59,158,255,.45)!important;
+  --purple:#A78BFF!important;--pd:rgba(167,139,255,.14)!important;--pt:#C4B2FF!important;--pb:rgba(167,139,255,.45)!important;
+  --cyan:#22D3EE!important;  --cd:rgba(34,211,238,.14)!important; --cb:rgba(34,211,238,.45)!important;
+  --orange:#FF8A3D!important;--od:rgba(255,138,61,.14)!important; --ob:rgba(255,138,61,.45)!important;
+  --pink:#FF5CC8!important;  --pkd:rgba(255,92,200,.14)!important;--pkb:rgba(255,92,200,.45)!important;
+  /* type stack */
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif!important;
+  --mono:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif!important;
+  /* ONE radius scale */
+  --r-sm:10px!important; --r-md:12px!important; --r-lg:14px!important; --r-xl:16px!important;
+  /* ONE depth scale — PL had none, so its cards sat flat against the page */
+  --sh-card:0 8px 24px rgba(0,0,0,.24)!important;
+  --sh-hover:0 14px 32px rgba(0,0,0,.40)!important;
+  --glow:0 0 0 3px rgba(124,92,255,.18)!important;
+  /* motion */
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+html{font-size:13px}
+
+/* ── CHROME: same bar, same rail, in both apps ───────────────────────── */
+.topbar,#appTopbar{height:44px!important;min-height:44px!important;padding:0 16px!important;
+  background:rgba(3,3,4,.92)!important;border-bottom:1px solid var(--b1)!important;
+  display:flex!important;align-items:center!important;gap:8px!important;backdrop-filter:blur(14px)!important}
+.sidebar.sb2{width:236px!important;background:var(--sidebar)!important;border-right:1px solid var(--b1)!important}
+body.sb-min .sidebar.sb2{width:64px!important}
+
+/* ── THE RAIL, IDENTICAL IN BOTH APPS ─────────────────────────────────
+   UB dressed every icon in its own tinted tile; PL did too, in different
+   hues. Six competing colours read as noise before they read as navigation.
+   Colour now marks the ACTIVE item only, in both apps. */
+.sb2 .sn-sec{padding:13px 8px 4px!important;font-size:9px!important;font-weight:800!important;
+  letter-spacing:1.5px!important;text-transform:uppercase!important;color:#5E5E6C!important}
+.sb2 .sn-sec::after{background:rgba(255,255,255,.06)!important}
+.sb2 .sn-nav{padding:4px 10px 6px!important;display:flex;flex-direction:column}
+.sb2 .sn-spacer{flex:1;min-height:10px}
+.sb2 .nav-item{padding:7px!important;margin-bottom:1px!important;border-radius:10px!important;
+  color:#9A9AA8!important;font-size:13px!important;font-weight:650!important}
+.sb2 .nav-item:hover{background:rgba(255,255,255,.045)!important;color:#F2F2F6!important}
+.sb2 .sn-ic{width:24px!important;height:24px!important;border-radius:7px!important;
+  background:transparent!important;color:#75757F!important}
+.sb2 .sn-ic svg{width:18px!important;height:18px!important}
+.sb2 .nav-item:hover .sn-ic{color:#C6C6D2!important}
+.sb2 .nav-item.active{color:#FFFFFF!important;font-weight:800!important;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--c) 20%,transparent),color-mix(in srgb,var(--c) 5%,transparent) 72%,transparent)!important}
+.sb2 .nav-item.active .sn-ic{background:color-mix(in srgb,var(--c) 20%,transparent)!important;color:var(--c)!important}
+.sb2 .nav-item.active::before{top:5px!important;bottom:5px!important;
+  box-shadow:0 0 12px color-mix(in srgb,var(--c) 65%,transparent)}
+.sb2 .nav-badge{font-size:9.5px!important;padding:2px 6px!important;background:rgba(255,255,255,.05)!important;
+  border-color:rgba(255,255,255,.09)!important;color:#8C8C99!important}
+.sb2 .nav-item.active .nav-badge{background:color-mix(in srgb,var(--c) 17%,transparent)!important;
+  border-color:color-mix(in srgb,var(--c) 40%,transparent)!important;color:var(--c)!important}
+.sb2 .sn-mark{background:linear-gradient(135deg,#7C5CFF,#A78BFF)!important}
+.sb2 .sn-av{background:linear-gradient(135deg,#7C5CFF,#A78BFF)!important;border-radius:8px!important}
+.sb2 .sn-foot{border-top:1px solid rgba(255,255,255,.06)!important}
+body.sb-min .sb2 .sn-spacer{display:none}
+
+/* ── PRIMITIVES ──────────────────────────────────────────────────────── */
+.btn,.pl-action-btn,.ac2-btn,.tk-type{height:30px;padding:0 12px;border-radius:var(--r-sm)!important;
+  font:700 12px var(--sans)!important;background:var(--s3)!important;border:1px solid var(--b2)!important;
+  color:var(--t1)!important;cursor:pointer;transition:all .14s var(--ease)}
+.btn:hover,.pl-action-btn:hover,.ac2-btn:hover{border-color:var(--b3)!important;background:var(--s4)!important}
+/* ONE primary button. PL used a purple->cyan gradient with black text; UB used solid
+   purple with white. Two different products in one glance — now they are the same. */
+.btn.primary,.btn-primary,.btn.pri,.btn-pri,.imp-btn.primary,.tb-add,.pl-action-btn.primary,
+.pl-task-save,.pl-footer-advance,.prod-advance,.ac2-btn.pri{
+  background:linear-gradient(180deg,#7C5CFF,#6742F5)!important;
+  border:1px solid rgba(167,139,255,.55)!important;color:#FFFFFF!important;
+  font-weight:850!important;border-radius:var(--r-sm)!important;
+  box-shadow:0 3px 14px rgba(124,92,255,.34)!important;text-shadow:none!important}
+.btn.primary:hover,.btn-pri:hover,.tb-add:hover,.pl-action-btn.primary:hover,
+.pl-task-save:hover,.pl-footer-advance:hover,.prod-advance:hover{filter:brightness(1.12)}
+.btn.sm,.btn-sm{height:26px!important;padding:0 9px!important;font-size:11px!important}
+.btn.lg{height:36px!important;padding:0 16px!important;font-size:13px!important}
+
+/* eyebrows: flat muted caps in both apps. PL's gradient-clipped text was the single
+   most obvious "different app" tell on every page header. */
+.eyebrow,.page-eyebrow,.pl-eyebrow,.ac2-eyebrow,.p-eyebrow{
+  font:850 9.5px var(--sans)!important;letter-spacing:1.6px!important;text-transform:uppercase!important;
+  background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;
+  color:var(--t4)!important}
+.page-title,.p-title{font-size:21px!important;font-weight:850!important;letter-spacing:-.6px!important;color:var(--t1)!important}
+.page-sub,.p-sub{font-size:12px!important;color:var(--t3)!important}
+.page-hd,.page-head{margin-bottom:12px!important;padding-bottom:10px!important;border-color:var(--b1)!important}
+
+input,select,textarea{font-family:var(--sans)!important;background:var(--s2)!important;
+  border:1px solid var(--b2)!important;color:var(--t1)!important;border-radius:var(--r-sm)!important}
+input:focus,select:focus,textarea:focus{outline:0!important;border-color:var(--brand)!important;box-shadow:var(--glow)!important}
+
+/* ── SHARED COMPONENTS ────────────────────────────────────────────────
+   Used by the Overview AND by each app's Action Centre, so switching tabs
+   shows the same stat card, the same target bar and the same ranked queue
+   rather than three dialects of the same idea. */
+.ov-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:9px;margin-bottom:11px}
+.ov-stat{display:flex;gap:11px;align-items:center;border:1px solid var(--b1);border-radius:var(--r-md);
+  padding:11px 13px;background:var(--s1);box-shadow:var(--sh-card)}
+.ov-si{flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:var(--c);
+  background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 34%,transparent)}
+.ov-si svg{width:17px;height:17px}
+.ov-stat b{display:block;font-size:21px;font-weight:850;color:var(--t1);line-height:1.05;letter-spacing:-.7px;font-variant-numeric:tabular-nums}
+.ov-sl{display:block;font-size:11px;font-weight:800;color:var(--t2);margin-top:2px}
+.ov-ss{display:block;font-size:10px;color:var(--t4);margin-top:1px}
+.ov-card{border:1px solid var(--b1);border-radius:var(--r-lg);background:var(--s1);
+  box-shadow:var(--sh-card);margin-bottom:11px;overflow:hidden}
+.ov-card-h{display:flex;align-items:baseline;gap:10px;padding:13px 16px 11px;border-bottom:1px solid var(--b1)}
+.ov-card-h h3{margin:0;font-size:14px;font-weight:850;color:var(--t1);letter-spacing:-.2px}
+.ov-card-s{font-size:11px;color:var(--t4);margin-left:auto}
+.ov-ts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;padding:14px 16px}
+.ov-t-h{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.ov-t-h span{font-size:11px;font-weight:750;color:var(--t3)}
+.ov-t-h b{font-size:14px;font-weight:850;color:var(--t1);font-variant-numeric:tabular-nums}
+.ov-t-h b i{font-style:normal;font-size:11px;font-weight:700;color:var(--t4)}
+.ov-t-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.07);position:relative;overflow:hidden}
+.ov-t-bar em{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--c);transition:width .35s var(--ease)}
+.ov-t-bar em.hit{background:#00E5A0} .ov-t-bar em.lag{background:#FFC53D}
+.ov-t-bar u{position:absolute;top:-3px;width:2px;height:12px;background:rgba(255,255,255,.5);border-radius:2px}
+.ov-t-n{margin-top:5px;font-size:10px;font-weight:700;color:var(--t4)}
+.ov-tw{overflow-x:auto}
+.ov-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.ov-tbl th{text-align:left;font:800 9.5px var(--sans);letter-spacing:.9px;text-transform:uppercase;
+  color:var(--t4);padding:9px 14px;border-bottom:1px solid var(--b1);white-space:nowrap}
+.ov-tbl td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.045);vertical-align:middle}
+.ov-tbl tbody tr{cursor:pointer;transition:background .13s var(--ease)}
+.ov-tbl tbody tr:hover{background:rgba(255,255,255,.028)}
+.ov-tbl tbody tr:last-child td{border-bottom:0}
+.ov-tbl b{color:var(--t1);font-weight:800}
+.ov-p{display:inline-block;font:900 9px var(--sans);letter-spacing:.8px;padding:3px 8px;border-radius:99px}
+.ov-p.high{background:rgba(255,84,112,.15);border:1px solid rgba(255,84,112,.42);color:#FF93A6}
+.ov-p.med{background:rgba(255,197,61,.14);border:1px solid rgba(255,197,61,.4);color:#FFD066}
+.ov-p.low{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--t4)}
+.ov-na{color:var(--t3);font-size:11.5px;max-width:340px}
+.ov-age{color:var(--t4);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ov-go{border:1px solid rgba(167,139,255,.4);background:rgba(124,92,255,.13);color:#C9B8FF;
+  font:800 11px var(--sans);padding:5px 11px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all .14s var(--ease)}
+.ov-go:hover{background:rgba(124,92,255,.28);color:#fff}
+.ov-more{padding:9px 14px;font-size:11px;color:var(--t4);border-top:1px solid var(--b1)}
+.ov-blank{padding:26px 16px;text-align:center;color:var(--t4);font-size:12px}
+
+/* ── FINISH ──────────────────────────────────────────────────────────── */
+*{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+::selection{background:rgba(167,139,255,.30);color:#fff}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);border-radius:99px;border:2px solid transparent;background-clip:content-box}
+*::-webkit-scrollbar-thumb:hover{background:rgba(167,139,255,.42);background-clip:content-box}
+button,.btn,[onclick]{transition:background .14s var(--ease),border-color .14s var(--ease),color .14s var(--ease),box-shadow .14s var(--ease),transform .1s var(--ease)}
+button:active,.btn:active{transform:translateY(.5px)}
+button[disabled],.btn[disabled],input[disabled],select[disabled]{opacity:.42!important;cursor:not-allowed!important;filter:grayscale(.35)}
+.empty,.pl-tab-empty,.ac2-empty,.pl-zero{border:1px dashed rgba(255,255,255,.10)!important;border-radius:var(--r-lg)!important;
+  background:rgba(255,255,255,.015)!important;color:var(--t4)!important}
+
+/* ── the stacked strips that ate the top of every page ────────────────
+   A page opened with: top bar, then a full-width "NOTES & DECISIONS" bar,
+   then the page header. Three strips before any content. The notes bar is
+   now a quiet inline row, not a slab. */
+.page-notes{border:1px solid var(--b1)!important;border-radius:var(--r-sm)!important;
+  background:transparent!important;margin:0 0 10px!important}
+.page-notes>summary{padding:6px 11px!important;font:750 10.5px var(--sans)!important;
+  letter-spacing:.9px!important;text-transform:uppercase!important;color:var(--t4)!important;
+  list-style:none!important;cursor:pointer}
+.page-notes>summary:hover{color:var(--t2)!important}
+.page-notes[open]>summary{border-bottom:1px solid var(--b1)!important}
+</style>
 </body>
 </html>

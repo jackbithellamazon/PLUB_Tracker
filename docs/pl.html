@@ -3866,20 +3866,38 @@ function renderPL(){
     {bg:'#3a1015',bd:'#7a202b'},  // red — PPC
     {bg:'#272729',bd:'#4d4d53'},  // purple — units
   ];
+  var PL_ICO={
+    net:'<path d="M4 14l4-4 3 3 5-6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 7h4v4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+    rev:'<rect x="3" y="9" width="3.4" height="8" rx="1.2" fill="currentColor"/><rect x="8.3" y="5" width="3.4" height="12" rx="1.2" fill="currentColor"/><rect x="13.6" y="11" width="3.4" height="6" rx="1.2" fill="currentColor"/>',
+    gross:'<ellipse cx="10" cy="6" rx="6.5" ry="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 6v8c0 1.4 2.9 2.6 6.5 2.6s6.5-1.2 6.5-2.6V6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 10c0 1.4 2.9 2.6 6.5 2.6s6.5-1.2 6.5-2.6" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+    ppc:'<circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="10" r="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="10" r="1" fill="currentColor"/>',
+    units:'<path d="M17 7.5v5.6a1.6 1.6 0 01-.85 1.42l-5 2.7a1.6 1.6 0 01-1.5 0l-5-2.7A1.6 1.6 0 013 13.1V7.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3.2 6.9L10 10.4l6.8-3.5L10 3.3 3.2 6.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>'};
+  function plTile(k,val,lbl,sub){
+    return '<div class="pl-tile t-'+k+'"><span class="pl-tile-ic"><svg viewBox="0 0 20 20">'+PL_ICO[k]+'</svg></span>'
+      +'<div class="pl-tile-body"><div class="pl-tile-val">'+val+'</div>'
+      +'<div class="pl-tile-lbl">'+lbl+'</div><div class="pl-tile-sub">'+(sub||'')+'</div></div></div>';
+  }
   html+='<div class="pl-summary">'
-    +'<div class="pl-tile" style="background:'+PALS[0].bg+';border:1px solid '+PALS[0].bd+'"><div class="pl-tile-val">'+fmt(totNet)+'</div><div class="pl-tile-lbl">Monthly net profit</div><div class="pl-tile-sub">'+launched.length+' live product'+(launched.length!==1?'s':'')+'</div></div>'
-    +'<div class="pl-tile" style="background:'+PALS[1].bg+';border:1px solid '+PALS[1].bd+'"><div class="pl-tile-val">'+fmt(totRev)+'</div><div class="pl-tile-lbl">Monthly revenue</div><div class="pl-tile-sub">'+(revGoal>0?revPct+'% of target':'')+'</div></div>'
-    +'<div class="pl-tile" style="background:'+PALS[2].bg+';border:1px solid '+PALS[2].bd+'"><div class="pl-tile-val">'+fmt(totGross)+'</div><div class="pl-tile-lbl">Gross profit</div><div class="pl-tile-sub">before PPC</div></div>'
-    +'<div class="pl-tile" style="background:'+PALS[3].bg+';border:1px solid '+PALS[3].bd+'"><div class="pl-tile-val">'+fmt(totPpc)+'</div><div class="pl-tile-lbl">PPC spend</div><div class="pl-tile-sub">monthly est.</div></div>'
-    +'<div class="pl-tile" style="background:'+PALS[4].bg+';border:1px solid '+PALS[4].bd+'"><div class="pl-tile-val">'+Math.round(totUnits).toLocaleString()+'</div><div class="pl-tile-lbl">Units / month</div><div class="pl-tile-sub">all live products</div></div>'
+    +plTile('net',   fmt(totNet),  'Monthly net profit', launched.length+' live product'+(launched.length!==1?'s':''))
+    +plTile('rev',   fmt(totRev),  'Monthly revenue',    revGoal>0?revPct+'% of target':'no target set')
+    +plTile('gross', fmt(totGross),'Gross profit',       totRev>0?Math.round(totGross/totRev*100)+'% margin':'before PPC')
+    +plTile('ppc',   fmt(totPpc),  'PPC spend',          totRev>0?Math.round(totPpc/totRev*1000)/10+'% of revenue':'monthly est.')
+    +plTile('units', Math.round(totUnits).toLocaleString(), 'Units / month', 'all live products')
   +'</div>';
 
   // Projections strip
+  var _pjMax=Math.max(totRev*12, (totRev+fcastRev)*12, 1);
+  function pjCell(lbl,rev,net,cls,col){
+    return '<div class="pl-proj-cell'+(cls||'')+'"><div class="pl-proj-lbl">'+lbl+'</div>'
+      +'<div class="pl-proj-rev">'+fmt(rev)+'</div>'
+      +'<div class="pl-proj-net"'+(col?' style="color:'+col+'"':'')+'>'+fmt(net)+' net</div>'
+      +'<div class="pl-proj-bar"><i style="width:'+Math.round(rev/_pjMax*100)+'%'+(col?';background:'+col:'')+'"></i></div></div>';
+  }
   html+='<div class="pl-proj-strip">'
-    +'<div class="pl-proj-cell"><div class="pl-proj-lbl">Monthly</div><div class="pl-proj-rev">'+fmt(totRev)+'</div><div class="pl-proj-net">'+fmt(totNet)+' net</div></div>'
-    +'<div class="pl-proj-cell"><div class="pl-proj-lbl">Quarterly</div><div class="pl-proj-rev">'+fmt(totRev*3)+'</div><div class="pl-proj-net">'+fmt(totNet*3)+' net</div></div>'
-    +'<div class="pl-proj-cell"><div class="pl-proj-lbl">Yearly</div><div class="pl-proj-rev">'+fmt(totRev*12)+'</div><div class="pl-proj-net">'+fmt(totNet*12)+' net</div></div>'
-    +(fcastNet>0?'<div class="pl-proj-cell pl-proj-cell-fcast"><div class="pl-proj-lbl">With pipeline</div><div class="pl-proj-rev">'+fmt(totRev+fcastRev)+'</div><div class="pl-proj-net" style="color:var(--amber)">'+fmt(totNet+fcastNet)+' net</div></div>':'')
+    +pjCell('Monthly',   totRev,    totNet)
+    +pjCell('Quarterly', totRev*3,  totNet*3)
+    +pjCell('Yearly',    totRev*12, totNet*12)
+    +(fcastNet>0?pjCell('With pipeline', (totRev+fcastRev)*12, (totNet+fcastNet)*12, ' pl-proj-cell-fcast', '#FFC53D'):'')
   +'</div>';
 
   // Product table
@@ -4973,7 +4991,11 @@ function renderWeek(){
   });
   _wg=_wg.map(function(x){ return (x.groupItems && x.groupItems.length===1) ? x.groupItems[0] : x; });
   var weekItems=_wg.slice(0,9), isMore=_wg.length>9;
-  var header='<div class="ac2-header"><div><div class="ac2-eyebrow">ACTION CENTRE · '+weekRangeLabel()+'</div><h1>Are things moving?</h1><p>Weekly and monthly progress first — then what needs pushing.</p></div><div class="ac2-header-actions"><button class="ac2-btn" onclick="editWeekTargets()">Weekly targets</button><button class="ac2-btn" onclick="plEditMonthlyK()">Monthly targets</button></div></div>';
+  var _mLabel=_mNow.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  var header='<div class="ac2-header"><div><div class="ac2-eyebrow">ACTION CENTRE · '+esc(_mLabel)+'</div>'
+    +'<h1>Are things moving?</h1><p>Movement first, then what needs pushing. Targets are monthly, judged at calendar pace.</p></div>'
+    +'<div class="ac2-header-actions"><button class="ac2-btn" onclick="plEditMonthlyK()">Monthly targets</button>'
+    +'<button class="ac2-btn" onclick="nav(\'settings\')">Settings</button></div></div>';
   // the movement verdict — entered · moved forward · launched vs stuck · untouched, this week
   var wkAdvanced=productEvents.filter(function(e){return e.h.type==='advance';}).length;
   var wkLaunched=productEvents.filter(function(e){return e.h.type==='launch';}).length;
@@ -5012,16 +5034,68 @@ function renderWeek(){
     +wkBar('Into Pipeline',d.moved,d.k.pipelineAdds)
     +wkBar('In Sourcing',d.sourcing,d.k.minSourcing)
     +'<span class="acw-note">weeks vary — the month is the real target</span></div>';
-  var top='<div class="ac2-kpis">'
-    +acKpi('Overdue',num(d.overdue.length),d.overdue.length?'Open these first':'Nothing overdue','red',null,
-           d.overdue.length?'ACT':'CLEAR', d.overdue.length?'bad':'ok')
-    +acKpi('This week',num(d.week.length+d.stuck.length),'Real next steps','blue',null,null)
-    +(function(){var b=_mBadge(mIdeas,MK.ideas);return acKpi('Ideas added',num(mIdeas)+' / '+num(MK.ideas),_mSub(MK.ideas),'purple',MK.ideas?mIdeas/MK.ideas*100:null,b[0],b[1]);})()
-    +(function(){var b=_mBadge(mMoved,MK.pipeline);return acKpi('Into Pipeline',num(mMoved)+' / '+num(MK.pipeline),_mSub(MK.pipeline),'cyan',MK.pipeline?mMoved/MK.pipeline*100:null,b[0],b[1]);})()
-    +(function(){var b=_mBadge(mLaunch,MK.launches);return acKpi('Launched',num(mLaunch)+' / '+num(MK.launches),_mSub(MK.launches),'green',MK.launches?mLaunch/MK.launches*100:null,b[0],b[1]);})()
-    +acKpi('Active products',num(d.active.length),num(d.actionable.length)+' need a next step','amber',null,null)
+  // Four quiet stats and four monthly targets, in the same components the Overview
+  // uses. Six glowing rainbow rings competed with each other and with the verdict
+  // above them; nothing here should shout louder than "what do I do next".
+  var AC_IC={bolt:'<path d="M11 2L4 11h5l-1 7 7-9h-5z" fill="currentColor"/>',
+    up:'<path d="M4 14l4-4 3 3 5-6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+    clock:'<circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 5.5V10l3 2" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/>',
+    box:'<path d="M17 7.5v5.6a1.6 1.6 0 01-.85 1.42l-5 2.7a1.6 1.6 0 01-1.5 0l-5-2.7A1.6 1.6 0 013 13.1V7.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3.2 6.9L10 10.4l6.8-3.5L10 3.3 3.2 6.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>'};
+  function acStat(v,l,sub,c,ic){
+    return '<div class="ov-stat" style="--c:'+c+'"><span class="ov-si"><svg viewBox="0 0 20 20">'+ic+'</svg></span>'
+      +'<div><b>'+v+'</b><span class="ov-sl">'+l+'</span><span class="ov-ss">'+sub+'</span></div></div>'; }
+  var _wkUntouched=d.active.filter(function(n){return !touchedIds[n.id];}).length;
+  var top='<div class="ov-stats">'
+    +acStat(num(d.overdue.length),'Need action',d.overdue.length?'past target':'nothing overdue','#FF5470',AC_IC.bolt)
+    +acStat(num(wkAdvanced+wkLaunched),'Moved forward','this month','#00E5A0',AC_IC.up)
+    +acStat(num(_wkUntouched),'Untouched',_wkUntouched?'no movement yet':'all touched','#FFC53D',AC_IC.clock)
+    +acStat(num(d.active.length),'Active products',num(d.actionable.length)+' need a next step','#A78BFF',AC_IC.box)
     +'</div>';
-  var overdue=acSection('Overdue — deal with this first',d.overdue.length,d.overdue,'Nothing is overdue right now.','ac2-overdue');
+  // monthly targets, in the Overview's bar component
+  function acBar(l,a2,t,c){
+    if(!t) return '';
+    var p=Math.min(100,a2/t*100), e=t*_mPace;
+    return '<div class="ov-t"><div class="ov-t-h"><span>'+l+'</span><b>'+num(a2)+'<i> / '+num(t)+'</i></b></div>'
+      +'<div class="ov-t-bar"><em class="'+(a2>=t?'hit':a2>=e?'':'lag')+'" style="width:'+p.toFixed(0)+'%;--c:'+c+'"></em>'
+      +'<u style="left:'+(_mPace*100).toFixed(0)+'%"></u></div>'
+      +'<div class="ov-t-n">'+(a2>=t?'hit':a2>=e?'on pace':'behind pace')+' · expected '+Math.round(t*_mPace)+' by today</div></div>'; }
+  var monthCard='<section class="ov-card"><div class="ov-card-h"><h3>This month</h3>'
+    +'<span class="ov-card-s">day '+_mDay+' of '+_mDays+' · the marker is where today should be</span></div>'
+    +'<div class="ov-ts">'
+      +acBar('Ideas added',mIdeas,MK.ideas,'#A78BFF')
+      +acBar('Into the Pipeline',mMoved,MK.pipeline,'#22D3EE')
+      +acBar('Launched',mLaunch,MK.launches,'#00E5A0')
+      +acBar('Sourcing hours',Math.round(plHoursWeek()*10)/10,plHoursTarget(),'#7C5CFF')
+    +'</div></section>';
+  // One ranked table instead of four separate card grids. Overdue / needs-a-push /
+  // this-week were three lists of the same products sorted three ways.
+  function acRank(it,kind){
+    return kind==='overdue' ? {p:'HIGH',b:'Work now'}
+         : kind==='stuck'   ? {p:'MED', b:'Continue'}
+         : {p:'LOW', b:'Review'}; }
+  var _seen={}, qrows=[];
+  [['overdue',d.overdue],['stuck',d.stuck],['week',d.week]].forEach(function(pair){
+    pair[1].forEach(function(it){
+      var key=(it.productId!=null? 'p'+it.productId : (it.title||'')+'|'+(it.next||''));
+      if(_seen[key]) return; _seen[key]=1;
+      qrows.push({it:it, r:acRank(it,pair[0])}); }); });
+  var qHtml=qrows.slice(0,10).map(function(x){
+    var it=x.it, click = it.type==='product'?'acOpenProduct('+it.productId+')'
+      : it.type==='manual'?'acDismissManual('+it.taskId+')' : 'acOpenTarget(\''+esc(it.navTarget||'dash')+'\')';
+    return '<tr onclick="'+click+'">'
+      +'<td><span class="ov-p '+x.r.p.toLowerCase()+'">'+x.r.p+'</span></td>'
+      +'<td><span class="ov-prod">'+(it.product?plAvatar(it.product,'sm'):'')
+        +'<b>'+esc(it.product||it.title||'')+'</b></span></td>'
+      +'<td><span class="ov-stage">'+esc(it.stage||'')+'</span></td>'
+      +'<td class="ov-na">'+esc(it.next||it.title||'')+'</td>'
+      +'<td class="ov-age">'+(it.day!=null?'Day '+num(it.day):'—')+'</td>'
+      +'<td><button class="ov-go">'+x.r.b+' →</button></td></tr>'; }).join('');
+  var queue='<section class="ov-card"><div class="ov-card-h"><h3>Priority queue</h3>'
+    +'<span class="ov-card-s">'+qrows.length+' open · worst first</span></div>'
+    +(qHtml?'<div class="ov-tw"><table class="ov-tbl"><thead><tr><th>Priority</th><th>Product</th><th>Stage</th><th>Next action</th><th>Age</th><th></th></tr></thead><tbody>'+qHtml+'</tbody></table></div>'
+      +(qrows.length>10?'<div class="ov-more">'+(qrows.length-10)+' more not shown</div>':'')
+      :'<div class="ov-blank">Nothing needs pushing right now.</div>')+'</section>';
+  var overdue='';
   var weekly=acSection('This week’s actions',_wg.length,weekItems,'No open actions yet. Add an idea or build a plan.', '');
   if(isMore)weekly=weekly.replace('</section>','<button class="ac2-show" onclick="toggleAcAll()">Show all '+num(_wg.length)+' actions →</button></section>');
   var stuck=acSection('Needs a push',d.stuck.length,d.stuck,'No products are drifting right now.','');
@@ -5031,7 +5105,8 @@ function renderWeek(){
     +productEvents.slice(0,12).map(function(e){return '<p>✓ '+esc(cleanName(e.n))+' · '+String(e.h.text||'').replace(/<[^>]*>/g,'')+'</p>';}).join('')+'</div></details>':'';
   var srcbar='', wkld='';
   try{ srcbar=plSourceBar(); wkld=plWorkloadBox(); }catch(e){ console.error('sourcing bar',e); }
-  document.getElementById('weekAlerts').innerHTML='<div class="ac2-shell">'+header+srcbar+wkld+top+weekbars+health+overdue+weekly+stuck+gaps+completed+'</div>';
+  var timeline=''; try{ timeline=plTimeline(); }catch(e){ console.error('timeline',e); }
+  document.getElementById('weekAlerts').innerHTML='<div class="ac2-shell">'+header+srcbar+wkld+top+monthCard+health+queue+timeline+gaps+completed+'</div>';
   document.getElementById('weekFocus').innerHTML='';document.getElementById('weekMomentum').innerHTML='';document.getElementById('weekKpis').innerHTML='';document.getElementById('weekList').innerHTML='';
 }
 function toggleAcAll(){
@@ -6609,15 +6684,16 @@ html,body{background:radial-gradient(950px 540px at 50% -210px,rgba(163,163,170,
       +'<div class="kpi-rule"><label>Launched / month</label><input id="mkLaunch" type="number" min="0" value="'+xCount(MK.launches)+'"></div>'
       +'</div><div class="kpi-rules-foot"><span>These also feed the <b>combined rings on the Belt tab</b>, added to UB\'s monthly targets.</span><button class="btn primary" onclick="plSaveMonthlyK()">Save monthly</button></div></section>';
     var H=plStageHealth();
-    var _HT=(brandState&&typeof brandState.plWeeklyHours==='number')?brandState.plWeeklyHours:20;
-    mblock+='<section class="kpi-rules hours"><div class="kpi-rules-hd"><h3>Sourcing hours a week</h3>'
+    var _HT=(brandState&&typeof brandState.plMonthlyHours==='number')?brandState.plMonthlyHours
+      :((brandState&&typeof brandState.plWeeklyHours==='number')?Math.round(brandState.plWeeklyHours*52/12):87);
+    mblock+='<section class="kpi-rules hours"><div class="kpi-rules-hd"><h3>Sourcing hours a month</h3>'
       +'<p>Your hard floor. Sourcing counts as: finding new ideas, finding opportunities, validating an existing idea, supplier sourcing, pricing checks, working out whether something is actually viable \u2014 validating an idea you already have counts every bit as much as finding a new one.</p>'
       +'<p style="margin-top:6px">The number never moves, but the <b>verdict does</b>. A week spent moving five products through listings and images will not be judged the same as a week where nothing happened at all.</p></div>'
-      +'<div class="kpi-rules-grid"><div class="kpi-rule"><label>Hours per week</label>'
+      +'<div class="kpi-rules-grid"><div class="kpi-rule"><label>Hours per month</label>'
       +'<input id="mkHours" type="number" min="0" step="0.5" value="'+_HT+'"></div>'
-      +'<div class="kpi-rule"><label>Logged this week</label><input type="text" value="'+plFmtH(plHoursWeek())+'" disabled></div>'
+      +'<div class="kpi-rule"><label>Logged this month</label><input type="text" value="'+plFmtH(plHoursWeek())+'" disabled></div>'
       +'<div class="kpi-rule"><label>Logged this month</label><input type="text" value="'+plFmtH(plHoursMonth())+'" disabled></div></div>'
-      +'<div class="kpi-rules-foot"><span>Pro-rated inside the week \u2014 on Wednesday you are judged against Wednesday\u2019s share, not the full 20.</span>'
+      +'<div class="kpi-rules-foot"><span>Judged at calendar pace \u2014 on the 10th you are judged against the 10th\u2019s share, not the whole month. 87h a month is your 20h-a-week floor.</span>'
       +'<button class="btn primary" onclick="plSetHoursTarget(document.getElementById(\'mkHours\').value)">Save target</button></div></section>';
     mblock+='<section class="kpi-rules health"><div class="kpi-rules-hd"><h3>Minimum products per stage</h3><p>Pipeline health, not a monthly target. A stage sitting empty is a launch you will miss three months from now — so every stage carries a floor, and an empty one starts a clock.</p></div><div class="kpi-rules-grid">'
       +H.map(function(h){ return '<div class="kpi-rule"><label>'+esc(h.name)+'</label><input type="number" min="0" value="'+h.min+'" onchange="plSetMinStage('+h.id+',this.value)"><small class="kpi-now '+h.state+'">'+(h.count===0?('empty'+(h.emptyDays?' · '+h.emptyDays+'d':'')):h.count+' now')+'</small></div>'; }).join('')
@@ -7058,33 +7134,139 @@ html,body{background:radial-gradient(950px 540px at 50% -210px,rgba(163,163,170,
       +'<td><button class="v6-add-forecast" onclick="event.stopPropagation();openPlQuick('+product.id+')">'+(f.ready?'Edit':'Add inputs')+'</button></td>'
       +'</tr>';
   }
+  /* ---- tiny chart helpers: no library, no external anything ---- */
+  function fArea(vals,w,h,col){
+    if(!vals.length) return '';
+    var mx=Math.max.apply(null,vals.concat([1])), n=vals.length;
+    var pt=vals.map(function(v,i){
+      var x=n===1?w:(i/(n-1))*w, y=h-(v/mx)*(h-4)-2;
+      return x.toFixed(1)+','+y.toFixed(1); });
+    return '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" class="f-spark">'
+      +'<defs><linearGradient id="fg'+col.replace('#','')+'" x1="0" y1="0" x2="0" y2="1">'
+      +'<stop offset="0" stop-color="'+col+'" stop-opacity=".35"/><stop offset="1" stop-color="'+col+'" stop-opacity="0"/></linearGradient></defs>'
+      +'<polygon points="0,'+h+' '+pt.join(' ')+' '+w+','+h+'" fill="url(#fg'+col.replace('#','')+')"/>'
+      +'<polyline points="'+pt.join(' ')+'" fill="none" stroke="'+col+'" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  }
+  function fDonut(pct,col){
+    var R=15,C=2*Math.PI*R,off=C*(1-Math.max(0,Math.min(100,pct))/100);
+    return '<svg viewBox="0 0 40 40" class="f-donut">'
+      +'<circle cx="20" cy="20" r="'+R+'" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="4"/>'
+      +'<circle cx="20" cy="20" r="'+R+'" fill="none" stroke="'+col+'" stroke-width="4" stroke-linecap="round"'
+      +' stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 20 20)"/>'
+      +'<text x="20" y="23.5" text-anchor="middle" font-size="11" font-weight="800" fill="'+col+'">'+Math.round(pct)+'</text></svg>';
+  }
+  function fEsc(v){ return String(v==null?'':v).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function fName(p){ try{ if(typeof cleanName==='function') return cleanName(p); }catch(e){}
+    return (p&&p.name)||'Untitled'; }
+  function fBars(vals,col){
+    if(!vals.length) return '';
+    var mx=Math.max.apply(null,vals.concat([1]));
+    return '<div class="f-bars">'+vals.map(function(v){
+      return '<i style="height:'+Math.max(8,Math.round(v/mx*100))+'%;background:'+col+'"></i>'; }).join('')+'</div>';
+  }
+
   window.renderForecast=function(){
     var root=document.getElementById('forecastContent');if(!root)return;
     var all=(ideas||[]).filter(function(x){return x.inPipeline&&pipe6(x).status!=='rejected';});
     var pipeline=all.filter(function(x){return !isLive(x);}).sort(function(a,b){var ad=getTargetDate(a),bd=getTargetDate(b);return ((ad&&ad.getTime())||Infinity)-((bd&&bd.getTime())||Infinity);});
     var live=all.filter(isLive);
-    var liveNet=0,pipelineNet=0,ready=0,missing=0;
+    var liveNet=0,pipelineNet=0,ready=0,missing=0,noneStarted=0,totRev=0,totGross=0;
     all.forEach(function(product){
       var f=fields6(product);
-      if(f.ready){ready++; if(isLive(product))liveNet+=f.monthlyNet; else pipelineNet+=f.monthlyNet;}
-      else if(!isLive(product))missing++;
+      if(f.ready){ready++; totRev+=f.monthlyRev; totGross+=f.monthlyGross;
+        if(isLive(product))liveNet+=f.monthlyNet; else pipelineNet+=f.monthlyNet;}
+      else if(!isLive(product)){missing++; if(f.inputCount===0)noneStarted++;}
     });
-    var firstMissing=pipeline.find(function(x){return !fields6(x).ready;})||pipeline[0]||live.find(function(x){return !fields6(x).ready;});
+    var margin = totRev>0 ? Math.round(totGross/totRev*100) : 0;
+    var readyPct = all.length ? Math.round(ready/all.length*100) : 0;
+
+    /* ---- funnel: how much money sits at each stage, and where it thins ---- */
+    var funnel=PIPE_STAGES.map(function(st){
+      var rows=pipeline.filter(function(p){return pipe6(p).stage===st.id;});
+      var pot=rows.reduce(function(a,p){var f=fields6(p);return a+(f.ready?f.monthlyNet:0);},0);
+      return {name:st.name, color:st.color, n:rows.length, pot:pot};
+    });
+    funnel.push({name:'Live', color:'#00E5A0', n:live.length, pot:liveNet, live:true});
+    var fMax=Math.max.apply(null,funnel.map(function(x){return x.n;}).concat([1]));
+    var funnelHtml='<div class="f-funnel">'+funnel.map(function(x,i){
+      var conv = i>0 && funnel[i-1].n>0 ? Math.round(x.n/funnel[i-1].n*100) : null;
+      return (i?'<div class="f-fn-gap">'+(conv!=null?'<span>'+conv+'%</span>':'')+'<i>›</i></div>':'')
+        +'<div class="f-fn'+(x.n?'':' zero')+(x.live?' live':'')+'" style="--c:'+x.color+'">'
+        +'<span class="f-fn-n">'+x.name+'</span>'
+        +'<b>'+count(x.n)+'</b>'
+        +'<span class="f-fn-p">'+(x.pot?money(x.pot):'—')+'</span>'
+        +'<em style="width:'+Math.round(x.n/fMax*100)+'%"></em></div>';
+    }).join('')+'</div>';
+
+    /* ---- potential over time: cumulative net by forecast-live month ---- */
+    var byMonth={}, order=[];
+    pipeline.concat(live).forEach(function(p){
+      var f=fields6(p); if(!f.ready||!f.monthlyNet) return;
+      var d=isLive(p)? new Date() : getTargetDate(p); if(!d||isNaN(d)) return;
+      var k=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2);
+      if(!byMonth[k]){byMonth[k]=0;order.push(k);}
+      byMonth[k]+=f.monthlyNet;
+    });
+    order.sort();
+    var cum=0, series=order.map(function(k){cum+=byMonth[k];return cum;});
+    var labels=order.map(function(k){var p=k.split('-');
+      return new Date(+p[0],+p[1]-1,1).toLocaleDateString('en-GB',{month:'short'});});
+    var chart = series.length>1
+      ? '<div class="f-chart">'+fArea(series,600,150,'#00E5A0')
+        +'<div class="f-x">'+labels.map(function(l){return '<span>'+l+'</span>';}).join('')+'</div></div>'
+        +'<div class="f-chart-note">Cumulative net / month as each product reaches its forecast live date — '
+        +money(series[series.length-1])+' once every current assumption holds.</div>'
+      : '<div class="v6-no-data"><b>Not enough dated forecasts to chart yet</b>Complete the five inputs on two or more products with a forecast live date.</div>';
+
+    /* ---- who actually carries the portfolio ---- */
+    var contrib=all.map(function(p){var f=fields6(p);
+        return {n:fName(p), v:f.ready?f.monthlyNet:0, live:isLive(p), id:p.id};})
+      .filter(function(x){return x.v>0;}).sort(function(a,b){return b.v-a.v;});
+    var cMax=contrib.length?contrib[0].v:1;
+    var contribHtml = contrib.length
+      ? '<div class="f-contrib">'+contrib.slice(0,6).map(function(x){
+          return '<div class="f-ct" onclick="openPlQuick('+x.id+')"><span class="f-ct-n">'+fEsc(x.n)+'</span>'
+            +'<span class="f-ct-bar"><i style="width:'+Math.round(x.v/cMax*100)+'%;background:'+(x.live?'#00E5A0':'#A78BFF')+'"></i></span>'
+            +'<b>'+money(x.v)+'</b></div>'; }).join('')
+        +(contrib.length>6?'<div class="f-ct-more">+'+(contrib.length-6)+' more with a completed forecast</div>':'')+'</div>'
+      : '<div class="v6-no-data"><b>No completed forecasts yet</b>Add the five inputs on a product and it appears here.</div>';
+
+    var sparkSeries = series.length>1 ? series : [0,0];
+
     root.innerHTML=
-      '<div class="v6-forecast-guide" style="display:none">'
-        +'<div><div class="v6-guide-title">What PL Forecast is for</div><div class="v6-guide-copy">A simple view of the <b>monthly revenue and net-profit potential once products are live</b>. It does not use real Amazon data or actual PPC. You set the assumptions yourself and can change them any time.</div></div>'
-        +'<div class="v6-guide-step"><b><i class="v6-guide-num">1</i>Open a product</b><span>Use the Profit tab in the Product Workspace.</span></div>'
-        +'<div class="v6-guide-step"><b><i class="v6-guide-num">2</i>Enter 5 inputs</b><span>Price, cost, gross/unit, hypothetical PPC %, sales/month.</span></div>'
-        +'<div class="v6-guide-step"><b><i class="v6-guide-num">3</i>See total potential</b><span>Every complete forecast rolls into the portfolio below.</span></div>'
+      '<div class="f-kpis">'
+        +'<div class="f-kpi" style="--c:#00E5A0"><div class="f-k-t"><span>Combined potential / month</span></div>'
+          +'<div class="f-k-b"><b>'+money(liveNet+pipelineNet)+'</b>'+fArea(sparkSeries,110,38,'#00E5A0')+'</div>'
+          +'<small>'+count(live.length)+' live · '+count(pipeline.length)+' in the pipeline</small></div>'
+        +'<div class="f-kpi" style="--c:#A78BFF"><div class="f-k-t"><span>Pipeline potential / month</span></div>'
+          +'<div class="f-k-b"><b>'+money(pipelineNet)+'</b>'+fBars(funnel.slice(0,7).map(function(x){return x.pot||0;}),'#A78BFF')+'</div>'
+          +'<small>once these products reach live</small></div>'
+        +'<div class="f-kpi" style="--c:#3B9EFF"><div class="f-k-t"><span>Live planned net / month</span></div>'
+          +'<div class="f-k-b"><b>'+money(liveNet)+'</b></div>'
+          +'<small>'+(live.length?count(live.length)+' product'+(live.length===1?'':'s')+' live on Amazon':'nothing live yet')+'</small></div>'
+        +'<div class="f-kpi" style="--c:#FFC53D"><div class="f-k-t"><span>Average margin</span></div>'
+          +'<div class="f-k-b"><b>'+margin+'<i>%</i></b>'+fDonut(margin,'#FFC53D')+'</div>'
+          +'<small>gross on completed forecasts</small></div>'
+        +'<div class="f-kpi'+(missing?' warn':'')+'" style="--c:'+(missing?'#FF5470':'#00E5A0')+'"><div class="f-k-t"><span>Forecasts ready</span></div>'
+          +'<div class="f-k-b"><b>'+count(ready)+'<i> / '+count(all.length)+'</i></b>'+fDonut(readyPct,missing?'#FF5470':'#00E5A0')+'</div>'
+          +'<small>'+(missing?count(missing)+' still need inputs'+(noneStarted?' · '+count(noneStarted)+' not started':''):'every product forecast')+'</small></div>'
       +'</div>'
-      +'<div class="v6-forecast-kpis">'
-        +'<div class="v6-forecast-kpi live"><span>Live planned net / month</span><b>'+money(liveNet)+'</b><small>'+count(live.length)+' live product'+(live.length===1?'':'s')+'</small></div>'
-        +'<div class="v6-forecast-kpi pipe"><span>Pipeline potential / month</span><b>'+money(pipelineNet)+'</b><small>from active products once live</small></div>'
-        +'<div class="v6-forecast-kpi total"><span>Combined potential / month</span><b>'+money(liveNet+pipelineNet)+'</b><small>if all current assumptions hold</small></div>'
-        +'<div class="v6-forecast-kpi ready"><span>Forecasts ready</span><b>'+count(ready)+' / '+count(all.length)+'</b><small>all five inputs completed</small></div>'
-        +'<div class="v6-forecast-kpi missing"><span>Need forecast inputs</span><b>'+count(missing)+'</b><small>active Pipeline product'+(missing===1?'':'s')+' still incomplete</small></div>'
+
+      +'<section class="v6-forecast-section"><div class="v6-forecast-section-head"><div><h2>Where the money sits</h2>'
+        +'<p>Count and forecast net at every stage, with the drop-off between them. A stage with nothing in it is a gap in this curve about three months out.</p></div></div>'
+        +'<div class="f-sec-body">'+funnelHtml+'</div></section>'
+
+      +'<div class="f-two">'
+        +'<section class="v6-forecast-section"><div class="v6-forecast-section-head"><div><h2>Potential over time</h2>'
+          +'<p>Built from each product’s forecast live date.</p></div></div>'
+          +'<div class="f-sec-body">'+chart+'</div></section>'
+        +'<section class="v6-forecast-section"><div class="v6-forecast-section-head"><div><h2>Top contributors</h2>'
+          +'<p>Which products carry it.</p></div></div>'
+          +'<div class="f-sec-body">'+contribHtml+'</div></section>'
       +'</div>'
-      +'<section class="v6-forecast-section"><div class="v6-forecast-section-head"><div><h2>Pipeline potential</h2><p>These are normal-month estimates after each product reaches its forecast live date — not sales already earned.</p></div><div class="v6-forecast-total">'+money(pipelineNet)+' potential net / month</div></div>'
+
+      +'<section class="v6-forecast-section"><div class="v6-forecast-section-head"><div><h2>Pipeline potential</h2><p>Normal-month estimates after each product reaches its forecast live date — not sales already earned.</p></div><div class="v6-forecast-total">'+money(pipelineNet)+' potential net / month</div></div>'
       +(pipeline.length?'<div class="v6-forecast-table-wrap"><table class="v6-forecast-table"><thead><tr><th>Product</th><th>Stage</th><th>Forecast live</th><th>Forecast status</th><th>Sales / mo</th><th>Revenue / mo</th><th>Hypothetical PPC / mo</th><th>Net / mo</th><th></th></tr></thead><tbody>'+pipeline.map(forecastRow).join('')+'</tbody></table></div>':'<div class="v6-no-data"><b>No active Pipeline products yet</b>Move an idea into Pipeline first, then add the five simple forecast inputs.</div>')+'</section>'
       +'<section class="v6-forecast-section"><div class="v6-forecast-section-head"><div><h2>Live product planning view</h2><p>Still a manual estimate. Keep actual accounting elsewhere until you connect data later.</p></div><div class="v6-forecast-total">'+money(liveNet)+' planned net / month</div></div>'
       +(live.length?'<div class="v6-forecast-table-wrap"><table class="v6-forecast-table"><thead><tr><th>Product</th><th>Status</th><th>Forecast live</th><th>Forecast status</th><th>Sales / mo</th><th>Revenue / mo</th><th>Hypothetical PPC / mo</th><th>Net / mo</th><th></th></tr></thead><tbody>'+live.map(forecastRow).join('')+'</tbody></table></div>':'<div class="v6-no-data"><b>No live products recorded</b>Products appear here after Launch. Their financial assumptions are the same five values entered in the Profit tab.</div>')+'</section>';
@@ -8467,18 +8649,28 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
   var PL_KINDS=[{k:'ideas',l:'New ideas'},{k:'validate',l:'Validating'},{k:'supplier',l:'Suppliers'},{k:'pricing',l:'Pricing / viability'}];
   window.PL_KINDS=PL_KINDS;
   window.plSess=function(){ if(!brandState) brandState={}; if(!brandState.plSess) brandState.plSess=[]; return brandState.plSess; };
-  window.plWeekStart=function(ref){ var d=ref?new Date(ref):new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d.getTime(); };
-  window.plWeekFrac=function(){ var n=new Date(), dow=(n.getDay()+6)%7;
-    return Math.max(0.02, Math.min(1,(dow + (n.getHours()*60+n.getMinutes())/1440)/7)); };
-  window.plHoursTarget=function(){ var v=brandState&&brandState.plWeeklyHours; return (typeof v==='number'&&v>=0)?v:20; };
-  window.plHoursWeek=function(){ var ws=plWeekStart();
-    return plSess().filter(function(x){return x.at>=ws;}).reduce(function(a,x){return a+(x.mins||0);},0)/60; };
+  // Monthly, at calendar pace. These are monthly KPIs — 20h/week is the floor,
+  // but the number tracked and judged is the month (20 x 52 / 12 = 87h).
+  window.plMonthStart=function(ref){ var d=ref?new Date(ref):new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).getTime(); };
+  // the window needs a CEILING too — without one, anything dated later than today
+  // counted toward this month and disagreed with the timeline on the same screen
+  window.plMonthEnd=function(ref){ var d=ref?new Date(ref):new Date(); return new Date(d.getFullYear(), d.getMonth()+1, 1).getTime(); };
+  window.plMonthDays=function(){ var n=new Date(); return new Date(n.getFullYear(), n.getMonth()+1, 0).getDate(); };
+  window.plWeekStart=function(ref){ return plMonthStart(ref); };
+  window.plWeekFrac=function(){ var n=new Date();
+    return Math.max(0.02, Math.min(1, ((n.getDate()-1) + (n.getHours()*60+n.getMinutes())/1440) / plMonthDays())); };
+  window.plHoursTarget=function(){
+    if(brandState && typeof brandState.plMonthlyHours==='number') return brandState.plMonthlyHours;
+    var w=brandState&&brandState.plWeeklyHours;                    // migrate an old weekly figure
+    return (typeof w==='number'&&w>=0) ? Math.round(w*52/12) : 87; };
+  window.plHoursWeek=function(){ var ws=plMonthStart(), me=plMonthEnd();   // the month; name kept for callers
+    return plSess().filter(function(x){return x.at>=ws && x.at<me;}).reduce(function(a,x){return a+(x.mins||0);},0)/60; };
   window.plHoursMonth=function(){ var n=new Date();
     return plSess().filter(function(x){ var d=new Date(x.at); return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth(); })
       .reduce(function(a,x){return a+(x.mins||0);},0)/60; };
-  window.plHoursSplit=function(){ var ws=plWeekStart(), out={};
+  window.plHoursSplit=function(){ var ws=plMonthStart(), me=plMonthEnd(), out={};
     PL_KINDS.forEach(function(k){ out[k.k]=0; }); out._none=0;
-    plSess().filter(function(x){return x.at>=ws;}).forEach(function(x){
+    plSess().filter(function(x){return x.at>=ws && x.at<me;}).forEach(function(x){
       var k=x.kind&&out.hasOwnProperty(x.kind)?x.kind:'_none'; out[k]+=(x.mins||0); });
     return out; };
   window.plFmtH=function(h){ if(h<=0) return '0h'; var m=Math.round(h*60);
@@ -8513,7 +8705,7 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
     var last=a.pop(); brandState.plAskTag=null; persistBrandState(); try{renderWeek();}catch(e){}
     showFlash('Removed '+plFmtH((last.mins||0)/60)); };
   window.plSetHoursTarget=function(v){ if(!brandState) brandState={};
-    brandState.plWeeklyHours=Math.max(0,parseFloat(v)||0); persistBrandState();
+    brandState.plMonthlyHours=Math.max(0,parseFloat(v)||0); persistBrandState();
     try{renderWeek();renderSettings();}catch(e){}; showFlash('Sourcing target saved \u2713'); };
 
   // ── workload: what does the pipeline actually need from us this week? ──
@@ -8525,12 +8717,12 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
       var due=p.waitingUntil?new Date(p.waitingUntil).getTime():0;
       // waiting on somebody else and not yet overdue = we have done our part
       if(p.waitingFor && (!due || due>=now)) waiting++; else needsUs++; });
-    var ws=plWeekStart();
+    var ws=plMonthStart(), me=plMonthEnd();
     var moved=act.filter(function(n){ return (ensurePipe(n).history||[]).some(function(h){
-      return h.ts>=ws && (h.type==='advance'||h.type==='launch'); }); }).length;
-    var touched=act.filter(function(n){ return (ensurePipe(n).history||[]).some(function(h){return h.ts>=ws;}); }).length;
-    var entered=ideas.filter(function(n){ var p=n.pipeline||{}; return p.enteredAt&&p.enteredAt>=ws; }).length;
-    var launched=ideas.filter(function(n){ var p=n.pipeline||{}; return p.launchedAt&&p.launchedAt>=ws; }).length;
+      return h.ts>=ws && h.ts<me && (h.type==='advance'||h.type==='launch'); }); }).length;
+    var touched=act.filter(function(n){ return (ensurePipe(n).history||[]).some(function(h){return h.ts>=ws && h.ts<me;}); }).length;
+    var entered=ideas.filter(function(n){ var p=n.pipeline||{}; return p.enteredAt&&p.enteredAt>=ws&&p.enteredAt<me; }).length;
+    var launched=ideas.filter(function(n){ var p=n.pipeline||{}; return p.launchedAt&&p.launchedAt>=ws&&p.launchedAt<me; }).length;
     var H=plStageHealth(), emptyRows=H.filter(function(h){return h.count===0;}), empties=emptyRows.length;
     var emptyNames=emptyRows.map(function(h){return h.name;});
     var thin=H.filter(function(h){return h.state!=='ok';}).length;
@@ -8556,8 +8748,8 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
 
     if(!onHours && !moving && w.touched===0){
       tone='bad';
-      line='\u26a0 '+H+' sourced of '+T+' and nothing has moved. This is the week the pipeline dies.';
-      sub='No product advanced a stage and nothing was touched. Whatever else is going on, an hour on the pipeline today is worth more than any other hour this week.';
+      line='\u26a0 '+H+' sourced of '+T+' this month and nothing has moved. This is how a pipeline dies.';
+      sub='No product advanced a stage and nothing was touched. Whatever else is going on, an hour on the pipeline today is worth more than any other hour this month.';
     } else if(!onHours && !moving){
       tone='bad';
       line='\u26a0 '+H+' of '+T+' \u2014 and no product moved forward.';
@@ -8565,7 +8757,7 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
     } else if(!onHours && moving && mode==='pipeline'){
       tone='ok';
       line='\u2713 Behind on hours ('+H+' of '+T+') \u2014 but '+w.moved+' product'+(w.moved===1?'':'s')+' moved forward.';
-      sub=w.needsUs+' products needed real work this week. Progressing them was the right call \u2014 the hours target gives way to pipeline work, by design.';
+      sub=w.needsUs+' products needed real work this month. Progressing them was the right call \u2014 the hours target gives way to pipeline work, by design.';
     } else if(!onHours && moving && mode==='source'){
       tone='warn';
       line='\u26a0 '+w.moved+' moved \u2014 but the pipeline is thinning and sourcing is behind ('+H+' of '+T+').';
@@ -8607,7 +8799,7 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
     if(sp._none>0) spTxt+='<i><b>'+plFmtH(sp._none/60)+'</b> untagged</i>';
 
     return '<div class="srcbar'+(run?' run':'')+'">'
-      +'<div class="sb-h"><span>Sourcing \u00b7 this week</span><b>'+plFmtH(v.hrs)+'<i> / '+v.tgt+'h</i></b></div>'
+      +'<div class="sb-h"><span>Sourcing \u00b7 '+new Date().toLocaleDateString('en-GB',{month:'long'})+'</span><b>'+plFmtH(v.hrs)+'<i> / '+v.tgt+'h</i></b></div>'
       +'<div class="sb-track"><em class="'+cls+'" style="width:'+pct.toFixed(1)+'%"></em><u style="left:'+frac.toFixed(1)+'%"></u></div>'
       +live
       +(run
@@ -8645,6 +8837,78 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
         +cell(w.needsUs,'need us')+cell(w.waiting,'waiting',w.waiting?'wait':'')
         +cell(w.untouched,'untouched',w.untouched?'hot':'')+cell(w.empties,'stages empty',w.empties?'hot':'')
       +'</div></div>';
+  };
+
+  // plEsc belongs to another IIFE and is NOT in scope here — four bugs have come
+  // from assuming otherwise. This block always uses its own escaper.
+  function pxEsc(v){ return String(v==null?'':v).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  // ── product avatar: deterministic hue from the name, so the same product is
+  //    always the same colour everywhere it appears ──
+  window.plAvatarHue=function(name){
+    var h=0, str=String(name||'?');
+    for(var i=0;i<str.length;i++) h=(h*31+str.charCodeAt(i))>>>0;
+    var HUES=['#7C5CFF','#22D3EE','#00E5A0','#FFC53D','#FF8A3D','#FF5CC8','#3B9EFF','#A78BFF'];
+    return HUES[h%HUES.length];
+  };
+  window.plAvatar=function(name,size){
+    var n=String(name||'?').trim(), c=plAvatarHue(n);
+    var ini=n.split(/\s+/).slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()||'?';
+    return '<span class="pav'+(size==='sm'?' sm':'')+'" style="--av:'+c+'">'+pxEsc(ini)+'</span>';
+  };
+
+  // ── movement timeline: what actually happened, day by day, this month ──
+  window.plTimeline=function(){
+    var now=new Date(), y=now.getFullYear(), m=now.getMonth();
+    var days=new Date(y,m+1,0).getDate(), today=now.getDate();
+    var byDay={}; for(var i=1;i<=days;i++) byDay[i]={adv:0,ent:0,lau:0,touch:0};
+    ideas.forEach(function(n){
+      if(!n.inPipeline) return;
+      (ensurePipe(n).history||[]).forEach(function(h){
+        if(!h.ts) return; var d=new Date(h.ts);
+        if(d.getFullYear()!==y||d.getMonth()!==m) return;
+        var b=byDay[d.getDate()]; if(!b) return;
+        if(h.type==='advance') b.adv++;
+        else if(h.type==='enter') b.ent++;
+        else if(h.type==='launch') b.lau++;
+        else b.touch++;
+      });
+    });
+    var totAdv=0,totEnt=0,totLau=0,active=0,best={n:0,d:0};
+    for(var d2=1;d2<=days;d2++){ var b=byDay[d2];
+      totAdv+=b.adv; totEnt+=b.ent; totLau+=b.lau;
+      var t=b.adv+b.ent+b.lau; if(t) active++;
+      if(t>best.n) best={n:t,d:d2}; }
+    var cells=[];
+    for(var d3=1;d3<=days;d3++){
+      var c=byDay[d3], moved=c.adv+c.ent+c.lau, future=d3>today;
+      var cls = future?'fut' : c.lau?'launch' : moved?'move' : c.touch?'touch' : 'none';
+      var tip = future ? 'Day '+d3+' — not yet'
+        : (moved||c.touch)
+          ? 'Day '+d3+': '+[c.ent?c.ent+' entered':'',c.adv?c.adv+' moved':'',c.lau?c.lau+' launched':'',c.touch?c.touch+' updated':'']
+              .filter(Boolean).join(' \u00b7 ')
+          : 'Day '+d3+' — nothing moved';
+      cells.push('<i class="tl-d '+cls+(d3===today?' now':'')+'" title="'+pxEsc(tip)+'"'
+        + (moved?' data-n="'+moved+'"':'') + '></i>');
+    }
+    var streak=0; for(var d4=today; d4>=1; d4--){ var b4=byDay[d4]; if(b4.adv+b4.ent+b4.lau) break; streak++; }
+    var verdict = totAdv+totEnt+totLau===0
+      ? '\u26a0 Nothing has moved at all this month'
+      : streak>=5 ? '\u26a0 '+streak+' days with no movement'
+      : streak>=2 ? '\u25cb Quiet for '+streak+' days'
+      : '\u2713 Moving \u2014 '+active+' active day'+(active===1?'':'s')+' this month';
+    var tone = totAdv+totEnt+totLau===0 ? 'bad' : streak>=5 ? 'bad' : streak>=2 ? 'warn' : 'ok';
+    return '<section class="ov-card"><div class="ov-card-h"><h3>Movement</h3>'
+      +'<span class="ov-card-s">every day this month \u00b7 hover a square</span></div>'
+      +'<div class="tl-body"><div class="tl-verdict '+tone+'">'+verdict+'</div>'
+      +'<div class="tl-grid">'+cells.join('')+'</div>'
+      +'<div class="tl-legend">'
+        +'<span><i class="tl-k move"></i>moved forward</span>'
+        +'<span><i class="tl-k launch"></i>launched</span>'
+        +'<span><i class="tl-k touch"></i>updated only</span>'
+        +'<span><i class="tl-k none"></i>nothing</span>'
+        +'<b>'+totEnt+' entered \u00b7 '+totAdv+' moved \u00b7 '+totLau+' launched</b>'
+      +'</div></div></section>';
   };
   var PL_MIN_DEF={1:1,2:1,3:1,4:2,5:1,6:1,7:1};
   window.plMinFor=function(sid){ var m=(settings&&settings.minStage)||{}; var v=m[sid]; return typeof v==='number'?v:(PL_MIN_DEF[sid]||1); };
@@ -9221,6 +9485,354 @@ button[disabled],.btn[disabled],input[disabled],select[disabled]{opacity:.42!imp
 /* empty states read as intentional, not as something failing to load */
 .empty,.pl-tab-empty,.ac2-empty{border:1px dashed rgba(255,255,255,.10)!important;border-radius:13px!important;
   background:rgba(255,255,255,.015)!important;color:#82828F!important}
+</style>
+<style>
+/* ══ PL FORECAST — the numbers were already there, they were just grey ══ */
+.f-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(212px,1fr));gap:9px;margin-bottom:12px}
+.f-kpi{border:1px solid var(--b1);border-radius:var(--r-lg);background:var(--s1);padding:13px 15px;
+  box-shadow:var(--sh-card);border-top:2px solid var(--c);position:relative;overflow:hidden}
+.f-kpi.warn{border-color:rgba(255,84,112,.3)}
+.f-k-t span{font:800 9.5px var(--sans);letter-spacing:1.1px;text-transform:uppercase;color:var(--t4)}
+.f-k-b{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin:7px 0 4px;min-height:40px}
+.f-k-b b{font-size:25px;font-weight:850;color:var(--t1);letter-spacing:-1px;line-height:1;font-variant-numeric:tabular-nums}
+.f-k-b b i{font-style:normal;font-size:13px;font-weight:700;color:var(--t4);letter-spacing:0}
+.f-kpi small{display:block;font-size:10.5px;color:var(--t4);font-weight:650;line-height:1.4}
+.f-spark{width:110px;height:38px;flex:none;opacity:.95}
+.f-donut{width:40px;height:40px;flex:none}
+.f-bars{display:flex;align-items:flex-end;gap:2px;height:36px;flex:none}
+.f-bars i{width:6px;border-radius:2px 2px 0 0;opacity:.75}
+
+.f-sec-body{padding:14px 16px}
+.f-two{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:10px;margin-bottom:11px}
+@media(max-width:1100px){.f-two{grid-template-columns:1fr}}
+.f-two .v6-forecast-section{margin-bottom:0}
+
+/* funnel */
+.f-funnel{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding-bottom:4px}
+.f-fn{flex:1;min-width:104px;border:1px solid var(--b1);border-radius:var(--r-sm);padding:10px 11px 9px;
+  background:var(--s2);position:relative;transition:border-color .14s var(--ease)}
+.f-fn:hover{border-color:color-mix(in srgb,var(--c) 50%,var(--b1))}
+.f-fn-n{display:block;font:800 9px var(--sans);letter-spacing:.7px;text-transform:uppercase;color:var(--c);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.f-fn b{display:block;font-size:21px;font-weight:850;color:var(--t1);line-height:1.05;margin-top:5px;font-variant-numeric:tabular-nums}
+.f-fn-p{display:block;font-size:10.5px;color:var(--t3);font-weight:750;margin-top:2px;font-variant-numeric:tabular-nums}
+.f-fn em{display:block;height:3px;border-radius:99px;background:var(--c);margin-top:7px;min-width:3px;opacity:.85}
+.f-fn.zero{border-style:dashed;border-color:rgba(255,84,112,.32);background:rgba(255,84,112,.035)}
+.f-fn.zero b{color:#FF7A90} .f-fn.zero em{background:rgba(255,255,255,.08)}
+.f-fn.live{background:linear-gradient(180deg,rgba(0,229,160,.10),var(--s2))}
+.f-fn-gap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0 5px;flex:none}
+.f-fn-gap span{font:800 9px var(--sans);color:var(--t4);font-variant-numeric:tabular-nums}
+.f-fn-gap i{font-style:normal;color:var(--b3);font-size:13px;line-height:1}
+
+/* chart */
+.f-chart{position:relative}
+.f-chart .f-spark{width:100%;height:150px}
+.f-x{display:flex;justify-content:space-between;margin-top:5px}
+.f-x span{font:700 9.5px var(--sans);color:var(--t4)}
+.f-chart-note{margin-top:9px;font-size:11px;color:var(--t3);line-height:1.5}
+
+/* contributors */
+.f-contrib{display:flex;flex-direction:column;gap:8px}
+.f-ct{display:grid;grid-template-columns:minmax(0,1fr) 84px auto;align-items:center;gap:10px;cursor:pointer}
+.f-ct:hover .f-ct-n{color:var(--t1)}
+.f-ct-n{font-size:11.5px;font-weight:750;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .13s}
+.f-ct-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+.f-ct-bar i{display:block;height:100%;border-radius:99px}
+.f-ct b{font:850 11.5px var(--sans);color:var(--t1);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.f-ct-more{font-size:10.5px;color:var(--t4);margin-top:2px}
+
+/* the sections themselves */
+#pane-forecast .v6-forecast-section{border:1px solid var(--b1)!important;border-radius:var(--r-lg)!important;
+  background:var(--s1)!important;box-shadow:var(--sh-card)!important;margin-bottom:11px!important;overflow:hidden}
+#pane-forecast .v6-forecast-section-head{padding:13px 16px 11px!important;border-bottom:1px solid var(--b1)!important;
+  display:flex;align-items:flex-start;gap:12px}
+#pane-forecast .v6-forecast-section-head h2{margin:0!important;font-size:14px!important;font-weight:850!important;
+  color:var(--t1)!important;letter-spacing:-.2px!important}
+#pane-forecast .v6-forecast-section-head p{margin:3px 0 0!important;font-size:11px!important;color:var(--t4)!important;line-height:1.5!important}
+#pane-forecast .v6-forecast-total{margin-left:auto;white-space:nowrap;font:850 12px var(--sans)!important;color:#4ADE80!important}
+#pane-forecast .v6-forecast-table th{font:800 9.5px var(--sans)!important;letter-spacing:.9px!important;
+  text-transform:uppercase!important;color:var(--t4)!important;border-bottom:1px solid var(--b1)!important;padding:9px 12px!important}
+#pane-forecast .v6-forecast-table td{padding:10px 12px!important;border-bottom:1px solid rgba(255,255,255,.045)!important;font-size:12px!important}
+#pane-forecast .v6-forecast-table tbody tr{cursor:pointer;transition:background .13s var(--ease)}
+#pane-forecast .v6-forecast-table tbody tr:hover{background:rgba(255,255,255,.028)}
+#pane-forecast .v6-input-chip{font:800 10px var(--sans)!important;padding:3px 8px!important;border-radius:99px!important}
+#pane-forecast .v6-input-chip.ready{background:rgba(0,229,160,.14)!important;border:1px solid rgba(0,229,160,.42)!important;color:#5CE6B0!important}
+#pane-forecast .v6-input-chip.missing{background:rgba(255,197,61,.13)!important;border:1px solid rgba(255,197,61,.4)!important;color:#FFD066!important}
+#pane-forecast .v6-add-forecast{border:1px solid rgba(167,139,255,.4)!important;background:rgba(124,92,255,.13)!important;
+  color:#C9B8FF!important;font:800 11px var(--sans)!important;padding:5px 11px!important;border-radius:8px!important}
+#pane-forecast .v6-add-forecast:hover{background:rgba(124,92,255,.28)!important;color:#fff!important}
+#pane-forecast .v6-no-data{border:1px dashed rgba(255,255,255,.10)!important;border-radius:var(--r-md)!important;
+  background:rgba(255,255,255,.015)!important;color:var(--t4)!important;padding:22px 16px!important;text-align:center;font-size:11.5px}
+#pane-forecast .v6-no-data b{display:block;color:var(--t2)!important;font-size:12.5px;margin-bottom:4px}
+</style>
+<style>
+/* ══ LIVE P&L — the giant flat colour slabs become real KPI cards ══ */
+#pane-pl .pl-summary{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(196px,1fr))!important;gap:9px!important}
+#pane-pl .pl-tile{display:flex!important;align-items:flex-start!important;gap:11px!important;
+  background:var(--s1)!important;border:1px solid var(--b1)!important;border-top:2px solid var(--tc)!important;
+  border-radius:var(--r-lg)!important;padding:13px 15px!important;box-shadow:var(--sh-card)!important;min-height:0!important}
+#pane-pl .pl-tile.t-net{--tc:#00E5A0} #pane-pl .pl-tile.t-rev{--tc:#3B9EFF}
+#pane-pl .pl-tile.t-gross{--tc:#FFC53D} #pane-pl .pl-tile.t-ppc{--tc:#FF5470}
+#pane-pl .pl-tile.t-units{--tc:#A78BFF}
+#pane-pl .pl-tile-ic{flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
+  color:var(--tc);background:color-mix(in srgb,var(--tc) 14%,transparent);
+  border:1px solid color-mix(in srgb,var(--tc) 34%,transparent)}
+#pane-pl .pl-tile-ic svg{width:17px;height:17px}
+#pane-pl .pl-tile-body{min-width:0}
+#pane-pl .pl-tile-val{font-size:23px!important;font-weight:850!important;color:var(--t1)!important;
+  line-height:1.05!important;letter-spacing:-.9px!important;font-variant-numeric:tabular-nums}
+#pane-pl .pl-tile-lbl{font-size:11px!important;font-weight:800!important;color:var(--t2)!important;margin-top:3px!important}
+#pane-pl .pl-tile-sub{font-size:10px!important;color:var(--t4)!important;margin-top:1px!important;font-weight:650}
+
+#pane-pl .pl-proj-strip{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(178px,1fr))!important;
+  gap:9px!important;border:0!important;background:transparent!important;padding:0!important}
+#pane-pl .pl-proj-cell{border:1px solid var(--b1)!important;border-radius:var(--r-lg)!important;
+  background:var(--s1)!important;padding:12px 15px!important;box-shadow:var(--sh-card)!important}
+#pane-pl .pl-proj-lbl{font:800 9.5px var(--sans)!important;letter-spacing:1.1px!important;
+  text-transform:uppercase!important;color:var(--t4)!important}
+#pane-pl .pl-proj-rev{font-size:20px!important;font-weight:850!important;color:var(--t1)!important;
+  margin-top:6px!important;letter-spacing:-.7px!important;font-variant-numeric:tabular-nums}
+#pane-pl .pl-proj-net{font-size:11.5px!important;font-weight:750!important;color:#4ADE80!important;margin-top:2px!important}
+#pane-pl .pl-proj-bar{height:4px;border-radius:99px;background:rgba(255,255,255,.07);margin-top:9px;overflow:hidden}
+#pane-pl .pl-proj-bar i{display:block;height:100%;border-radius:99px;background:#4ADE80;transition:width .35s var(--ease)}
+#pane-pl .pl-proj-cell-fcast{border-color:rgba(255,197,61,.34)!important;
+  background:linear-gradient(180deg,rgba(255,197,61,.07),var(--s1))!important}
+
+#pane-pl .pl-goals-section{border:1px solid var(--b1)!important;border-radius:var(--r-lg)!important;
+  background:var(--s1)!important;box-shadow:var(--sh-card)!important;margin-bottom:11px!important}
+#pane-pl .pl-goals-eyebrow{font:850 9.5px var(--sans)!important;letter-spacing:1.4px!important;
+  text-transform:uppercase!important;color:var(--t4)!important;background:none!important;
+  -webkit-background-clip:border-box!important;background-clip:border-box!important}
+#pane-pl .pl-goal-fill{background:linear-gradient(90deg,#00C48C,#00E5A0)!important;border-radius:99px!important}
+#pane-pl .pl-goal-track{background:rgba(255,255,255,.07)!important;border-radius:99px!important;height:6px!important}
+#pane-pl .v6-live-pl-callout{border:1px solid rgba(167,139,255,.28)!important;border-radius:var(--r-lg)!important;
+  background:linear-gradient(90deg,rgba(124,92,255,.11),transparent)!important;padding:13px 16px!important}
+#pane-pl .v6-live-pl-callout h3{font-size:13px!important;font-weight:850!important;color:var(--t1)!important;margin:0!important}
+#pane-pl .v6-live-pl-callout p{font-size:11.5px!important;color:var(--t3)!important;margin:3px 0 0!important;line-height:1.5!important}
+#pane-pl .pl-tbl{background:var(--s1)!important;border:1px solid var(--b1)!important;border-radius:var(--r-lg)!important;
+  box-shadow:var(--sh-card)!important}
+</style>
+
+
+<style>
+/* ── product avatar: same colour for the same product, everywhere ── */
+.pav{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;flex:none;
+  font:850 10px var(--sans);letter-spacing:.2px;color:var(--av);
+  background:color-mix(in srgb,var(--av) 16%,transparent);
+  border:1px solid color-mix(in srgb,var(--av) 42%,transparent)}
+.pav.sm{width:22px;height:22px;border-radius:7px;font-size:9px}
+.ov-prod{display:flex;align-items:center;gap:9px;min-width:0}
+.ov-prod b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── movement timeline ── */
+.tl-body{padding:13px 16px 15px}
+.tl-verdict{font-size:13px;font-weight:800;margin-bottom:11px}
+.tl-verdict.ok{color:#4ADE80} .tl-verdict.warn{color:#FFC53D} .tl-verdict.bad{color:#FF7A90}
+.tl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(15px,1fr));gap:4px}
+.tl-d{display:block;height:26px;border-radius:5px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.06);position:relative;transition:transform .12s var(--ease)}
+.tl-d:hover{transform:translateY(-2px)}
+.tl-d.touch{background:rgba(255,197,61,.20);border-color:rgba(255,197,61,.36)}
+.tl-d.move{background:rgba(0,229,160,.30);border-color:rgba(0,229,160,.5)}
+.tl-d.launch{background:linear-gradient(180deg,#00E5A0,#00C48C);border-color:#00E5A0;
+  box-shadow:0 0 10px rgba(0,229,160,.5)}
+.tl-d.fut{background:rgba(255,255,255,.02);border-style:dashed}
+.tl-d.now{outline:2px solid rgba(167,139,255,.65);outline-offset:1px}
+.tl-d[data-n]::after{content:attr(data-n);position:absolute;inset:0;display:grid;place-items:center;
+  font:850 9px var(--sans);color:#04180d}
+.tl-d.touch[data-n]::after{color:#3a2c05}
+.tl-legend{display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin-top:11px;
+  font-size:10.5px;color:var(--t4);font-weight:700}
+.tl-legend span{display:flex;align-items:center;gap:5px}
+.tl-legend b{margin-left:auto;color:var(--t2);font-weight:850}
+.tl-k{width:11px;height:11px;border-radius:3px;display:block;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08)}
+.tl-k.move{background:rgba(0,229,160,.30);border-color:rgba(0,229,160,.5)}
+.tl-k.launch{background:#00E5A0;border-color:#00E5A0}
+.tl-k.touch{background:rgba(255,197,61,.20);border-color:rgba(255,197,61,.36)}
+</style>
+<!-- plub-design-system --><style>
+/* ══════════════════════════════════════════════════════════════════════
+   PLUB DESIGN SYSTEM — one copy, byte-identical in ub.html, pl.html and
+   index.html. If a value needs to change it changes HERE, in all three.
+   ══════════════════════════════════════════════════════════════════════ */
+:root,[data-theme="dark"],[data-theme="light"]{
+  /* ground + surfaces */
+  --bg:#030304!important; --surface:#0A0A0C!important;
+  --s1:#0A0A0C!important; --s2:#0F0F12!important; --s3:#17171B!important; --s4:#1E1E24!important;
+  --sidebar:#050507!important;
+  /* lines */
+  --b1:#1E1E24!important; --b2:#2A2A31!important; --b3:#3A3A43!important;
+  /* type — t4 is the quiet one; PL used to run it 12% brighter than UB */
+  --t1:#F5F5F8!important; --t2:#C6C7D0!important; --t3:#9698A4!important; --t4:#787A87!important;
+  /* accents */
+  --brand:#A78BFF!important; --brand-d:#171425!important; --brand-t:#C4B2FF!important;
+  --brand-b:rgba(167,139,255,.45)!important; --brand-h:#B9A3FF!important;
+  --accent:#A78BFF!important; --accent2:#22D3EE!important;
+  --green:#00E5A0!important; --gd:rgba(0,229,160,.14)!important; --gt:#5FFFC8!important; --gb:rgba(0,229,160,.45)!important;
+  --amber:#FFC53D!important; --ad:rgba(255,197,61,.14)!important; --at:#FFDC85!important; --ab:rgba(255,197,61,.45)!important;
+  --red:#FF5470!important;   --rd:rgba(255,84,112,.14)!important; --rt:#FF8FA3!important; --rb:rgba(255,84,112,.46)!important;
+  --blue:#3B9EFF!important;  --bd:rgba(59,158,255,.14)!important; --bt:#8CC8FF!important; --bb:rgba(59,158,255,.45)!important;
+  --purple:#A78BFF!important;--pd:rgba(167,139,255,.14)!important;--pt:#C4B2FF!important;--pb:rgba(167,139,255,.45)!important;
+  --cyan:#22D3EE!important;  --cd:rgba(34,211,238,.14)!important; --cb:rgba(34,211,238,.45)!important;
+  --orange:#FF8A3D!important;--od:rgba(255,138,61,.14)!important; --ob:rgba(255,138,61,.45)!important;
+  --pink:#FF5CC8!important;  --pkd:rgba(255,92,200,.14)!important;--pkb:rgba(255,92,200,.45)!important;
+  /* type stack */
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif!important;
+  --mono:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif!important;
+  /* ONE radius scale */
+  --r-sm:10px!important; --r-md:12px!important; --r-lg:14px!important; --r-xl:16px!important;
+  /* ONE depth scale — PL had none, so its cards sat flat against the page */
+  --sh-card:0 8px 24px rgba(0,0,0,.24)!important;
+  --sh-hover:0 14px 32px rgba(0,0,0,.40)!important;
+  --glow:0 0 0 3px rgba(124,92,255,.18)!important;
+  /* motion */
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+html{font-size:13px}
+
+/* ── CHROME: same bar, same rail, in both apps ───────────────────────── */
+.topbar,#appTopbar{height:44px!important;min-height:44px!important;padding:0 16px!important;
+  background:rgba(3,3,4,.92)!important;border-bottom:1px solid var(--b1)!important;
+  display:flex!important;align-items:center!important;gap:8px!important;backdrop-filter:blur(14px)!important}
+.sidebar.sb2{width:236px!important;background:var(--sidebar)!important;border-right:1px solid var(--b1)!important}
+body.sb-min .sidebar.sb2{width:64px!important}
+
+/* ── THE RAIL, IDENTICAL IN BOTH APPS ─────────────────────────────────
+   UB dressed every icon in its own tinted tile; PL did too, in different
+   hues. Six competing colours read as noise before they read as navigation.
+   Colour now marks the ACTIVE item only, in both apps. */
+.sb2 .sn-sec{padding:13px 8px 4px!important;font-size:9px!important;font-weight:800!important;
+  letter-spacing:1.5px!important;text-transform:uppercase!important;color:#5E5E6C!important}
+.sb2 .sn-sec::after{background:rgba(255,255,255,.06)!important}
+.sb2 .sn-nav{padding:4px 10px 6px!important;display:flex;flex-direction:column}
+.sb2 .sn-spacer{flex:1;min-height:10px}
+.sb2 .nav-item{padding:7px!important;margin-bottom:1px!important;border-radius:10px!important;
+  color:#9A9AA8!important;font-size:13px!important;font-weight:650!important}
+.sb2 .nav-item:hover{background:rgba(255,255,255,.045)!important;color:#F2F2F6!important}
+.sb2 .sn-ic{width:24px!important;height:24px!important;border-radius:7px!important;
+  background:transparent!important;color:#75757F!important}
+.sb2 .sn-ic svg{width:18px!important;height:18px!important}
+.sb2 .nav-item:hover .sn-ic{color:#C6C6D2!important}
+.sb2 .nav-item.active{color:#FFFFFF!important;font-weight:800!important;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--c) 20%,transparent),color-mix(in srgb,var(--c) 5%,transparent) 72%,transparent)!important}
+.sb2 .nav-item.active .sn-ic{background:color-mix(in srgb,var(--c) 20%,transparent)!important;color:var(--c)!important}
+.sb2 .nav-item.active::before{top:5px!important;bottom:5px!important;
+  box-shadow:0 0 12px color-mix(in srgb,var(--c) 65%,transparent)}
+.sb2 .nav-badge{font-size:9.5px!important;padding:2px 6px!important;background:rgba(255,255,255,.05)!important;
+  border-color:rgba(255,255,255,.09)!important;color:#8C8C99!important}
+.sb2 .nav-item.active .nav-badge{background:color-mix(in srgb,var(--c) 17%,transparent)!important;
+  border-color:color-mix(in srgb,var(--c) 40%,transparent)!important;color:var(--c)!important}
+.sb2 .sn-mark{background:linear-gradient(135deg,#7C5CFF,#A78BFF)!important}
+.sb2 .sn-av{background:linear-gradient(135deg,#7C5CFF,#A78BFF)!important;border-radius:8px!important}
+.sb2 .sn-foot{border-top:1px solid rgba(255,255,255,.06)!important}
+body.sb-min .sb2 .sn-spacer{display:none}
+
+/* ── PRIMITIVES ──────────────────────────────────────────────────────── */
+.btn,.pl-action-btn,.ac2-btn,.tk-type{height:30px;padding:0 12px;border-radius:var(--r-sm)!important;
+  font:700 12px var(--sans)!important;background:var(--s3)!important;border:1px solid var(--b2)!important;
+  color:var(--t1)!important;cursor:pointer;transition:all .14s var(--ease)}
+.btn:hover,.pl-action-btn:hover,.ac2-btn:hover{border-color:var(--b3)!important;background:var(--s4)!important}
+/* ONE primary button. PL used a purple->cyan gradient with black text; UB used solid
+   purple with white. Two different products in one glance — now they are the same. */
+.btn.primary,.btn-primary,.btn.pri,.btn-pri,.imp-btn.primary,.tb-add,.pl-action-btn.primary,
+.pl-task-save,.pl-footer-advance,.prod-advance,.ac2-btn.pri{
+  background:linear-gradient(180deg,#7C5CFF,#6742F5)!important;
+  border:1px solid rgba(167,139,255,.55)!important;color:#FFFFFF!important;
+  font-weight:850!important;border-radius:var(--r-sm)!important;
+  box-shadow:0 3px 14px rgba(124,92,255,.34)!important;text-shadow:none!important}
+.btn.primary:hover,.btn-pri:hover,.tb-add:hover,.pl-action-btn.primary:hover,
+.pl-task-save:hover,.pl-footer-advance:hover,.prod-advance:hover{filter:brightness(1.12)}
+.btn.sm,.btn-sm{height:26px!important;padding:0 9px!important;font-size:11px!important}
+.btn.lg{height:36px!important;padding:0 16px!important;font-size:13px!important}
+
+/* eyebrows: flat muted caps in both apps. PL's gradient-clipped text was the single
+   most obvious "different app" tell on every page header. */
+.eyebrow,.page-eyebrow,.pl-eyebrow,.ac2-eyebrow,.p-eyebrow{
+  font:850 9.5px var(--sans)!important;letter-spacing:1.6px!important;text-transform:uppercase!important;
+  background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;
+  color:var(--t4)!important}
+.page-title,.p-title{font-size:21px!important;font-weight:850!important;letter-spacing:-.6px!important;color:var(--t1)!important}
+.page-sub,.p-sub{font-size:12px!important;color:var(--t3)!important}
+.page-hd,.page-head{margin-bottom:12px!important;padding-bottom:10px!important;border-color:var(--b1)!important}
+
+input,select,textarea{font-family:var(--sans)!important;background:var(--s2)!important;
+  border:1px solid var(--b2)!important;color:var(--t1)!important;border-radius:var(--r-sm)!important}
+input:focus,select:focus,textarea:focus{outline:0!important;border-color:var(--brand)!important;box-shadow:var(--glow)!important}
+
+/* ── SHARED COMPONENTS ────────────────────────────────────────────────
+   Used by the Overview AND by each app's Action Centre, so switching tabs
+   shows the same stat card, the same target bar and the same ranked queue
+   rather than three dialects of the same idea. */
+.ov-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:9px;margin-bottom:11px}
+.ov-stat{display:flex;gap:11px;align-items:center;border:1px solid var(--b1);border-radius:var(--r-md);
+  padding:11px 13px;background:var(--s1);box-shadow:var(--sh-card)}
+.ov-si{flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:var(--c);
+  background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 34%,transparent)}
+.ov-si svg{width:17px;height:17px}
+.ov-stat b{display:block;font-size:21px;font-weight:850;color:var(--t1);line-height:1.05;letter-spacing:-.7px;font-variant-numeric:tabular-nums}
+.ov-sl{display:block;font-size:11px;font-weight:800;color:var(--t2);margin-top:2px}
+.ov-ss{display:block;font-size:10px;color:var(--t4);margin-top:1px}
+.ov-card{border:1px solid var(--b1);border-radius:var(--r-lg);background:var(--s1);
+  box-shadow:var(--sh-card);margin-bottom:11px;overflow:hidden}
+.ov-card-h{display:flex;align-items:baseline;gap:10px;padding:13px 16px 11px;border-bottom:1px solid var(--b1)}
+.ov-card-h h3{margin:0;font-size:14px;font-weight:850;color:var(--t1);letter-spacing:-.2px}
+.ov-card-s{font-size:11px;color:var(--t4);margin-left:auto}
+.ov-ts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;padding:14px 16px}
+.ov-t-h{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.ov-t-h span{font-size:11px;font-weight:750;color:var(--t3)}
+.ov-t-h b{font-size:14px;font-weight:850;color:var(--t1);font-variant-numeric:tabular-nums}
+.ov-t-h b i{font-style:normal;font-size:11px;font-weight:700;color:var(--t4)}
+.ov-t-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.07);position:relative;overflow:hidden}
+.ov-t-bar em{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--c);transition:width .35s var(--ease)}
+.ov-t-bar em.hit{background:#00E5A0} .ov-t-bar em.lag{background:#FFC53D}
+.ov-t-bar u{position:absolute;top:-3px;width:2px;height:12px;background:rgba(255,255,255,.5);border-radius:2px}
+.ov-t-n{margin-top:5px;font-size:10px;font-weight:700;color:var(--t4)}
+.ov-tw{overflow-x:auto}
+.ov-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.ov-tbl th{text-align:left;font:800 9.5px var(--sans);letter-spacing:.9px;text-transform:uppercase;
+  color:var(--t4);padding:9px 14px;border-bottom:1px solid var(--b1);white-space:nowrap}
+.ov-tbl td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.045);vertical-align:middle}
+.ov-tbl tbody tr{cursor:pointer;transition:background .13s var(--ease)}
+.ov-tbl tbody tr:hover{background:rgba(255,255,255,.028)}
+.ov-tbl tbody tr:last-child td{border-bottom:0}
+.ov-tbl b{color:var(--t1);font-weight:800}
+.ov-p{display:inline-block;font:900 9px var(--sans);letter-spacing:.8px;padding:3px 8px;border-radius:99px}
+.ov-p.high{background:rgba(255,84,112,.15);border:1px solid rgba(255,84,112,.42);color:#FF93A6}
+.ov-p.med{background:rgba(255,197,61,.14);border:1px solid rgba(255,197,61,.4);color:#FFD066}
+.ov-p.low{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--t4)}
+.ov-na{color:var(--t3);font-size:11.5px;max-width:340px}
+.ov-age{color:var(--t4);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ov-go{border:1px solid rgba(167,139,255,.4);background:rgba(124,92,255,.13);color:#C9B8FF;
+  font:800 11px var(--sans);padding:5px 11px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all .14s var(--ease)}
+.ov-go:hover{background:rgba(124,92,255,.28);color:#fff}
+.ov-more{padding:9px 14px;font-size:11px;color:var(--t4);border-top:1px solid var(--b1)}
+.ov-blank{padding:26px 16px;text-align:center;color:var(--t4);font-size:12px}
+
+/* ── FINISH ──────────────────────────────────────────────────────────── */
+*{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+::selection{background:rgba(167,139,255,.30);color:#fff}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);border-radius:99px;border:2px solid transparent;background-clip:content-box}
+*::-webkit-scrollbar-thumb:hover{background:rgba(167,139,255,.42);background-clip:content-box}
+button,.btn,[onclick]{transition:background .14s var(--ease),border-color .14s var(--ease),color .14s var(--ease),box-shadow .14s var(--ease),transform .1s var(--ease)}
+button:active,.btn:active{transform:translateY(.5px)}
+button[disabled],.btn[disabled],input[disabled],select[disabled]{opacity:.42!important;cursor:not-allowed!important;filter:grayscale(.35)}
+.empty,.pl-tab-empty,.ac2-empty,.pl-zero{border:1px dashed rgba(255,255,255,.10)!important;border-radius:var(--r-lg)!important;
+  background:rgba(255,255,255,.015)!important;color:var(--t4)!important}
+
+/* ── the stacked strips that ate the top of every page ────────────────
+   A page opened with: top bar, then a full-width "NOTES & DECISIONS" bar,
+   then the page header. Three strips before any content. The notes bar is
+   now a quiet inline row, not a slab. */
+.page-notes{border:1px solid var(--b1)!important;border-radius:var(--r-sm)!important;
+  background:transparent!important;margin:0 0 10px!important}
+.page-notes>summary{padding:6px 11px!important;font:750 10.5px var(--sans)!important;
+  letter-spacing:.9px!important;text-transform:uppercase!important;color:var(--t4)!important;
+  list-style:none!important;cursor:pointer}
+.page-notes>summary:hover{color:var(--t2)!important}
+.page-notes[open]>summary{border-bottom:1px solid var(--b1)!important}
 </style>
 </body>
 </html>

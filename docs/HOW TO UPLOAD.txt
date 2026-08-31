@@ -1,0 +1,11 @@
+PLUB v0.75
+
+GitHub Pages only serves the "docs" folder.
+
+  1. On GitHub, click INTO  docs  first.
+  2. Add file -> Upload files.
+  3. Drag in the THREE .html files from THIS folder (not the folder itself).
+  4. Commit.
+  5. Delete the stray  PLUB-2026-08-31  folder in the repo root.
+
+End state:  docs/index.html   docs/ub.html   docs/pl.html   docs/README.md
