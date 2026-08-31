@@ -289,3 +289,40 @@ Add Idea modal got a colour pass too: gradient header rule, brand-lit active tab
 - **PL Pipeline board full re-skin**: columns tinted with their stage colour (header, count pill, border), cards score-tinted with a chip score and a coloured *Next ·* prefix, and **empty stages collapse to slim colour-coded rails** — five empty columns no longer eat the screen. Same on the combined Belt board, where columns are also width-capped so one busy stage can't stretch cards across the whole page.
 - PL page headers slimmed (title, eyebrow, notes bar, tab pills) — the content starts where the header used to still be warming up.
 
+## v0.4 — 30 Aug · boards fill the page, ideas cards in colour
+
+- **No more void.** On both pipeline boards (PL and Belt), occupied stages take the full width and **cards wrap into a grid inside the column** — eight products show three-across instead of one stretched column beside a wall of black. Empty stages stay as slim rails.
+- **Ideas cards join the colour language**: band-coloured spine, top edge and background tint (green 70%+ → amber → orange → red), matching the pipeline and source cards. The whole Ideas page now reads by colour before you read a single word.
+
+### Pipeline page preamble cut
+
+Four rows of furniture stood between you and the board. Now it's: **title → KPI chips → sort row → board.**
+- The *"PIPELINE BOARD · Active product flow · click a stage…"* banner is gone — it explained a board you were already looking at. Its one useful part, the **Dropped archive** button, moved up beside the sort control.
+- The stage strip under it is gone — it repeated the column headers word for word.
+- The page header is one line; the eyebrow and subtitle retired.
+
+### Audit pass — the pages the colour language hadn't reached
+
+- **P&L and PL Forecast money tiles** restyled to the house style: colour spine, tinted card, the number in its own colour (net green · revenue blue · gross amber · PPC red · units purple).
+- **PL Forecast's "What this is for" lecture removed** — three onboarding cards you'd read a hundred times, gone; the numbers start at the top.
+- **UB's Pipeline board caught up with PL's**: empty stages collapse to slim rails, occupied stages fill the width with cards wrapping in a grid — and a genuinely empty belt now shows one clear "score an idea green and hit → Sourcing" panel instead of five rails around nothing.
+
+### Belt: the combined movement line · PL Settings: monthly targets card
+
+- The Belt tab now answers "is the whole operation moving?" — under the combined rings sits a weekly movement verdict across BOTH trackers: *"✓ Both belts moving — 6 entered · 2 moved forward this week (UB 0·0 / PL 6·2)"* with entered / moved forward / launched / stuck / untouched-7d counts.
+- **PL Settings → Monthly KPIs**: the three ring targets (ideas added · into the Pipeline · launched) now live on the Settings page next to the weekly card, not just in the popup editor. Saving updates the Action Centre rings and the Belt's combined rings.
+
+## v0.45 — 31 Aug · pipeline health: no stage should ever be empty
+
+A launch target on its own hides a dying pipeline — you can launch this month with nothing behind it and only find out eight weeks later. So both apps now track **minimum occupancy per stage**.
+
+- **Health strip on both Action Centres**: every stage as a cell with its count, coloured green (healthy) / amber (below minimum or empty) / red (empty past the alarm window), and a one-line verdict — *"✓ Every stage populated — launches are coming"* or *"⚠ A stage has been empty a week"*. Click any cell to jump to the board.
+- **An empty stage becomes an action.** Empty → amber nudge. Empty for **7 days** → red, top of the Action Centre, with what it costs you: *"this is a launch you will miss in N weeks' time."*
+- **Board columns carry the badge too** — "empty 3d" or "below min (2)".
+- **Editable in Settings.** UB: *Pipeline stages* → minimum per stage, ideal per stage, alarm window. PL: *General* → **Minimum products per stage**, showing each stage's live count beside its floor.
+
+Defaults are Jack's numbers: **UB 1 per stage** (ideal 2). **PL 1 per stage, except Samples 2** — samples fail, arrive late and need reordering, so one is not cover.
+
+### Sidebar
+Nav tooltips only appear on the collapsed rail now. With the sidebar open the label is already there, and the native tooltip was floating a grey box over the item below it.
+

@@ -1953,6 +1953,63 @@ body.sb-min .sb2 .sn-mark{width:28px;height:28px}
 #roBanner{position:fixed;top:0;left:0;right:0;z-index:999;background:#241b04;border-bottom:1px solid var(--ab);color:var(--at);padding:6px 14px;font-size:11.5px;text-align:center;line-height:1.4;backdrop-filter:none}
 #roBanner button{margin-left:8px;color:#FFDC85;font-weight:800;text-decoration:underline;font-size:11.5px}
 body:has(#roBanner) .topbar{margin-top:30px}
+
+/* empty stages step aside here too */
+.col.slim{display:flex;flex-direction:column;align-items:center;gap:8px;padding:9px 0;min-height:120px;
+  background:transparent;border-style:dashed;opacity:.6}
+.col.slim b{writing-mode:vertical-rl;font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--t4)}
+.col.slim .slim-c{font-size:9.5px;font-weight:800;color:var(--t4);background:var(--s2);border:1px solid var(--b1);border-radius:99px;padding:1px 6px}
+.col:not(.slim) .col-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:7px;align-content:start}
+.col:not(.slim) .col-body>*{margin-bottom:0!important}
+
+.board-empty{border:1px dashed var(--b2);border-radius:14px;padding:34px 20px;text-align:center;max-width:520px;margin:10px auto}
+.board-empty b{display:block;font-size:14px;font-weight:800;margin-bottom:6px}
+.board-empty span{font-size:12px;color:var(--t3);line-height:1.6}
+.board-empty u{color:var(--accent2,#22D3EE);cursor:pointer;text-decoration:underline}
+
+/* pipeline health strip — is every stage populated? */
+
+/* ── workload verdict: hours read against what the pipeline actually needed ── */
+.wkld{border-radius:12px;padding:12px 15px;margin:10px 0 0;border:1px solid;display:flex;gap:15px;align-items:center;flex-wrap:wrap}
+.wkld.ok{background:rgba(0,229,160,.05);border-color:rgba(0,229,160,.28)}
+.wkld.warn{background:rgba(255,197,61,.05);border-color:rgba(255,197,61,.33)}
+.wkld.bad{background:rgba(255,84,112,.06);border-color:rgba(255,84,112,.4)}
+.wk-v{flex:1;min-width:250px;font-size:13px;font-weight:750;line-height:1.45}
+.wkld.ok .wk-v{color:#4ADE80} .wkld.warn .wk-v{color:#FFC53D} .wkld.bad .wk-v{color:#FF7A90}
+.wk-v small{display:block;font-size:11.5px;font-weight:600;color:var(--t3);margin-top:4px;line-height:1.5}
+.wk-mode{font-size:9px;font-weight:900;letter-spacing:1.1px;text-transform:uppercase;padding:5px 10px;border-radius:99px;white-space:nowrap;
+  border:1px solid var(--b2);background:var(--s1);color:var(--t3);align-self:flex-start}
+.wk-mode.source{border-color:rgba(167,139,255,.5);background:rgba(167,139,255,.14);color:#C9B8FF}
+.wk-mode.pipeline{border-color:rgba(34,211,238,.5);background:rgba(34,211,238,.13);color:#7DE4F5}
+.wk-cells{display:flex;gap:6px;flex-wrap:wrap}
+.wk-cell{min-width:58px;text-align:center;border-radius:9px;padding:6px 9px;background:var(--s1);border:1px solid var(--b1)}
+.wk-cell b{display:block;font-size:16px;font-weight:850;color:var(--t1);line-height:1.15;font-variant-numeric:tabular-nums}
+.wk-cell span{display:block;font-size:8.5px;font-weight:850;letter-spacing:.5px;text-transform:uppercase;color:var(--t4);margin-top:2px}
+.wk-cell.wait b{color:#7DE4F5} .wk-cell.hot b{color:#FFC53D} .wk-cell.go b{color:#4ADE80}
+.wk-hrs{display:flex;flex-direction:column;gap:3px;min-width:118px}
+.wk-hrs b{font-size:18px;font-weight:850;color:var(--t1);line-height:1;font-variant-numeric:tabular-nums}
+.wk-hrs b i{font-style:normal;font-size:11.5px;font-weight:700;color:var(--t4)}
+.wk-hrs span{font-size:9px;font-weight:850;letter-spacing:.9px;text-transform:uppercase;color:var(--t4)}
+.wk-hrs em{display:block;height:6px;border-radius:99px;background:rgba(255,255,255,.08);position:relative;overflow:hidden;margin-top:2px}
+.wk-hrs em u{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:linear-gradient(90deg,#22D3EE,#7DE4F5)}
+.wk-hrs em u.hit{background:linear-gradient(90deg,#00C48C,#00E5A0)} .wk-hrs em u.lag{background:linear-gradient(90deg,#E8A317,#FFC53D)}
+.phz{border-radius:12px;padding:10px 13px;margin:10px 0 0;border:1px solid}
+.phz.ok{background:rgba(0,229,160,.05);border-color:rgba(0,229,160,.28)}
+.phz.warn{background:rgba(255,197,61,.05);border-color:rgba(255,197,61,.32)}
+.phz.alarm{background:rgba(255,84,112,.06);border-color:rgba(255,84,112,.4)}
+.phz-t{font-size:12px;font-weight:800;margin-bottom:8px;display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.phz.ok .phz-t{color:#4ADE80} .phz.warn .phz-t{color:#FFC53D} .phz.alarm .phz-t{color:#FF7A90}
+.phz-t span{font-weight:600;font-size:10px;color:var(--t4);margin-left:auto}
+.phz-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px}
+.phz-cell{background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:7px 9px;cursor:pointer;transition:border-color .14s}
+.phz-cell:hover{border-color:var(--b3)}
+.phz-cell b{display:block;font-size:17px;font-weight:850;line-height:1;color:var(--t1);font-variant-numeric:tabular-nums}
+.phz-cell span{display:block;font-size:9px;color:var(--t4);margin-top:3px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.phz-cell i{display:block;font-style:normal;font-size:8.5px;font-weight:800;margin-top:2px}
+.phz-cell.ok b{color:#4ADE80}
+.phz-cell.low{border-color:rgba(255,197,61,.4)} .phz-cell.low b,.phz-cell.low i{color:#FFC53D}
+.phz-cell.empty{border-color:rgba(255,197,61,.5);background:rgba(255,197,61,.07)} .phz-cell.empty b,.phz-cell.empty i{color:#FFC53D}
+.phz-cell.alarm{border-color:rgba(255,84,112,.55);background:rgba(255,84,112,.09)} .phz-cell.alarm b,.phz-cell.alarm i{color:#FF7A90}
 </style>
 </head>
 <body>
@@ -1962,7 +2019,7 @@ body:has(#roBanner) .topbar{margin-top:30px}
   <aside class="sidebar sb2">
     <div class="sn-brand">
       <div class="sn-mark" onclick="if(document.body.classList.contains('sb-min'))toggleSidebar()" title="Expand the sidebar" style="cursor:pointer"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="8" rx="2.5" fill="#030304" opacity=".85"/><rect x="5.5" y="7" width="13" height="6" rx="2" fill="#030304" opacity=".55"/><rect x="8" y="3.5" width="8" height="5" rx="1.8" fill="#030304" opacity=".35"/></svg></div>
-      <div class="sn-brand-t"><div class="sn-name" id="sbName">Unique Bundles</div><div class="sn-sub">Sourcing tracker · <i data-ver>v0.35</i></div></div>
+      <div class="sn-brand-t"><div class="sn-name" id="sbName">Unique Bundles</div><div class="sn-sub">Sourcing tracker · <i data-ver>v0.45</i></div></div>
       <button class="sn-toggle" title="Collapse the sidebar" onclick="toggleSidebar()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5L5.5 8 10 12.5"/></svg></button>
     </div>
     <nav class="sn-nav">
@@ -2014,8 +2071,8 @@ body:has(#roBanner) .topbar{margin-top:30px}
       <div class="xtabs" id="xtabs" style="display:none">
         <button class="xt on" onclick="try{parent.show('ub')}catch(e){}">UB</button>
         <button class="xt" onclick="try{parent.show('pl')}catch(e){}">PL</button>
-        <button class="xt" onclick="try{parent.show('pipe')}catch(e){}">Belt</button>
-        <span class="xver" data-ver>v0.35</span>
+        <button class="xt" onclick="try{parent.show('pipe')}catch(e){}">Overview</button>
+        <span class="xver" data-ver>v0.45</span>
       </div>
       <div class="tb-search">
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
@@ -2023,7 +2080,7 @@ body:has(#roBanner) .topbar{margin-top:30px}
         <span class="tb-kbd">/</span>
       </div>
       <div class="tb-spacer"></div>
-      <span class="tb-saved" id="saveChip" style="cursor:pointer" title="Everything is saved in this browser automatically — click to download a backup file" onclick="exportData()"><span class="dot"></span><b data-ver>v0.35</b> · saves locally</span>
+      <span class="tb-saved" id="saveChip" style="cursor:pointer" title="Everything is saved in this browser automatically — click to download a backup file" onclick="exportData()"><span class="dot"></span><b data-ver>v0.45</b> · saves locally</span>
       <button class="btn" id="sessBtn" title="Time your sourcing — counts the ideas and reviews you do while it runs" onclick="toggleSession()">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5"/></svg>
         Start session
@@ -3654,6 +3711,8 @@ const SETTINGS = {
     {id:'sourced',  label:'Products sourced',  target:6,  period:'auto', pane:'pipeline', on:false},
   ],
   ageing: { sourcing:7, jack_validation:3, prepare_to_launch:10, buy_receive:28, live:0 },
+  minStage: { sourcing:1, jack_validation:1, prepare_to_launch:1, buy_receive:1, live:1 },
+  idealStage: 2, emptyAlarmDays: 7,
   jackBottleneck: 3,
   queue: { overdueDays:10, snoozeDays:7, storefrontDays:30, seasonSoonDays:21, sourceWip:6, backlogBig:10 },
   weekly: { hours:16, ideas:10, validated:8 },   // legacy — replaced by the monthly hours target
@@ -3676,7 +3735,7 @@ const bandFor = s => SETTINGS.bands.slice().sort((a,b)=>b.min-a.min).find(b => s
 const linkFor = (key, asin) => SETTINGS.linkTemplates.find(l=>l.key===key).tpl.replace('{asin}', asin);
 
 // ── THE VERSION PEOPLE SEE. Bump by 0.05 every release. ──
-const APP_VER = '0.35';
+const APP_VER = '0.45';
 function paintVersion(){ document.querySelectorAll('[data-ver]').forEach(e=>{ e.textContent = 'v'+APP_VER; }); }
 const STAGES = [
   {key:'sourcing', name:'Sourcing', desc:'Can every component be acquired at a viable cost? Starts the moment it leaves ranking.'},
@@ -3699,6 +3758,140 @@ const TICK_ALIAS = {
   'FBA shipment created'            : 'FBA shipment created & sent',
 };
 const stageIdx = k => STAGES.findIndex(s=>s.key===k);
+/* ══ PIPELINE HEALTH ══
+   A launch target alone hides a dying pipeline: you can launch this month with nothing behind it
+   and only find out eight weeks later. So every stage carries a minimum, and a stage that empties
+   starts a clock. Empty for the alarm window = the loudest thing on the Action Centre. */
+function minFor(key){ const m=SETTINGS.minStage||{}; return typeof m[key]==='number' ? m[key] : 1; }
+function stageEmptyMap(){ if(!SETTINGS.stageEmpty) SETTINGS.stageEmpty={}; return SETTINGS.stageEmpty; }
+function touchStageEmptiness(){
+  const map=stageEmptyMap(); let changed=false;
+  STAGES.forEach(s=>{
+    const n=pipeline.filter(p=>p.stage===s.key).length;
+    if(n===0 && !map[s.key]){ map[s.key]=new Date().toISOString(); changed=true; }
+    else if(n>0 && map[s.key]){ delete map[s.key]; changed=true; }
+  });
+  return changed;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  WORKLOAD-AWARE SOURCING VERDICT
+//  The hours target is hard. The judgement is not. A week spent getting
+//  five products through listings and images is a good week even with
+//  little fresh sourcing — and 32 hours with nothing moving is a bad one.
+//  So: measure what the pipeline needed, then read the hours against it.
+// ══════════════════════════════════════════════════════════════════════
+function weekStartMs(ref){ const d = ref? new Date(ref) : new Date(TODAY);
+  d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d.getTime(); }
+function weekFrac(){ const n=new Date(), dow=(n.getDay()+6)%7;
+  return Math.max(0.02, Math.min(1,(dow + (n.getHours()*60+n.getMinutes())/1440)/7)); }
+function weekMins(){ const log=initSessionLog(), ws=weekStartMs();
+  let m=log.filter(x=>new Date(x.date).getTime()>=ws).reduce((t,x)=>t+(x.mins||0),0);
+  if(session && session.start>=ws) m += Math.max(0, Math.round((Date.now()-session.start)/60000));
+  return m; }
+function weekHoursTarget(){
+  // the monthly figure is the contract; the week is that figure spread evenly
+  const k = SETTINGS.kpis.find(x=>x.id==='hours');
+  const t = k? (k.target||0) : 32;
+  return Math.round(t/4.345*10)/10;
+}
+function fmtHrs(h){ if(h<=0) return '0h'; const m=Math.round(h*60);
+  return m<60 ? m+'m' : (m%60===0 ? (m/60)+'h' : Math.floor(m/60)+'h '+(m%60)+'m'); }
+
+function ubWorkload(){
+  const ws = weekStartMs(), now = TODAY.getTime();
+  const act = pipeline.filter(p=>p.stage!=='live' || !p._launched);
+  let waiting=0, needsUs=0;
+  act.forEach(p=>{ if(p.waiting && !waitExpired(p)) waiting++; else needsUs++; });
+  const inWk = iso => { const t = iso? new Date(iso).getTime() : 0; return isFinite(t) && t>=ws; };
+  const moved   = EVENTS.filter(e=>e.type==='stage'    && inWk(e.at)).length;
+  const entered = EVENTS.filter(e=>e.type==='moved'    && inWk(e.at)).length;
+  const launched= EVENTS.filter(e=>e.type==='launches' && inWk(e.at)).length;
+  const ideasIn = EVENTS.filter(e=>e.type==='ideas'    && inWk(e.at)).length;
+  const touched = act.filter(p=>(p.hist||[]).some(h=>h && h[3] && inWk(h[3]))).length;
+  const H = stageHealth(), emptyRows = H.filter(h=>h.count===0), empties = emptyRows.length;
+  const emptyNames = emptyRows.map(h=>h.name);
+  // An empty stage at the top means nothing is entering — source. An empty stage further
+  // down means products exist and are not being pushed — that is pipeline work.
+  const topThin = H[0].count===0 || H[0].count<H[0].min || (H[1] && H[1].count===0);
+  const downEmpty = H.slice(2).some(h=>h.count===0);
+  const mode = (topThin || needsUs<=1) ? 'source'
+             : (needsUs>=4 || downEmpty) ? 'pipeline' : 'balanced';
+  return {active:act.length, waiting, needsUs, moved, entered, launched, ideasIn, touched,
+          untouched:Math.max(0,act.length-touched), empties, emptyNames, mode};
+}
+
+function ubVerdict(){
+  const w = ubWorkload(), hrs = weekMins()/60, tgt = weekHoursTarget();
+  const exp = tgt*weekFrac(), onHours = tgt<=0 || hrs>=exp*0.85;
+  const moving = w.moved>0 || w.launched>0;
+  const H = fmtHrs(hrs), T = fmtHrs(tgt);
+  let tone, line, sub;
+  if(!onHours && !moving && w.touched===0){
+    tone='bad';
+    line=`⚠ ${H} sourced of ${T} this week and nothing has moved.`;
+    sub='No product advanced a stage and nothing was touched. If nobody sources and nothing progresses, there are no launches in three months\u2019 time — this is the week that decides that.';
+  } else if(!onHours && !moving){
+    tone='bad';
+    line=`⚠ ${H} of ${T} — and no product moved forward.`;
+    sub=`${w.touched} product${w.touched===1?' was':'s were'} touched but none advanced a stage. Notes are not movement.`;
+  } else if(!onHours && moving && w.mode==='pipeline'){
+    tone='ok';
+    line=`✓ Behind on hours (${H} of ${T}) — but ${w.moved+w.launched} moved forward.`;
+    sub=`${w.needsUs} products needed real work this week — listings, images, prep. Progressing them was the right call; the hours target gives way to pipeline work by design.`;
+  } else if(!onHours && moving && w.mode==='source'){
+    tone='warn';
+    line=`⚠ ${w.moved} moved — but the pipeline is thinning and sourcing is behind (${H} of ${T}).`;
+    sub=`${w.empties? w.empties+' stage'+(w.empties===1?' is':'s are')+' empty. ':''}There is little left to progress, so hours matter again. Feed the top of the belt.`;
+  } else if(!onHours && moving){
+    tone='warn';
+    line=`○ ${H} of ${T} — ${w.moved} moved forward. Behind on hours, but moving.`;
+    sub=`${fmtHrs(Math.max(0,exp-hrs))} behind where today should be. Weeks vary — the month is the real judge.`;
+  } else if(onHours && !moving){
+    tone='warn';
+    line=`○ ${H} sourced — but nothing progressed a stage.`;
+    sub='Hours are not the point. A full week of sourcing with nothing moving is worth less than a short week where four products advanced.';
+  } else if(w.empties>=2){
+    tone='warn';
+    line=`○ ${H} sourced and ${w.moved+w.launched} moved — but ${w.empties} stages are empty.`;
+    sub = (w.mode==='source'
+      ? 'Nothing is reaching '+(w.emptyNames[0]||'the top of the belt')+'. Good week, wrong end — feed it.'
+      : 'Products are sitting upstream and not being pushed into '+(w.emptyNames[0]||'the empty stages')+'. ')
+      + ' Empty: '+w.emptyNames.join(', ')+'. Each one is a launch that will not arrive about three months from now.';
+  } else {
+    tone='ok';
+    line=`✓ ${H} sourced and ${w.moved+w.launched} moved forward.`;
+    sub='Hours on target and the belt is moving — this is what scaling looks like.'
+      + (w.waiting? ` ${w.waiting} waiting on somebody else, which is fine — that part is done.` : '');
+  }
+  return {tone, line, sub, mode:w.mode, w, hrs, tgt, exp, onHours};
+}
+
+function ubWorkloadBox(){
+  const v = ubVerdict(), w = v.w;
+  const cell=(val,lab,c)=>`<div class="wk-cell${c?' '+c:''}"><b>${val}</b><span>${lab}</span></div>`;
+  const modeLab = v.mode==='source' ? 'Source more' : v.mode==='pipeline' ? 'Pipeline first' : 'Balanced';
+  const pct = v.tgt>0 ? Math.min(100, v.hrs/v.tgt*100) : 100;
+  const cls = v.hrs>=v.tgt ? 'hit' : (v.hrs>=v.exp*0.85 ? '' : 'lag');
+  return `<div class="wkld ${v.tone}">
+    <div class="wk-hrs"><span>Sourcing · this week</span><b>${fmtHrs(v.hrs)}<i> / ${fmtHrs(v.tgt)}</i></b>
+      <em><u class="${cls}" style="width:${pct.toFixed(1)}%"></u></em></div>
+    <div class="wk-v">${v.line}<small>${v.sub}</small></div>
+    <span class="wk-mode ${v.mode}">${modeLab}</span>
+    <div class="wk-cells">${cell(w.ideasIn,'ideas in')}${cell(w.entered,'entered')}${cell(w.moved,'moved',w.moved?'go':'')}${cell(w.launched,'launched',w.launched?'go':'')}${cell(w.needsUs,'need us')}${cell(w.waiting,'waiting',w.waiting?'wait':'')}${cell(w.empties,'stages empty',w.empties?'hot':'')}</div>
+  </div>`;
+}
+function stageHealth(){
+  touchStageEmptiness();
+  const map=stageEmptyMap();
+  return STAGES.map(s=>{
+    const count=pipeline.filter(p=>p.stage===s.key).length, min=minFor(s.key);
+    const since=map[s.key]? new Date(map[s.key]) : null;
+    const emptyDays=since? Math.max(0,Math.floor((TODAY-since)/86400000)) : 0;
+    return {key:s.key, name:s.name, count, min, emptyDays,
+            state: count===0 ? (emptyDays>=(SETTINGS.emptyAlarmDays||7)?'alarm':'empty') : count<min ? 'low' : 'ok'};
+  });
+}
 const stageName = k => STAGES[stageIdx(k)].name;
 
 /* ════════════════════════════════════════════
@@ -4108,6 +4301,16 @@ function buildActions(){
   if(jq.length){ const oldest = Math.max(...jq.map(p=>daysIn(p.entered)));
     const bottleneck = jq.length >= SETTINGS.jackBottleneck;
     acts.push({pri:'purple', t:`${jq.length} product${jq.length>1?'s':''} need${jq.length>1?'':'s'} Jack's answer${bottleneck?' — chase him':''}`, m:`Oldest waiting ${oldest} days${bottleneck?' · queue building, clear decisions to keep the pipeline flowing':''}`, go:()=>{pipeFilter='jack';nav('pipeline')}, btn:'Open queue'}); }
+  // pipeline health — an empty stage is a future month with no launches in it
+  stageHealth().forEach(h=>{
+    if(h.state==='alarm') acts.push({pri:'red', t:`${h.name} has been empty ${h.emptyDays} days`,
+      m:`Nothing is in ${h.name}. Every stage feeds the next — this is a launch you will miss in ${Math.max(1,Math.round((SETTINGS.ageing[h.key]||7)/7))} weeks' time.`,
+      go:()=>nav('pipeline'), btn:'Open pipeline'});
+    else if(h.state==='empty') acts.push({pri:'amber', t:`${h.name} is empty`,
+      m:`Minimum is ${h.min}. Move something in before it stalls the stages behind it.`, go:()=>nav('pipeline'), btn:'Open pipeline'});
+    else if(h.state==='low') acts.push({pri:'blue', t:`${h.name} is below minimum — ${h.count} of ${h.min}`,
+      m:`Ideal is ${SETTINGS.idealStage||2} per stage so one stall doesn't empty the belt.`, go:()=>nav('pipeline'), btn:'Open pipeline'});
+  });
   // 4. overdue in stage
   const overdueProds = pipeline.filter(p=>isOver(p) && p.stage!=='jack_validation' && !waitExpired(p));
   if(overdueProds.length > 3){
@@ -4287,7 +4490,16 @@ function renderAction(){ saveState();
           <div class="pace-bar"><div class="pace-fill" style="width:${Math.round(mp.pace*100)}%"></div></div>
           <div class="pace-text"><b>${mp.label}</b> · day ${mp.day} of ${mp.days}${mp.partial?` since you started on ${mp.fromLabel} · targets scaled to a part month`:''} · ${Math.round(mp.pace*100)}% through · <span class="${behind&&started?'pace-bad':'pace-ok'}">${summary}</span></div>
         </div>
+        ${(()=>{ try{ return ubWorkloadBox(); }catch(e){ console.error('workload',e); return ''; } })()}
         <div class="kpi-row kpi-row-${activeKpis.length}">${activeKpis.map(kpiCard).join('')}</div>
+        ${(()=>{ const H=stageHealth(), bad=H.filter(h=>h.state!=='ok').length;
+          return `<div class="phz ${bad?(H.some(h=>h.state==='alarm')?'alarm':'warn'):'ok'}">
+            <div class="phz-t">${bad? (H.some(h=>h.state==='alarm')?'⚠ A stage has been empty a week':'⚠ '+bad+' stage'+(bad===1?'':'s')+' below minimum') : '✓ Every stage populated — launches are coming'}
+              <span>minimum ${minFor('sourcing')} per stage · ideal ${SETTINGS.idealStage||2}</span></div>
+            <div class="phz-row">${H.map(h=>`<div class="phz-cell ${h.state}" onclick="nav('pipeline')" title="${esc(h.name)} — ${h.count} of ${h.min} minimum${h.emptyDays?', empty '+h.emptyDays+' days':''}">
+              <b>${h.count}</b><span>${esc(h.name)}</span>${h.state==='alarm'?`<i>${h.emptyDays}d empty</i>`:h.state==='empty'?'<i>empty</i>':h.state==='low'?`<i>min ${h.min}</i>`:''}
+            </div>`).join('')}</div>
+          </div>`; })()}
         <div class="info-strip">
           <div class="info-cell"><div class="v">${info.ideasPerHour==null?'—':info.ideasPerHour}</div><div class="l">ideas per sourcing hour</div><div class="s">this month · information only</div></div>
           <div class="info-cell"><div class="v">${info.conversion==null?'—':info.conversion+'%'}</div><div class="l">idea → launch</div><div class="s">${info.launches90} of ${info.ideas90} ideas · last 90 days</div></div>
@@ -5581,10 +5793,14 @@ function renderPipeline(){ saveState();
         <div class="rq-stat" style="cursor:pointer" onclick="pipeFilter='jack';renderPipeline()"><span class="rq-s-v" style="color:var(--pt)">${jackN}</span><span class="rq-s-l">for Jack</span></div>
         <div class="rq-stat ${(over+wexp)?'is-bad':''}" style="cursor:pointer" onclick="pipeFilter='overdue';renderPipeline()"><span class="rq-s-v">${over+wexp}</span><span class="rq-s-l">overdue / late</span></div>
       </div>`; })()}
-    ${pipeView==='list'? pipeListBody(filt,qf,sev) : `<div class="board ${pipeDensity==='compact'?'compact':''}">
+    ${pipeView==='list'? pipeListBody(filt,qf,sev) : !pipeline.length? `<div class="board-empty">
+        <b>The belt is empty</b>
+        <span>Score an idea green in <u onclick="nav('ideas')">Ideas &amp; Ranking</u> and hit <b>→ Sourcing</b> — it lands here and starts moving through the five stages.</span>
+      </div>` : `<div class="board ${pipeDensity==='compact'?'compact':''}" style="grid-template-columns:${STAGES.map(s=>pipeline.some(p=>p.stage===s.key)?'minmax(210px,1fr)':'46px').join(' ')}">
       ${STAGES.map(s=>{
         const items = pipeline.filter(p=>p.stage===s.key && filt(p) && qf(p));
         const all = pipeline.filter(p=>p.stage===s.key);
+        if(!all.length) return `<div class="col slim st-${s.key}" title="${s.name} — empty · attention after ${SETTINGS.ageing[s.key]}d"><span class="slim-c">0</span><b>${s.name}</b></div>`;
         return `<div class="col st-${s.key}">
           <div class="col-head">
             <div class="col-title">${s.name}<span class="n">${all.length}</span><span class="col-th" title="Attention after ${SETTINGS.ageing[s.key]} days">⏱ ${SETTINGS.ageing[s.key]}d</span></div>
@@ -5593,6 +5809,10 @@ function renderPipeline(){ saveState();
               ${s.key==='sourcing' && all.length>SETTINGS.queue.sourceWip?`<span class="badge bg-amber"><span class="bd"></span>over WIP limit (${SETTINGS.queue.sourceWip})</span>`:''}
               ${all.filter(p=>p.waiting).length?`<span class="badge bg-amber"><span class="bd"></span>${all.filter(p=>p.waiting).length} waiting</span>`:''}
               ${all.filter(isOver).length?`<span class="badge bg-red"><span class="bd"></span>${all.filter(isOver).length} overdue</span>`:''}
+              ${(()=>{const h=stageHealth().find(x=>x.key===s.key);
+                if(!h||h.state==='ok') return '';
+                if(h.state==='low') return `<span class="badge bg-amber"><span class="bd"></span>below min (${h.min})</span>`;
+                return `<span class="badge ${h.state==='alarm'?'bg-red':'bg-amber'}"><span class="bd"></span>empty${h.emptyDays?' '+h.emptyDays+'d':''}</span>`;})()}
             </div>
           </div>
           <div class="col-body" ondragover="event.preventDefault()" ondrop="dropOnStage(pipeDrag,'${s.key}')">
@@ -6655,6 +6875,18 @@ function renderSettings(){ saveState();
         <div style="display:flex;gap:6px;align-items:center"><span class="td-sub">from</span><input class="set-input" style="width:56px" value="${b.min}" onchange="editBand('${b.label}',this.value)"><span class="td-sub">%+</span></div></div>`).join('')}
       </div>`,
     stages: `<div class="lock-note">🔒 Stage order is locked to protect the workflow. Everything inside each stage — checklists, questions, thresholds — is configurable.</div>
+      <div class="sec-label">Minimum products per stage <span class="line"></span><span class="card-count">an empty stage is next month's missing launch</span></div>
+      <div class="card">
+        <div class="set-row"><div><div class="set-row-l">Warn when a stage has been empty for</div>
+          <div class="set-row-d">Below this it's a nudge; past it, the Action Centre puts it top in red.</div></div>
+          <input class="set-input" style="width:60px" type="number" min="1" value="${SETTINGS.emptyAlarmDays||7}" onchange="setMinCfg('emptyAlarmDays',this.value)"> <span class="td-sub">days</span></div>
+        <div class="set-row"><div><div class="set-row-l">Ideal per stage</div>
+          <div class="set-row-d">Shown as the aim on the health strip — one product per stage still leaves gaps when something stalls.</div></div>
+          <input class="set-input" style="width:60px" type="number" min="1" value="${SETTINGS.idealStage||2}" onchange="setMinCfg('idealStage',this.value)"></div>
+        ${STAGES.map(st=>`<div class="set-row"><div><div class="set-row-l">${esc(st.name)}</div>
+          <div class="set-row-d">${(()=>{const h=stageHealth().find(x=>x.key===st.key); return h.count+' in this stage right now'+(h.state==='ok'?' — healthy':h.state==='low'?' — below minimum':h.emptyDays?' — empty '+h.emptyDays+' days':' — empty');})()}</div></div>
+          <input class="set-input" style="width:60px" type="number" min="0" value="${minFor(st.key)}" onchange="setMinStage('${st.key}',this.value)"></div>`).join('')}
+      </div>
       <div class="card">${STAGES.map(s=>`
         <div class="set-row"><div><div class="set-row-l">${s.name}</div><div class="set-row-d">${s.desc}</div></div>
         <div style="display:flex;gap:6px;align-items:center"><span class="td-sub">attention after</span>
@@ -6757,6 +6989,8 @@ function setStartedOn(v){
   writeNow(); renderSettings(); refreshPanes(); updateBadges();
   toast('Tracking since '+new Date(SETTINGS.startedOn+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}));
 }
+function setMinStage(key,v){ saveState(); const n=Math.max(0,parseInt(v)||0); if(!SETTINGS.minStage) SETTINGS.minStage={}; SETTINGS.minStage[key]=n; writeNow(); renderSettings(); updateBadges(); toast('Minimum for '+stageName(key)+' set to '+n); }
+function setMinCfg(k,v){ saveState(); SETTINGS[k]=Math.max(1,parseInt(v)||1); writeNow(); renderSettings(); updateBadges(); toast('Saved'); }
 function kpiPlus(id){ saveState(); const k=SETTINGS.kpis.find(x=>x.id===id); if(!k) return; bumpKpi(id, '+1 — '+k.label); renderAction(); }
 function setWorkspaceName(v){ saveState(); v=(v||'').trim(); if(!v){ renderSettings(); return; } SETTINGS.workspaceName=v; document.getElementById('sbName').textContent=v; toast('Saved'); }
 function editList(key, title){ saveState();
@@ -6883,5 +7117,51 @@ KPI_LIVE = true;   // seed init done — from here on, real actions move KPIs an
 renderPane('action');
 updateBadges();
 </script>
+
+<script>
+/* The nav labels are right there when the sidebar is open — the native title tooltip just
+   floated a grey box over the item below it. Titles come back only on the collapsed rail. */
+(function(){
+  function syncNavTitles(){
+    var mini = document.body.classList.contains('sb-min') || document.body.classList.contains('nav-min');
+    document.querySelectorAll('aside .nav-item, .sb2 .nav-item').forEach(function(b){
+      if(mini){ if(b.dataset.t) b.setAttribute('title', b.dataset.t); }
+      else { var t=b.getAttribute('title'); if(t){ b.dataset.t=t; b.removeAttribute('title'); } }
+    });
+  }
+  document.addEventListener('DOMContentLoaded', syncNavTitles);
+  setTimeout(syncNavTitles, 400); setTimeout(syncNavTitles, 1400);
+  new MutationObserver(syncNavTitles).observe(document.body, {attributes:true, attributeFilter:['class']});
+})();
+</script>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   SHARED FINISH LAYER — applied identically to UB and PL.
+   The two apps drifted because each got its own patch layer; every
+   primitive below is now defined once, the same way, in both files.
+   Only generic surfaces are touched — no layout, no behaviour.
+   ═══════════════════════════════════════════════════════════════ */
+*{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+::selection{background:rgba(167,139,255,.30);color:#fff}
+/* one focus ring everywhere, instead of three different ones */
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{
+  outline:2px solid rgba(167,139,255,.55)!important;outline-offset:1px!important}
+/* scrollbars stop being system-default light rectangles */
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);border-radius:99px;border:2px solid transparent;background-clip:content-box}
+*::-webkit-scrollbar-thumb:hover{background:rgba(167,139,255,.42);background-clip:content-box}
+/* every interactive surface gets the same easing, so the apps feel like one product */
+button,.btn,a[role=button],[onclick]{transition:background .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease,transform .1s ease}
+button:active,.btn:active{transform:translateY(.5px)}
+/* disabled means disabled, consistently */
+button[disabled],.btn[disabled],input[disabled],select[disabled]{opacity:.42!important;cursor:not-allowed!important;filter:grayscale(.35)}
+/* a card is a card in both apps: same radius, same lift */
+.card,.set-sec,.kpi-rules,.pl-side-panel,.pl-stage-checklist,.ac2-section,.pl-col,.icard{
+  box-shadow:0 8px 24px rgba(0,0,0,.24)}
+/* empty states read as intentional, not as something failing to load */
+.empty,.pl-tab-empty,.ac2-empty{border:1px dashed rgba(255,255,255,.10)!important;border-radius:13px!important;
+  background:rgba(255,255,255,.015)!important;color:#82828F!important}
+</style>
 </body>
 </html>

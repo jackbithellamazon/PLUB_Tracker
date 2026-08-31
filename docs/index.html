@@ -59,11 +59,86 @@ iframe.show{display:block;animation:frameIn .18s cubic-bezier(.4,0,.2,1)}
 .p-kpi-v{font-size:18px;font-weight:850;letter-spacing:-.7px;line-height:1.1;color:var(--t1);font-variant-numeric:tabular-nums}
 .p-kpi-v i{font-size:11px;font-style:normal;font-weight:700;color:var(--t3)}
 .p-kpi-s{font-size:9.5px;color:var(--t4);margin-top:2px}
+
+/* ════ SCALING OVERVIEW — the one page that answers "are we scaling?" ════ */
+.ov{margin:0 0 14px}
+.ov-hero{border-radius:16px;padding:16px 20px;border:1px solid;display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.ov-hero.ok{background:linear-gradient(180deg,rgba(0,229,160,.10),rgba(0,229,160,.02));border-color:rgba(0,229,160,.34)}
+.ov-hero.warn{background:linear-gradient(180deg,rgba(255,197,61,.10),rgba(255,197,61,.02));border-color:rgba(255,197,61,.36)}
+.ov-hero.bad{background:linear-gradient(180deg,rgba(255,84,112,.10),rgba(255,84,112,.02));border-color:rgba(255,84,112,.4)}
+.ov-q{font-size:9.5px;font-weight:900;letter-spacing:1.4px;text-transform:uppercase;color:var(--t4);margin-bottom:5px}
+.ov-a{font-size:21px;font-weight:850;letter-spacing:-.5px;line-height:1.25}
+.ov-hero.ok .ov-a{color:#4ADE80} .ov-hero.warn .ov-a{color:#FFC53D} .ov-hero.bad .ov-a{color:#FF7A90}
+.ov-a small{display:block;font-size:12.5px;font-weight:600;color:var(--t3);margin-top:6px;line-height:1.55;letter-spacing:0}
+.ov-hero-l{flex:1;min-width:280px}
+.ov-score{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:96px}
+.ov-score b{font-size:38px;font-weight:850;line-height:1;letter-spacing:-2px;font-variant-numeric:tabular-nums}
+.ov-hero.ok .ov-score b{color:#4ADE80} .ov-hero.warn .ov-score b{color:#FFC53D} .ov-hero.bad .ov-score b{color:#FF7A90}
+.ov-score span{font-size:9px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--t4);text-align:center}
+
+.ov-people{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:10px;margin-bottom:10px}
+.ov-p{border-radius:14px;border:1px solid var(--b1);background:var(--s1);padding:13px 15px;position:relative;overflow:hidden}
+.ov-p::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--pc)}
+.ov-p.ub{--pc:#7C5CFF} .ov-p.pl{--pc:#22D3EE}
+.ov-p-h{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:9px}
+.ov-p-h b{font-size:14.5px;font-weight:850;color:var(--t1);letter-spacing:-.2px}
+.ov-p-h .who{font-size:9.5px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--pc)}
+.ov-p-h .mode{margin-left:auto;font-size:9px;font-weight:900;letter-spacing:1px;text-transform:uppercase;padding:4px 9px;border-radius:99px;border:1px solid var(--b2);background:var(--s2);color:var(--t3)}
+.ov-p-h .mode.source{border-color:rgba(167,139,255,.5);background:rgba(167,139,255,.14);color:#C9B8FF}
+.ov-p-h .mode.pipeline{border-color:rgba(34,211,238,.5);background:rgba(34,211,238,.13);color:#7DE4F5}
+.ov-hrs{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+.ov-hrs b{font-size:19px;font-weight:850;color:var(--t1);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ov-hrs b i{font-style:normal;font-size:11.5px;font-weight:700;color:var(--t4)}
+.ov-hrs em{flex:1;min-width:70px;height:7px;border-radius:99px;background:rgba(255,255,255,.07);position:relative;overflow:hidden;display:block}
+.ov-hrs em u{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:linear-gradient(90deg,#7C5CFF,#A78BFF)}
+.ov-hrs em u.hit{background:linear-gradient(90deg,#00C48C,#00E5A0)} .ov-hrs em u.lag{background:linear-gradient(90deg,#E8A317,#FFC53D)}
+.ov-hrs em s{position:absolute;top:-3px;width:2px;height:13px;background:rgba(255,255,255,.5);border-radius:2px;text-decoration:none}
+.ov-say{font-size:12.5px;font-weight:700;line-height:1.5;margin-bottom:9px}
+.ov-say.ok{color:#4ADE80} .ov-say.warn{color:#FFC53D} .ov-say.bad{color:#FF7A90}
+.ov-say small{display:block;font-size:11.5px;font-weight:600;color:var(--t3);margin-top:3px;line-height:1.5}
+.ov-n{display:flex;gap:6px;flex-wrap:wrap}
+.ov-n i{font-style:normal;min-width:52px;text-align:center;border-radius:8px;padding:5px 8px;background:var(--s2);border:1px solid var(--b1)}
+.ov-n i b{display:block;font-size:15px;font-weight:850;color:var(--t1);line-height:1.15;font-variant-numeric:tabular-nums}
+.ov-n i span{display:block;font-size:8px;font-weight:850;letter-spacing:.5px;text-transform:uppercase;color:var(--t4);margin-top:1px}
+.ov-n i.go b{color:#4ADE80} .ov-n i.hot b{color:#FFC53D} .ov-n i.wait b{color:#7DE4F5} .ov-n i.bad b{color:#FF7A90}
+
+.ov-answers{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:7px;margin-bottom:10px}
+.ov-ans{border-radius:11px;border:1px solid var(--b1);background:var(--s1);padding:9px 11px;border-left:2px solid var(--ac,var(--b2))}
+.ov-ans.y{--ac:#00E5A0} .ov-ans.n{--ac:#FF5470} .ov-ans.m{--ac:#FFC53D}
+.ov-ans .q{font-size:9px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--t4);margin-bottom:4px;line-height:1.3}
+.ov-ans .a{font-size:14px;font-weight:850;color:var(--t1);line-height:1.2;letter-spacing:-.2px}
+.ov-ans.y .a{color:#4ADE80} .ov-ans.n .a{color:#FF7A90} .ov-ans.m .a{color:#FFC53D}
+.ov-ans .s{font-size:10px;color:var(--t4);font-weight:650;margin-top:3px;line-height:1.35}
+.ov-next{border-radius:12px;border:1px solid var(--b1);background:var(--s1);padding:11px 14px;margin-bottom:10px}
+.ov-next-h{font-size:9.5px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:var(--t4);margin-bottom:8px}
+.ov-step{display:flex;align-items:flex-start;gap:9px;padding:6px 0;border-top:1px solid var(--b1);cursor:pointer}
+.ov-step:first-of-type{border-top:0}
+.ov-step:hover .ov-step-t{color:#fff}
+.ov-step em{font-style:normal;flex:none;width:19px;height:19px;border-radius:6px;display:grid;place-items:center;font-size:10px;font-weight:900;
+  background:var(--s2);border:1px solid var(--b2);color:var(--t3);margin-top:1px}
+.ov-step.p1 em{background:rgba(255,84,112,.16);border-color:rgba(255,84,112,.45);color:#FF97AA}
+.ov-step.p2 em{background:rgba(255,197,61,.14);border-color:rgba(255,197,61,.42);color:#FFC53D}
+.ov-step-t{font-size:12.5px;font-weight:750;color:var(--t2);line-height:1.4;transition:color .13s}
+.ov-step-t span{display:block;font-size:11px;font-weight:600;color:var(--t4);margin-top:2px}
+.ov-step-a{margin-left:auto;flex:none;font-size:10px;font-weight:850;color:var(--t4);letter-spacing:.4px;white-space:nowrap;align-self:center}
+.p-week{display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-radius:12px;padding:10px 14px;margin-bottom:10px;border:1px solid}
+.p-week.ok{background:rgba(0,229,160,.06);border-color:rgba(0,229,160,.3)}
+.p-week.quiet{background:rgba(255,197,61,.06);border-color:rgba(255,197,61,.35)}
+.pw-verdict{font-size:12.5px;font-weight:800;flex:1;min-width:250px}
+.p-week.ok .pw-verdict{color:#4ADE80} .p-week.quiet .pw-verdict{color:#FFC53D}
+.pw-verdict i{font-style:normal;font-weight:650;font-size:10.5px;color:var(--t4)}
+.pw-cells{display:flex;gap:7px;flex-wrap:wrap}
+.pw-cell{display:flex;align-items:baseline;gap:5px;background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:5px 10px}
+.pw-cell b{font-size:14px;font-weight:850;color:var(--t1);font-variant-numeric:tabular-nums}
+.pw-cell span{font-size:9.5px;color:var(--t4);font-weight:650}
+.pw-cell.hot{border-color:rgba(255,84,112,.4)} .pw-cell.hot b{color:#FF7A90}
 .p-flow{display:flex;flex-direction:column;gap:7px;background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:11px 14px;margin-bottom:10px}
 .p-flowbar{display:flex;gap:2px;height:9px;border-radius:99px;overflow:hidden}
 .p-flowbar span{border-radius:99px;min-width:6px;transition:flex .3s}
 .p-flowread{font-size:11.5px;color:var(--t3)} .p-flowread b{color:var(--t1);font-weight:800}
-.p-cols{display:grid;gap:8px;min-width:0;justify-content:start}
+.p-cols{display:grid;gap:8px;min-width:0}
+.p-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;align-content:start}
+.p-card{margin-bottom:0!important}
 body.nobar .bar{display:none}
 body.nobar .stage{inset:0}
 .p-col{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:9px 9px 8px;border-top:2px solid var(--b2);min-height:140px}
@@ -100,7 +175,7 @@ body.nobar .stage{inset:0}
   <div class="tabs" id="tabs">
     <button class="tab ub" data-app="ub"><i></i>Unique Bundles</button>
     <button class="tab pl" data-app="pl"><i></i>Private Label</button>
-    <button class="tab pipe" data-app="pipe"><i></i>Pipeline<span class="n" id="pipeN"></span></button>
+    <button class="tab pipe" data-app="pipe"><i></i>Overview<span class="n" id="pipeN"></span></button>
   </div>
   <div class="right">
     <span class="chip">local · <b id="buildChip"></b></span>
@@ -113,8 +188,8 @@ body.nobar .stage{inset:0}
 </div>
 <script>
 // BUILD is the version people see — moves by 0.05 a release; STAMP is what actually busts the cache. Bump STAMP every push.
-var BUILD = '0.35';
-var STAMP = '2026-08-30p';
+var BUILD = '0.55';
+var STAMP = '2026-08-31f';
 document.getElementById('buildChip').textContent = 'v' + BUILD;
 
 var FRAMES = { ub: document.getElementById('f_ub'), pl: document.getElementById('f_pl') };
@@ -186,6 +261,224 @@ function readStores(){
   }
   return {cards:cards, haveUb:!!ub, havePl:!!pl};
 }
+
+/* ════════════ combined scaling overview ════════════
+   The shell cannot call into the frames, so it recomputes from both stores.
+   Defaults mirror the apps: UB minimum 1 per stage, PL minimum 1 except
+   Samples which wants 2. Empty is the signal that matters and needs no config. */
+var UB_STAGE_ORDER = [['sourcing','Sourcing'],['jack_validation','Jack Validation'],['prepare_to_launch','Listing & test'],['buy_receive','Buy & receive'],['live','Live']];
+var PL_STAGE_ORDER = [[1,'Sourcing'],[2,'Contact & Pricing'],[3,'Ordering Samples'],[4,'Samples'],[5,'Purchase'],[6,'Prepare to Launch'],[7,'Launch']];
+var PL_MIN_D = {1:1,2:1,3:1,4:2,5:1,6:1,7:1};
+function weekStart(){ var d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d.getTime(); }
+function weekFrac(){ var n=new Date(), dow=(n.getDay()+6)%7; return Math.max(.02,Math.min(1,(dow+(n.getHours()*60+n.getMinutes())/1440)/7)); }
+function fmtH(h){ if(!(h>0)) return '0h'; var m=Math.round(h*60);
+  return m<60 ? m+'m' : (m%60===0 ? (m/60)+'h' : Math.floor(m/60)+'h '+(m%60)+'m'); }
+function plBrand(pl){ try{ return (pl.brand_state&&pl.brand_state[0]&&pl.brand_state[0].data)||{}; }catch(e){ return {}; } }
+
+function sideUB(ub){
+  var ws=weekStart(), inWk=function(x){ var t=x? new Date(x).getTime():0; return isFinite(t)&&t>=ws; };
+  if(!ub) return null;
+  var pipe=(ub.pipeline||[]), ev=(ub.events||[]), log=(ub.sessionLog||[]);
+  var waiting=0, needsUs=0;
+  pipe.forEach(function(p){
+    var w = p.waiting && p.waiting.until && new Date(p.waiting.until) >= new Date();
+    if(w) waiting++; else needsUs++; });
+  var mins=log.filter(function(x){ return inWk(x.date); }).reduce(function(a,x){ return a+(x.mins||0); },0);
+  if(ub.session && ub.session.start>=ws) mins += Math.max(0,Math.round((Date.now()-ub.session.start)/60000));
+  var kh=((ub.settings&&ub.settings.kpis)||[]).filter(function(k){return k.id==='hours';})[0];
+  var tgt=Math.round(((kh&&kh.target)||32)/4.345*10)/10;
+  var mins2=(ub.settings&&ub.settings.minStage)||{};
+  var stages=UB_STAGE_ORDER.map(function(p){
+    var c=pipe.filter(function(x){ return (x.stage===p[0]) || (p[0]==='sourcing'&&(x.stage==='source'||x.stage==='ready_to_source'))
+      || (p[0]==='buy_receive'&&(x.stage==='order_purchase'||x.stage==='launch')); }).length;
+    var mn=(typeof mins2[p[0]]==='number')?mins2[p[0]]:1;
+    return {name:p[1], count:c, min:mn, state: c===0?'empty' : c<mn?'low':'ok'}; });
+  return {app:'ub', who:'Becki', label:'Unique Bundles',
+    hrs:mins/60, tgt:tgt,
+    ideasIn: ev.filter(function(e){return e.type==='ideas'&&inWk(e.at);}).length,
+    entered: ev.filter(function(e){return e.type==='moved'&&inWk(e.at);}).length,
+    moved:   ev.filter(function(e){return e.type==='stage'&&inWk(e.at);}).length,
+    launched:ev.filter(function(e){return e.type==='launches'&&inWk(e.at);}).length,
+    active:pipe.length, waiting:waiting, needsUs:needsUs, stages:stages,
+    empties:stages.filter(function(x){return x.count===0;}).length };
+}
+function sidePL(pl){
+  if(!pl) return null;
+  var ws=weekStart(), B=plBrand(pl), rows=(pl.ideas||[]);
+  var act=[], waiting=0, needsUs=0, moved=0, touched=0, entered=0, launched=0, ideasIn=0;
+  rows.forEach(function(r){
+    var i=r.data||{}, p=i.pipeline||{};
+    if(i.createdAt && new Date(i.createdAt).getTime()>=ws && !i._imported) ideasIn++;
+    if(p.enteredAt && p.enteredAt>=ws) entered++;
+    if(p.launchedAt && p.launchedAt>=ws) launched++;
+    if(!i.inPipeline || p.status==='rejected' || p.status==='launched') return;
+    act.push(i);
+    var due=p.waitingUntil? new Date(p.waitingUntil).getTime():0;
+    if(p.waitingFor && (!due || due>=Date.now())) waiting++; else needsUs++;
+    var h=p.history||[];
+    if(h.some(function(x){ return x.ts>=ws && (x.type==='advance'||x.type==='launch'); })) moved++;
+    if(h.some(function(x){ return x.ts>=ws; })) touched++;
+  });
+  var mins=((B.plSess)||[]).filter(function(x){return x.at>=ws;}).reduce(function(a,x){return a+(x.mins||0);},0);
+  if(B.plRun && B.plRun.start>=ws) mins += Math.max(0,Math.round((Date.now()-B.plRun.start)/60000));
+  var minC=(B.settings&&B.settings.minStage)||{};
+  var stages=PL_STAGE_ORDER.map(function(p){
+    var c=act.filter(function(i){ return (Number((i.pipeline||{}).stage)||1)===p[0]; }).length;
+    var mn=(typeof minC[p[0]]==='number')?minC[p[0]]:PL_MIN_D[p[0]];
+    return {name:p[1], count:c, min:mn, state: c===0?'empty' : c<mn?'low':'ok'}; });
+  return {app:'pl', who:'Jack', label:'Private Label',
+    hrs:mins/60, tgt:(typeof B.plWeeklyHours==='number'? B.plWeeklyHours : 20),
+    ideasIn:ideasIn, entered:entered, moved:moved, launched:launched,
+    active:act.length, waiting:waiting, needsUs:needsUs, touched:touched, stages:stages,
+    empties:stages.filter(function(x){return x.count===0;}).length };
+}
+function sideVerdict(d){
+  var exp=d.tgt*weekFrac(), onHours = d.tgt<=0 || d.hrs>=exp*0.85;
+  var moving = (d.moved+d.launched)>0;
+  var S=d.stages||[];
+  var topThin = !S.length || S[0].count===0 || S[0].count<S[0].min || (S[1]&&S[1].count===0);
+  var downEmpty = S.slice(2).some(function(x){return x.count===0;});
+  var mode = (topThin || d.needsUs<=1) ? 'source'
+           : (d.needsUs>=4 || downEmpty) ? 'pipeline' : 'balanced';
+  var H=fmtH(d.hrs), T=fmtH(d.tgt), tone, line, sub;
+  if(!onHours && !moving){
+    tone='bad'; line='Not sourcing and not moving.';
+    sub=H+' of '+T+' this week, nothing advanced a stage. This is the week that costs a launch in three months.';
+  } else if(!onHours && moving && mode==='pipeline'){
+    tone='ok'; line='Moving the pipeline, not sourcing — and that is right.';
+    sub=d.needsUs+' products needed real work; '+(d.moved+d.launched)+' moved forward on '+H+' of sourcing. The hours give way to pipeline work by design.';
+  } else if(!onHours && moving && mode==='source'){
+    tone='warn'; line='Moving, but the belt is running dry.';
+    sub=(d.empties? d.empties+' stage'+(d.empties===1?' is':'s are')+' empty and ':'')+'only '+H+' of '+T+' sourced. Little left to progress — feed the top.';
+  } else if(!onHours && moving){
+    tone='warn'; line='Behind on hours, but moving.';
+    sub=H+' of '+T+' · '+fmtH(Math.max(0,exp-d.hrs))+' behind where today sits. '+(d.moved+d.launched)+' moved forward.';
+  } else if(onHours && !moving){
+    tone='warn'; line='Hours in, nothing out.';
+    sub=H+' sourced but no product advanced a stage. Hours are not the point — movement is.';
+  } else if(d.empties>=2){
+    tone='warn'; line='Sourcing and moving — but stages are sitting empty.';
+    sub=H+' of '+T+' and '+(d.moved+d.launched)+' moved forward, yet '+d.empties+' stages have nothing in them. '
+      +(mode==='source' ? 'Nothing is entering at the top — that is a sourcing problem.'
+                        : 'Products exist upstream; they are not being pushed through. That is pipeline work, not sourcing.');
+  } else {
+    tone='ok'; line='Sourcing and moving.';
+    sub=H+' of '+T+' and '+(d.moved+d.launched)+' moved forward'+(d.waiting? ' · '+d.waiting+' waiting on somebody else, which is fine':'')+'.';
+  }
+  return {tone:tone, line:line, sub:sub, mode:mode, onHours:onHours, exp:exp, moving:moving};
+}
+function ovPerson(d){
+  if(!d) return '';
+  var v=sideVerdict(d);
+  var pct=d.tgt>0?Math.min(100,d.hrs/d.tgt*100):100;
+  var cls=d.hrs>=d.tgt?'hit':(d.hrs>=v.exp*0.85?'':'lag');
+  var n=function(val,lab,c){ return '<i'+(c?' class="'+c+'"':'')+'><b>'+val+'</b><span>'+lab+'</span></i>'; };
+  var modeLab=v.mode==='source'?'Source more':v.mode==='pipeline'?'Pipeline first':'Balanced';
+  return '<div class="ov-p '+d.app+'" onclick="show(\''+d.app+'\')">'
+    +'<div class="ov-p-h"><span class="who">'+d.who+'</span><b>'+d.label+'</b><span class="mode '+v.mode+'">'+modeLab+'</span></div>'
+    +'<div class="ov-hrs"><b>'+fmtH(d.hrs)+'<i> / '+fmtH(d.tgt)+' this week</i></b>'
+      +'<em><u class="'+cls+'" style="width:'+pct.toFixed(1)+'%"></u><s style="left:'+(weekFrac()*100).toFixed(1)+'%"></s></em></div>'
+    +'<div class="ov-say '+v.tone+'">'+v.line+'<small>'+v.sub+'</small></div>'
+    +'<div class="ov-n">'+n(d.ideasIn,'ideas')+n(d.entered,'entered')+n(d.moved,'moved',d.moved?'go':'')
+      +n(d.launched,'launched',d.launched?'go':'')+n(d.needsUs,'need us')+n(d.waiting,'waiting',d.waiting?'wait':'')
+      +n(d.empties,'empty stages',d.empties?'bad':'')+'</div></div>';
+}
+function ovAns(q,a,sub,k){ return '<div class="ov-ans '+k+'"><div class="q">'+q+'</div><div class="a">'+a+'</div><div class="s">'+sub+'</div></div>'; }
+
+function renderOverview(ub, pl, monthly){
+  var U=sideUB(ub), L=sidePL(pl), sides=[U,L].filter(Boolean);
+  if(!sides.length) return '';
+  var moved=sides.reduce(function(a,d){return a+d.moved;},0);
+  var launched=sides.reduce(function(a,d){return a+d.launched;},0);
+  var entered=sides.reduce(function(a,d){return a+d.entered;},0);
+  var ideasIn=sides.reduce(function(a,d){return a+d.ideasIn;},0);
+  var waiting=sides.reduce(function(a,d){return a+d.waiting;},0);
+  var empties=sides.reduce(function(a,d){return a+d.empties;},0);
+  var hrs=sides.reduce(function(a,d){return a+d.hrs;},0), tgt=sides.reduce(function(a,d){return a+d.tgt;},0);
+  var exp=tgt*weekFrac();
+  // the scaling score: movement is the point, so it carries the most weight
+  var parts=[
+    Math.min(1,(moved+launched)/4)*40,          // things actually progressed
+    Math.min(1,tgt? hrs/Math.max(0.1,exp):1)*22, // sourcing happening at pace
+    Math.min(1,ideasIn/3)*13,                    // ideas coming in
+    (empties===0?15: empties===1?8: empties<=2?4:0),  // belt populated
+    Math.min(1,launched/1)*10                    // launches landing
+  ];
+  var sc=Math.round(parts.reduce(function(a,b){return a+b;},0));
+  // an empty stage is a launch that never happens, so it caps the headline no matter
+  // how good this week looked — three or more empty can never read as "yes"
+  if(empties>=3) sc=Math.min(sc,58);
+  if(empties>=5) sc=Math.min(sc,44);
+  var tone = sc>=70?'ok': sc>=45?'warn':'bad';
+  var head, sub;
+  if(sc>=70){ head='Yes — the machine is running.';
+    sub=moved+launched+' moved forward and '+ideasIn+' new idea'+(ideasIn===1?'':'s')+' this week across both belts'+(empties?', though '+empties+' stage'+(empties===1?' is':'s are')+' empty':'')+'. Keep feeding it and launches become inevitable.'; }
+  else if(sc>=45){ head = empties>=3 ? 'Moving — but the belt has holes in it.' : 'Partly — moving, but not at scaling speed.';
+    sub = empties>=3
+      ? (moved+launched)+' moved forward this week, but '+empties+' stages are empty. Every empty stage is a launch that simply will not arrive in three months. Fill them before anything else.'
+      : (moved+launched)+' moved forward this week on '+fmtH(hrs)+' of sourcing. This is one-step-forward pace, not a machine.'; }
+  else { head='No — this is not scaling.';
+    sub=(moved+launched)===0 ? 'Nothing moved forward this week on either side'+(hrs>0?', despite '+fmtH(hrs)+' of sourcing':' and '+fmtH(hrs)+' sourced')+'. Twelve months of this is how a pipeline dies quietly.'
+      : (moved+launched)+' moved on '+fmtH(hrs)+' of sourcing, '+empties+' stages empty. The belt is thin — the launches three months out are the ones being lost.'; }
+
+  var m=monthly||{};
+  var mPace=(function(){ var n=new Date(); return n.getDate()/new Date(n.getFullYear(),n.getMonth()+1,0).getDate(); })();
+  var onT=function(a,t){ if(!t) return 'm'; return a>=t?'y': a>=t*mPace?'y':'n'; };
+  var answers=''
+    + ovAns('On target this month?', (m.lTgt? (m.lAct>=m.lTgt*mPace?'On pace':'Behind'):'—'),
+        (m.lAct||0)+' of '+(m.lTgt||0)+' launches · expected '+Math.round((m.lTgt||0)*mPace)+' by today', onT(m.lAct,m.lTgt))
+    + ovAns('Enough ideas?', (m.iTgt? (m.iAct>=m.iTgt*mPace?'Yes':'No'):'—'),
+        (m.iAct||0)+' of '+(m.iTgt||0)+' this month · '+ideasIn+' this week', onT(m.iAct,m.iTgt))
+    + ovAns('Products moving?', (moved+launched)?'Yes':'No',
+        (moved+launched)+' advanced a stage this week · '+entered+' entered', (moved+launched)?'y':'n')
+    + ovAns('Any stage empty?', empties?String(empties):'None',
+        empties? 'each one is a launch missing ~3 months out' : 'every stage on both belts is populated', empties?'n':'y')
+    + ovAns('Anything stuck?', (m.stuck||0)?String(m.stuck):'None',
+        (m.stuck||0)? 'past its stage target — open these first' : 'nothing past its stage target', (m.stuck||0)?'m':'y')
+    + ovAns('Waiting on others?', waiting?String(waiting):'None',
+        waiting? 'our part is done on these — leave them' : 'nothing blocked externally', 'm')
+    + ovAns('Getting launches out?', launched? String(launched)+' this week' : (m.lAct||0)+' this month',
+        (m.lAct||0)+' of '+(m.lTgt||0)+' monthly target',
+        (m.lAct||0)>=(m.lTgt||0) ? 'y' : (m.lAct||0)>0 ? 'm' : (m.lTgt? 'n':'m'));
+
+  // what needs doing next — ranked, and it says WHO
+  var steps=[];
+  sides.forEach(function(d){
+    var v=sideVerdict(d);
+    var em=d.stages.filter(function(x){return x.state==='empty';});
+    if(em.length){
+      var names=em.map(function(x){return x.name;});
+      // Jack Validation is Jack's decision queue even though it lives on Becki's belt
+      var owner = (d.app==='ub' && names.length===1 && names[0]==='Jack Validation') ? 'Jack' : d.who;
+      steps.push({p:1,
+        t: em.length===1 ? names[0]+' is empty on '+d.label
+                         : em.length+' stages empty on '+d.label+' — '+names.join(', '),
+        s: owner+' — move something in. Each empty stage is a launch that will not arrive about three months from now.',
+        app:d.app, a:'Open '+d.app.toUpperCase()});
+    }
+    var low=d.stages.filter(function(x){return x.state==='low';});
+    if(low.length) steps.push({p:2, t:low.length+' stage'+(low.length===1?'':'s')+' below minimum on '+d.label,
+      s:low.map(function(x){return x.name+' '+x.count+'/'+x.min;}).join(' · '), app:d.app, a:'Open '+d.app.toUpperCase()});
+    if(v.mode==='source' && !v.onHours)
+      steps.push({p:2, t:d.who+' should be sourcing', s:'little left to progress and '+fmtH(Math.max(0,v.exp-d.hrs))+' behind this week\u2019s pace', app:d.app, a:'Open '+d.app.toUpperCase()});
+    if(v.mode==='pipeline')
+      steps.push({p:3, t:d.who+' should stay on the pipeline', s:d.needsUs+' products need real work — listings, images, suppliers, prep', app:d.app, a:'Open '+d.app.toUpperCase()});
+    if(d.waiting) steps.push({p:4, t:d.waiting+' waiting on somebody else ('+d.label+')', s:'our part is done — do not count these against the week', app:d.app, a:'Open '+d.app.toUpperCase()});
+  });
+  steps.sort(function(a,b){ return a.p-b.p; });
+  var next = steps.length ? '<div class="ov-next"><div class="ov-next-h">What needs doing next</div>'
+    + steps.slice(0,5).map(function(x,i){ return '<div class="ov-step p'+Math.min(3,x.p)+'" onclick="show(\''+x.app+'\')">'
+        +'<em>'+(i+1)+'</em><div class="ov-step-t">'+esc(x.t)+'<span>'+esc(x.s)+'</span></div>'
+        +'<span class="ov-step-a">'+esc(x.a)+' \u2192</span></div>'; }).join('') + '</div>' : '';
+
+  return '<div class="ov">'
+    +'<div class="ov-hero '+tone+'"><div class="ov-hero-l"><div class="ov-q">Are we scaling?</div>'
+      +'<div class="ov-a">'+head+'<small>'+sub+'</small></div></div>'
+      +'<div class="ov-score"><b>'+sc+'</b><span>scaling<br>score</span></div></div>'
+    +'<div class="ov-people">'+ovPerson(L)+ovPerson(U)+'</div>'
+    +'<div class="ov-answers">'+answers+'</div>'
+    +next+'</div>';
+}
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function activeCount(){ try{ return readStores().cards.filter(function(c){return c.col!=='launched';}).length; }catch(e){ return 0; } }
 function paintPipeN(){ var a=activeCount(); var n=document.getElementById('pipeN'); n.textContent=a; n.classList.toggle('show',a>0); }
@@ -203,13 +496,13 @@ function renderPipe(){
       + '<div class="m"><span class="app-chip '+x.app+'">'+(x.app==='ub'?'UB':'PL')+'</span>'
       + (x.days!=null ? '<span class="d'+(x.over?' over':x.wait?' wait':'')+'">'+(x.wait?'waiting · ':'')+x.days+'d'+(x.over?' · stuck':'')+'</span>' : '')
       + '</div>'+(x.score==null?'<div class="s">'+esc(x.stage)+'</div>':'')+'</div>'; };
-  var template = COLS.map(function(c){ return byCol[c.key].length ? 'minmax(185px,330px)' : '44px'; }).join(' ');
+  var template = COLS.map(function(c){ return byCol[c.key].length ? 'minmax(200px,1fr)' : '44px'; }).join(' ');
   var cols = COLS.map(function(c){
     var rows = byCol[c.key];
     if(!rows.length) return '<div class="p-col slim c-'+c.key+'" title="'+c.name+' — empty"><span class="c0">0</span><b>'+c.name+'</b></div>';
     rows = rows.slice().sort(function(a,b){ return (b.over?1:0)-(a.over?1:0) || (b.days||0)-(a.days||0); });
     return '<div class="p-col c-'+c.key+'"><div class="p-col-h"><b>'+c.name+'</b><span class="c">'+rows.length+'</span></div>'
-      + rows.map(card).join('') + '</div>';
+      + '<div class="p-cards">'+rows.map(card).join('')+'</div></div>';
   }).join('');
   // the flow bar: the shape of the whole belt in one line
   var flowSegs = COLS.filter(function(c){return byCol[c.key].length;}).map(function(c){
@@ -247,16 +540,51 @@ function renderPipe(){
       +'<div class="p-kpi-v">'+a+'<i>/'+t+'</i></div>'
       +'<div class="p-kpi-s">UB '+ua+' · PL '+pa+' · expected '+exp+' by today</div></div></div>';
   }
+  // ── the combined movement line: what actually happened across BOTH trackers this week ──
+  var wkAgo=Date.now()-7*86400000;
+  var inWk=function(iso){ if(!iso) return false; var t=new Date(iso).getTime(); return isFinite(t)&&t>=wkAgo; };
+  var uEv=(ub2&&ub2.events)||[];
+  var wEnter = uEv.filter(function(e){return e.type==='moved'&&inWk(e.at);}).length;
+  var wFwd   = uEv.filter(function(e){return e.type==='stage'&&inWk(e.at);}).length;
+  var wLaunch= uEv.filter(function(e){return e.type==='launches'&&inWk(e.at);}).length;
+  var uEnterW=wEnter, uFwdW=wFwd;
+  var wUntouched=((ub2&&ub2.pipeline)||[]).filter(function(p){
+    return !((p.hist||[]).some(function(h){ return h&&h[3]&&inWk(h[3]); })); }).length;
+  var pEnterW=0,pFwdW=0,pLaunchW=0;
+  plRows.forEach(function(r){
+    var d2=r.data||{}, pp=d2.pipeline||{};
+    if(!d2.inPipeline) return;
+    if(pp.enteredAt&&pp.enteredAt>=wkAgo) pEnterW++;
+    var hist=pp.history||[];
+    if(hist.some(function(h){return h.type==='advance'&&h.ts>=wkAgo;})) pFwdW++;
+    if(pp.launchedAt&&pp.launchedAt>=wkAgo) pLaunchW++;
+    if(!hist.some(function(h){return h.ts>=wkAgo;})) wUntouched++;
+  });
+  wEnter+=pEnterW; wFwd+=pFwdW; wLaunch+=pLaunchW;
+  var wOk=(wEnter+wFwd+wLaunch)>0;
+  var wCell=function(v,l,hot){return '<div class="pw-cell'+(hot&&v?' hot':'')+'"><b>'+v+'</b><span>'+l+'</span></div>';};
+  var weekLine='<div class="p-week '+(wOk?'ok':'quiet')+'">'
+    +'<div class="pw-verdict">'+(wOk
+      ? '✓ Both belts moving — '+wEnter+' entered · '+wFwd+' moved forward this week'
+        +' <i>(UB '+uEnterW+'·'+uFwdW+' / PL '+pEnterW+'·'+pFwdW+')</i>'
+      : '⚠ Quiet week across both trackers — nothing entered or moved forward')+'</div>'
+    +'<div class="pw-cells">'+wCell(wEnter,'entered')+wCell(wFwd,'moved forward')+wCell(wLaunch,'launched')
+    +wCell(stuck,'stuck',true)+wCell(wUntouched,'untouched 7d',true)+'</div></div>';
   var kpiRow='<div class="p-kpis">'
     + ring('Ideas captured', ubIdeas+plIdeas, tgt('ideas')+MK.ideas, ubIdeas, plIdeas, '#A78BFF')
     + ring('Into the pipelines', ubMoved+plMoved, (tgt('moved')||0)+MK.pipeline, ubMoved, plMoved, '#22D3EE')
     + ring('Launched', ubLaunch+plLaunch, tgt('launches')+MK.launches, ubLaunch, plLaunch, '#00E5A0')
     +'</div>';
+  var overview='';
+  try{ overview = renderOverview(ub2, pl2, {iAct:ubIdeas+plIdeas, iTgt:tgt('ideas')+MK.ideas,
+        lAct:ubLaunch+plLaunch, lTgt:tgt('launches')+MK.launches, stuck:stuck}); }
+  catch(e){ console.error('overview',e); }
   document.getElementById('pipe').innerHTML =
-    '<div class="p-head"><div><div class="p-eyebrow">Both trackers · one belt</div><div class="p-title">Pipeline</div><div class="p-sub">Everything moving across Unique Bundles and Private Label, in plain stages. Click a card to open it in its app.</div></div>'
+    '<div class="p-head"><div><div class="p-eyebrow">Unique Bundles + Private Label \u00b7 one scaling view</div><div class="p-title">Overview</div><div class="p-sub">Are we scaling, is anything moving, and where should the time go this week.</div></div>'
     + '<div class="p-summary"><span class="p-pill ub"><i></i>'+ubN+' UB</span><span class="p-pill pl"><i></i>'+plN+' PL</span>'
     + (stuck?'<span class="p-pill stuck">'+stuck+' stuck</span>':'') + (wait?'<span class="p-pill wait">'+wait+' waiting</span>':'')
     + '<span class="p-pill" style="color:var(--green);border-color:rgba(0,229,160,.4)">'+launched+' launched this month</span></div></div>'
+    + overview
     + kpiRow
     + '<div class="p-flow"><div class="p-flowbar">'+(flowSegs||'<span style="flex:1;background:var(--b2)"></span>')+'</div><div class="p-flowread">'+flowRead+'</div></div>'
     + '<div class="p-wrap"><div class="p-cols" style="grid-template-columns:'+template+'">'+cols+'</div></div>'
