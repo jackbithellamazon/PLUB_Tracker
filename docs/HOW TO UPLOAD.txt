@@ -1,11 +1,30 @@
-PLUB v0.75
+PLUB v0.85  (5 Sept 2026)  —  LOCAL MODE this weekend. Supabase switches on MONDAY.
 
-GitHub Pages only serves the "docs" folder.
-
+UPLOAD (same as always):
   1. On GitHub, click INTO  docs  first.
-  2. Add file -> Upload files.
-  3. Drag in the THREE .html files from THIS folder (not the folder itself).
-  4. Commit.
-  5. Delete the stray  PLUB-2026-08-31  folder in the repo root.
+  2. Add file -> Upload files.  Drag in the THREE .html files (not the folder).
+  3. Commit.
+  End state:  docs/index.html   docs/ub.html   docs/pl.html   docs/README.md
 
-End state:  docs/index.html   docs/ub.html   docs/pl.html   docs/README.md
+WHAT'S NEW:
+  - First open asks "who are you?" (Jack / Becki). Everything you do is then recorded as you.
+    The switch icon at the bottom of the sidebar changes person.
+  - Every stage move, idea, note, session, task, supplier, sample is logged with who/when.
+  - Overview -> "What happened this week": per person, hours by type of work, what moved.
+  - Send a task to each other: UB Tasks page, or PL Action Centre "+ Send a task".
+    It lands in their Action Centre and Tasks.
+  - One shared list of work types (8, from your brief) on both sides.
+  - No more browser popups on PL — every confirm is styled.
+  - Tab switching: both apps stay loaded; switching is a crossfade, never a reload.
+
+BEFORE MONDAY — BECKI MUST DO THIS ON HER LAPTOP:
+  Her local save lives in her browser. Settings -> Export (both UB and PL) and send you the
+  files, or Monday's import has nothing of hers.
+
+MONDAY (Supabase) — the folder "supabase (Monday)":
+  0. Run  PLUB - 0 - prove nothing else changed.sql   (note the three numbers)
+  1. Run  PLUB - 1 - Supabase setup.sql
+  2. Dashboard -> Authentication -> Users -> Add user (you, then Becki, "Auto Confirm").
+     Edit Becki's email into  PLUB - 2 - add users.sql  and run it.
+  3. Run  PLUB - 0  again: A and B identical, C up by exactly 11, D empty.
+  Then tell me and I flip the app to Supabase mode and we do the import together.

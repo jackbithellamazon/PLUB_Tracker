@@ -5,6 +5,196 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PL Sourcing — Product Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- plub-core --><script>
+/* ══════════════════════════════════════════════════════════════════════
+   PLUB CORE — identity, activity, sessions, tasks, work types, settings.
+   One copy, byte-identical in index.html, ub.html and pl.html.
+
+   THIS WEEKEND: everything lives in localStorage under club_v1 (shared by
+   the shell and both frames — same origin). Cross-frame changes arrive via
+   the `storage` event, so a task sent from PL shows in UB without a reload.
+
+   MONDAY: CLUB.sync.enable(supabaseClient) pulls the seven tables, then
+   every write also upserts. The local store stays as the cache. Same rows,
+   same shape as the SQL in  CLUB - 1 - Supabase setup.sql.
+   ══════════════════════════════════════════════════════════════════════ */
+window.CLUB = (function(){
+  var KEY='plub_v1', WHO='plub_who', MODE='plub_mode', OUTBOX='plub_outbox_v1';
+  var COLS=['users','activity','sessions','tasks','task_notes','work_types'];
+  var DEF_USERS=[
+    {id:'jack',  display_name:'Jack',  role:'owner', active:true},
+    {id:'becki', display_name:'Becki', role:'staff', active:true}];
+  var DEF_WT=[
+    {key:'ideas',    label:'Finding new ideas',                              sort:10, active:true, counts_as_sourcing:true},
+    {key:'validate', label:'Validating an existing idea',                    sort:20, active:true, counts_as_sourcing:true},
+    {key:'supplier', label:'Supplier sourcing',                              sort:30, active:true, counts_as_sourcing:true},
+    {key:'contact',  label:'Contacting wholesalers / distributors / brands', sort:40, active:true, counts_as_sourcing:true},
+    {key:'pricing',  label:'Trade & bulk pricing',                           sort:50, active:true, counts_as_sourcing:true},
+    {key:'listing',  label:'Creating listings',                              sort:60, active:true, counts_as_sourcing:false},
+    {key:'images',   label:'Images & creative',                              sort:70, active:true, counts_as_sourcing:false},
+    {key:'pipeline', label:'Progressing products through the pipeline',      sort:80, active:true, counts_as_sourcing:false}];
+  // old session types from both apps map onto the shared list
+  var LEGACY={fresh:'ideas', working:'validate'};
+
+  var S=null;
+  function load(){
+    var raw=null; try{ raw=localStorage.getItem(KEY); }catch(e){}
+    try{ S=raw?JSON.parse(raw):null; }catch(e){ S=null; }
+    if(!S||typeof S!=='object') S={schema:1};
+    COLS.forEach(function(c){ if(!Array.isArray(S[c])) S[c]=[]; });
+    if(!S.settings||typeof S.settings!=='object') S.settings={};
+    if(!S.users.length) S.users=DEF_USERS.map(function(u){return Object.assign({},u);});
+    if(!S.work_types.length) S.work_types=DEF_WT.map(function(w){return Object.assign({},w);});
+  }
+  load();
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} notify(); }
+  function uuid(){ try{ if(crypto&&crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16);}); }
+  function now(){ return new Date().toISOString(); }
+  function mode(){ try{ return localStorage.getItem(MODE)||'local'; }catch(e){ return 'local'; } }
+
+  /* ── identity ─────────────────────────────────────────────────────── */
+  function whoId(){ try{ return localStorage.getItem(WHO)||''; }catch(e){ return ''; } }
+  function user(){ var id=whoId(); return S.users.filter(function(u){return u.id===id;})[0]||null; }
+  function users(){ return S.users.filter(function(u){return u.active!==false;}); }
+  function setWho(id){ try{ localStorage.setItem(WHO,id); }catch(e){} notify(); }
+  function signOut(){ try{ localStorage.removeItem(WHO); }catch(e){} notify(); }
+  function byId(id){ return S.users.filter(function(u){return u.id===id;})[0]||null; }
+  function nameOf(id){ var u=byId(id); return u?u.display_name:(id||'?'); }
+
+  /* ── generic rows ─────────────────────────────────────────────────── */
+  function add(col,row){ row.id=row.id||uuid(); row.created_at=row.created_at||now(); S[col].push(row); save(); push(col,row); return row; }
+  function update(col,id,patch){ var r=S[col].filter(function(x){return x.id===id;})[0]; if(!r) return null;
+    Object.keys(patch).forEach(function(k){ r[k]=patch[k]; }); r.updated_at=now(); save(); push(col,r); return r; }
+  function all(col){ return S[col].slice(); }
+
+  /* ── activity: the audit log ──────────────────────────────────────── */
+  function log(kind,o){
+    o=o||{}; var u=user();
+    var row={ id:uuid(), at:now(), actor_id:u?u.id:null, actor_name:u?u.display_name:(whoId()||'?'),
+      app:o.app||'club', kind:kind,
+      entity_kind:o.entity_kind||null, entity_ref:(o.entity_ref!=null?String(o.entity_ref):null),
+      entity_name:o.entity_name||null, from_val:o.from!=null?String(o.from):null, to_val:o.to!=null?String(o.to):null,
+      mins:(typeof o.mins==='number')?Math.round(o.mins):null, session_id:o.session_id||null, detail:o.detail||{} };
+    S.activity.push(row);
+    if(S.activity.length>6000) S.activity=S.activity.slice(-5000);   // local cap; the DB keeps everything
+    save(); push('activity',row); return row;
+  }
+
+  /* ── sessions: time by type of work ───────────────────────────────── */
+  function workTypes(activeOnly){ var w=S.work_types.slice().sort(function(a,b){return (a.sort||0)-(b.sort||0);});
+    return activeOnly===false? w : w.filter(function(x){return x.active!==false;}); }
+  function wtKey(k){ return LEGACY[k]||k; }
+  function wtLabel(k){ k=wtKey(k); var w=S.work_types.filter(function(x){return x.key===k;})[0]; return w?w.label:k; }
+  function saveWorkTypes(list){ S.work_types=list; save(); }
+  function sessionStart(app,work_type,note){
+    var u=user(); var row=add('sessions',{ user_id:u?u.id:null, app:app, work_type:wtKey(work_type), started_at:now(), ended_at:null, mins:null, note:note||'', entity_refs:[] });
+    log('session_start',{app:app, entity_kind:'session', entity_ref:row.id, to:wtLabel(work_type), session_id:row.id});
+    return row;
+  }
+  function sessionEnd(id,o){ o=o||{}; var r=S.sessions.filter(function(x){return x.id===id;})[0]; if(!r) return null;
+    r.ended_at=now(); r.mins=(typeof o.mins==='number')?Math.max(0,Math.round(o.mins)):Math.max(0,Math.round((Date.now()-new Date(r.started_at).getTime())/60000));
+    if(o.note) r.note=o.note; if(o.entity_refs) r.entity_refs=o.entity_refs; save(); push('sessions',r);
+    log('session_end',{app:r.app, entity_kind:'session', entity_ref:r.id, to:wtLabel(r.work_type), mins:r.mins, session_id:r.id}); return r; }
+  function sessionQuick(app,work_type,mins,note){
+    var u=user(); var t=now();
+    var row=add('sessions',{ user_id:u?u.id:null, app:app, work_type:wtKey(work_type), started_at:t, ended_at:t, mins:Math.max(0,Math.round(mins)), note:note||'', entity_refs:[] });
+    log('session_logged',{app:app, entity_kind:'session', entity_ref:row.id, to:wtLabel(work_type), mins:row.mins, session_id:row.id}); return row; }
+  function sessionsFor(userId,sinceMs,untilMs){ return S.sessions.filter(function(s){ var t=new Date(s.started_at).getTime();
+    return (!userId||s.user_id===userId) && (sinceMs==null||t>=sinceMs) && (untilMs==null||t<untilMs); }); }
+
+  /* ── tasks between people ─────────────────────────────────────────── */
+  function taskAdd(o){
+    var u=user(); var row=add('tasks',{ title:o.title, type:o.type||'general', url:o.url||null, brief:o.brief||null,
+      priority:o.priority||'normal', status:'not_started', created_by:u?u.id:null, assigned_to:o.assigned_to||(u?u.id:null),
+      due:o.due||null, related_app:o.related_app||null, related_ref:o.related_ref!=null?String(o.related_ref):null,
+      related_name:o.related_name||null, completed_at:null, completed_by:null, updated_at:now() });
+    log('task_assigned',{app:o.related_app||'club', entity_kind:'task', entity_ref:row.id, entity_name:row.title, to:nameOf(row.assigned_to),
+      detail:{related_ref:row.related_ref, related_name:row.related_name}});
+    return row; }
+  function taskStatus(id,status){ var u=user(); var r=update('tasks',id,{ status:status,
+      completed_at:status==='done'?now():null, completed_by:status==='done'?(u?u.id:null):null });
+    if(r) log(status==='done'?'task_done':'task_status',{app:r.related_app||'club', entity_kind:'task', entity_ref:r.id, entity_name:r.title, to:status});
+    return r; }
+  function taskNote(id,text){ var u=user(); var r=S.tasks.filter(function(x){return x.id===id;})[0]; if(!r) return null;
+    var n=add('task_notes',{ task_id:id, who_id:u?u.id:null, who_name:u?u.display_name:'?', text:text, at:now() });
+    log('task_note',{app:r.related_app||'club', entity_kind:'task', entity_ref:id, entity_name:r.title}); return n; }
+  function tasksFor(userId,o){ o=o||{}; return S.tasks.filter(function(t){
+    return !t.deleted_at && (!userId||t.assigned_to===userId) && (o.all||t.status!=='done'); })
+    .sort(function(a,b){ var P={urgent:0,high:1,normal:2,low:3}; return (P[a.priority]-P[b.priority])||(a.due||'9').localeCompare(b.due||'9'); }); }
+  function taskNotes(id){ return S.task_notes.filter(function(n){return n.task_id===id;}); }
+
+  /* ── shared settings ──────────────────────────────────────────────── */
+  function setting(key,val){ if(val===undefined) return S.settings[key]; S.settings[key]=val; save(); push('settings',{key:key,value:val}); return val; }
+
+  /* ── "what happened?" ─────────────────────────────────────────────── */
+  function activityBetween(sinceMs,untilMs,userId){ return S.activity.filter(function(a){ var t=new Date(a.at).getTime();
+    return t>=sinceMs && (untilMs==null||t<untilMs) && (!userId||a.actor_id===userId); }); }
+  function summarise(sinceMs,untilMs){
+    var out={};
+    users().forEach(function(u){
+      var acts=activityBetween(sinceMs,untilMs,u.id), sess=sessionsFor(u.id,sinceMs,untilMs).filter(function(s){return s.mins!=null;});
+      var byType={}; sess.forEach(function(s){ byType[s.work_type]=(byType[s.work_type]||0)+(s.mins||0); });
+      var count=function(k){ return acts.filter(function(a){return a.kind===k;}).length; };
+      out[u.id]={ user:u, sessions:sess.length, mins:sess.reduce(function(a,s){return a+(s.mins||0);},0), byType:byType,
+        ideas_added:count('idea_added'), ideas_updated:count('idea_updated'), moved:count('stage'), entered:count('entered_pipeline'),
+        launched:count('launched'), dropped:count('dropped'), suppliers:count('supplier_added')+count('supplier_contacted'),
+        samples:count('sample_added')+count('sample_ordered')+count('sample_received'), tasks_done:count('task_done'),
+        tasks_assigned:count('task_assigned'), opened:count('product_opened'), notes:count('note'), acts:acts };
+    });
+    return out;
+  }
+
+  /* ── cross-frame + subscribers ────────────────────────────────────── */
+  var subs=[]; function on(fn){ subs.push(fn); } function notify(){ subs.forEach(function(f){ try{ f(); }catch(e){} }); }
+  try{ window.addEventListener('storage',function(e){ if(e.key===KEY||e.key===WHO||e.key===MODE){ load(); notify(); } }); }catch(e){}
+
+  /* ── Supabase sync (Monday). Dormant until enable() is called. ───── */
+  var sb=null, outbox=[];
+  try{ outbox=JSON.parse(localStorage.getItem(OUTBOX)||'[]'); }catch(e){ outbox=[]; }
+  var TABLE={users:'bdl_plub_users',activity:'bdl_plub_activity',sessions:'bdl_plub_sessions',tasks:'bdl_plub_tasks',
+             task_notes:'bdl_plub_task_notes',work_types:'bdl_plub_work_types',settings:'bdl_plub_settings'};
+  function push(col,row){ if(mode()!=='supabase') return; outbox.push({col:col,row:row,at:Date.now()});
+    try{ localStorage.setItem(OUTBOX,JSON.stringify(outbox.slice(-2000))); }catch(e){} flush(); }
+  var flushing=false;
+  function flush(){ if(!sb||flushing||!outbox.length) return; flushing=true;
+    var item=outbox[0]; var t=TABLE[item.col]; var row=Object.assign({},item.row);
+    if(item.col==='activity'){ delete row.id; }            // identity column server-side
+    var q= item.col==='settings' ? sb.from(t).upsert({key:row.key,value:row.value},{onConflict:'key'})
+         : item.col==='work_types' ? sb.from(t).upsert(row,{onConflict:'key'})
+         : sb.from(t).upsert(row,{onConflict:'id'});
+    q.then(function(res){ if(res&&res.error){ console.warn('club sync',res.error); flushing=false; return; }
+      outbox.shift(); try{ localStorage.setItem(OUTBOX,JSON.stringify(outbox)); }catch(e){} flushing=false; flush(); })
+     .catch(function(err){ console.warn('club sync',err); flushing=false; });
+  }
+  function enable(client){ sb=client; try{ localStorage.setItem(MODE,'supabase'); }catch(e){}
+    // initial pull: server rows merge over local by id; local-only rows are then pushed
+    var cols=Object.keys(TABLE);
+    return Promise.all(cols.map(function(c){ return sb.from(TABLE[c]).select('*').then(function(res){ return {c:c,rows:(res&&res.data)||[]}; }); }))
+      .then(function(parts){
+        parts.forEach(function(p){
+          if(p.c==='settings'){ p.rows.forEach(function(r){ S.settings[r.key]=r.value; }); return; }
+          var byId={}; S[p.c].forEach(function(r){ byId[r.id||r.key]=r; });
+          p.rows.forEach(function(r){ byId[r.id||r.key]=r; });
+          S[p.c]=Object.keys(byId).map(function(k){return byId[k];});
+        });
+        save(); flush();
+      });
+  }
+  function disable(){ sb=null; try{ localStorage.setItem(MODE,'local'); }catch(e){} }
+
+  return { mode:mode, user:user, users:users, setWho:setWho, signOut:signOut, nameOf:nameOf, byId:byId,
+    log:log, activityBetween:activityBetween, summarise:summarise,
+    workTypes:workTypes, wtKey:wtKey, wtLabel:wtLabel, saveWorkTypes:saveWorkTypes,
+    sessionStart:sessionStart, sessionEnd:sessionEnd, sessionQuick:sessionQuick, sessionsFor:sessionsFor,
+    taskAdd:taskAdd, taskStatus:taskStatus, taskNote:taskNote, tasksFor:tasksFor, taskNotes:taskNotes,
+    setting:setting, all:all, add:add, update:update, on:on, reload:function(){ load(); notify(); },
+    sync:{ enable:enable, disable:disable, flush:flush, pending:function(){ return outbox.length; } },
+    _dump:function(){ return JSON.parse(JSON.stringify(S)); } };
+})();
+
+</script>
+<script>var CURRENT_USER=(window.CLUB&&CLUB.user())?CLUB.user().display_name:'Jack';</script>
 <script>
 // ═══════════════════════════════════════════════════════
 // LOCAL MODE (Phase 1) — all data lives in THIS browser.
@@ -1374,7 +1564,7 @@ body,.app{background:var(--bg)}
   </nav>
   <div class="sn-foot">
     <div class="sn-av">J</div>
-    <div class="sn-foot-t"><div class="sn-user">Jack</div><div class="sn-role">Private label</div></div>
+    <div class="sn-foot-t"><div class="sn-user">Jack</div><div class="sn-role">Owner \u00b7 local</div></div>
     <span class="sn-saved" title="Saves in this browser automatically"><i></i></span>
   </div>
 </aside>
@@ -1399,8 +1589,8 @@ try{ if(localStorage.getItem('pl_sb_min')==='1') document.body.classList.add('sb
 </script>
 <header class="topbar" id="appTopbar">
   <div class="xtabs" id="xtabs" style="display:none">
-    <button class="xt" onclick="try{parent.show('ub')}catch(e){}">UB</button>
-    <button class="xt on" onclick="try{parent.show('pl')}catch(e){}">PL</button>
+    <button class="xt xt-ub" onclick="try{parent.show('ub')}catch(e){}">Unique Bundles</button>
+    <button class="xt xt-pl on" onclick="try{parent.show('pl')}catch(e){}">Private Label</button>
     <button class="xt" onclick="try{parent.show('pipe')}catch(e){}">Overview</button>
     <span class="xver" data-ver>v0.45</span>
   </div>
@@ -1969,7 +2159,7 @@ async function skipImport() {
     timezone: 'Europe/London',
     currency_code: 'GBP'
   }).select().single();
-  if (error) { alert('Could not create brand: ' + error.message); return; }
+  if (error) { showFlash('Could not create brand: ' + error.message); return; }
   currentBrand = brand;
   // Create empty brand_state
   await db.from('brand_state').insert({
@@ -2163,8 +2353,7 @@ async function _doPersist() {
     // Surface row failures only after every other row has had its chance to save.
     if (rowErrors) throw (lastRowErr || new Error(rowErrors + ' idea(s) failed to save'));
 
-    showFlash('Saved ✓');
-    showSaveStatus('saved', 'Saved ✓');
+    showSaveStatus('saved', 'Saved ✓');   // the status chip already says it — a second 'Saved' flash next to it was noise
   } catch (err) {
     console.error('Save failed:', err);
     showFlash('Save failed — retry');
@@ -2653,7 +2842,13 @@ function renderDash(){
   if(ideas.length===0){grid.innerHTML='';empty.style.display='block';if(paneDash)paneDash.classList.add('first-run');return;}
   if(paneDash)paneDash.classList.remove('first-run');
   empty.style.display='none';
-  if(!list.length){grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-title">No matches</div><div class="empty-sub">Try adjusting your filters</div></div>`;return;}
+  if(!list.length){
+    // every idea already promoted is not 'no matches' — it read like the ideas had vanished
+    grid.innerHTML = !pool.length
+      ? `<div class="empty" style="grid-column:1/-1"><div class="empty-title">All ${ideas.length} idea${ideas.length===1?' is':'s are'} in the Pipeline</div><div class="empty-sub">Nothing is waiting to be scored. Add a new idea and it lands here.</div><div style="margin-top:12px"><button class="btn primary" onclick="openModal(null)">+ Add Idea</button> <button class="btn" onclick="nav('pipeline')">Open Pipeline →</button></div></div>`
+      : `<div class="empty" style="grid-column:1/-1"><div class="empty-title">No matches</div><div class="empty-sub">Try adjusting your filters</div></div>`;
+    return;
+  }
 
   const now=Date.now();
   // rank all non-binned ideas by score for position badge
@@ -2919,16 +3114,27 @@ function openModal(id){
   buildModal(data);
   switchTab(0);
   document.getElementById('overlay').classList.add('open');
+  try{ if(!id) plQuickOpen(data); else plQuickClose(true); }catch(e){ console.error('quick',e); }
+  if(!id && window.__plDraftPending){ const d=window.__plDraftPending; window.__plDraftPending=null;
+    const mins=Math.max(1,Math.round((Date.now()-(d.editedAt||Date.now()))/60000));
+    setTimeout(()=>{ plConfirm2({title:'Restore your unsaved draft?', body:'\u201c'+d.name+'\u201d \u2014 from '+mins+' minute'+(mins===1?'':'s')+' ago.', ok:'Restore',
+      onOk:function(){ try{ buildModal(d); switchTab(0); }catch(e){ console.error('draft',e); } },
+      onCancel:function(){ try{ localStorage.removeItem('pls_draft'); }catch(e){} } }); }, 260); }
   setTimeout(()=>{
+    // always start the form at the top — see the preventScroll note below
+    document.querySelectorAll('#modal .tab-pane').forEach(p=>{ p.scrollTop=0; });
     const f=document.getElementById('f_name');
     if(!f)return;
     if(id){
       // EXISTING idea — focus but DON'T select-all. Selecting the whole name
       // meant one stray keystroke wiped it (that's the "saved as done" bug).
-      const v=f.value;f.focus();try{f.setSelectionRange(v.length,v.length);}catch(e){}
+      const v=f.value;
+      try{ f.focus({preventScroll:true}); }catch(e){ f.focus(); }
+      try{f.setSelectionRange(v.length,v.length);}catch(e){}
     } else {
       // New idea — the field is empty, safe to focus + select.
-      f.focus();f.select&&f.select();
+      try{ f.focus({preventScroll:true}); }catch(e){ f.focus(); }
+      f.select&&f.select();
     }
   },120);
 }
@@ -2940,13 +3146,13 @@ function tryDraft(){
     if(!parsed.name)return null;
     const age=Date.now()-(parsed.editedAt||0);
     if(age>2*60*60*1000)return null;
-    if(confirm('You have an unsaved draft: "'+parsed.name+'". Restore it?')){return parsed;}
-    localStorage.removeItem('pls_draft');
+    window.__plDraftPending=parsed;   // asked, styled, once the modal is open — see openModal
     return null;
   }catch{return null;}
 }
 let _closingAfterSave=false;
 function closeModal(){
+  try{ plQuickClose(true); }catch(e){}
   // Closing a dirty form used to bin everything typed. tryDraft() already knows how to
   // offer a draft back on reopen — nothing was ever writing one. Do that here.
   if(!_closingAfterSave && formTouched){
@@ -3108,6 +3314,7 @@ function liveUpdate(fromUser){
   if(fromUser)formTouched=true;
   const draft=readForm();
   const sc=score(draft);
+  try{ plQuickSync(sc); }catch(e){}
   const chip=document.getElementById('scoreChip'),cp=document.getElementById('chipPct');
   if(cp){cp.textContent=sc.pct+'%';cp.style.color='';chip.className='score-chip '+(sc.status==='launch'||sc.status==='good'?'hot':sc.status==='potential'||sc.status==='revisit'?'warm':'cold');}
   const pf=document.getElementById('progFill'),pc=document.getElementById('progCount');
@@ -3164,6 +3371,7 @@ function setDot(idx,filled,total){
   else dot.className='tab-dot partial';
 }
 
+function _resetTabScroll(){ try{ document.querySelectorAll('#modal .tab-pane').forEach(p=>{p.scrollTop=0;}); }catch(e){} }
 function switchTab(idx){
   activeTabIdx=idx;
   for(let i=0;i<4;i++){
@@ -3173,10 +3381,11 @@ function switchTab(idx){
   if(idx===2)renderAsinList();
   liveUpdate();
   setTimeout(()=>{
-    if(idx===1)return;
     const pane=document.getElementById('tab-'+idx);
-    const first=pane.querySelector('input:not([type=hidden]),select,textarea');
-    if(first)first.focus();
+    if(pane) pane.scrollTop=0;          // land at the top of the tab, not mid-form
+    if(idx===1)return;
+    const first=pane&&pane.querySelector('input:not([type=hidden]),select,textarea');
+    if(first){ try{ first.focus({preventScroll:true}); }catch(e){ first.focus(); } }
   },80);
 }
 
@@ -3270,6 +3479,7 @@ function saveIdea(force){
 }
 
 function finishSaveIdea(data){
+  try{ CLUB.log(editId?'idea_updated':'idea_added',{app:'pl',entity_kind:'idea',entity_ref:data&&data.id,entity_name:data&&data.name}); }catch(e){}
   const sc=score(data);
   data.scoreHistory=data.scoreHistory||[];
   const last=data.scoreHistory[data.scoreHistory.length-1];
@@ -3362,7 +3572,7 @@ function renderSettings(){
       </div></div>
       <div style="display:flex;gap:10px;margin-top:1rem">
         <button class="btn primary" onclick="saveSettings()">Save Settings</button>
-        <button class="btn" onclick="if(confirm('Reset everything to defaults?')){settings=JSON.parse(JSON.stringify(DEF));persist();renderSettings();}">Reset defaults</button>
+        <button class="btn" onclick="plConfirm2({title:'Reset everything to defaults?',body:'Scoring, thresholds, checklist and stage durations all go back to the built-in values.',ok:'Reset',hue:'#FF5470',onOk:function(){settings=JSON.parse(JSON.stringify(DEF));persist();renderSettings();showFlash('Settings reset \u2713');}})">Reset defaults</button>
       </div>
     </div>
 
@@ -3387,7 +3597,7 @@ function renderSettings(){
       <div style="display:flex;gap:10px;margin-top:14px">
         <button class="btn primary" onclick="addClQuestion()">+ Add question</button>
         <button class="btn" onclick="saveClSettings()">Save Changes</button>
-        <button class="btn ghost" onclick="if(confirm('Reset the checklist questions back to the built-in defaults? Your custom questions will be removed.')){settings.checklist=JSON.parse(JSON.stringify(DEF.checklist));persist();renderSettings();showFlash('Checklist reset ✓');}">Reset to defaults</button>
+        <button class="btn ghost" onclick="plConfirm2({title:'Reset the checklist questions?',body:'Back to the built-in defaults. Your custom questions will be removed.',ok:'Reset',hue:'#FF5470',onOk:function(){settings.checklist=JSON.parse(JSON.stringify(DEF.checklist));persist();renderSettings();showFlash('Checklist reset \u2713');}})">Reset to defaults</button>
       </div>
     </div>
 
@@ -3560,7 +3770,8 @@ function addClQuestion(){
 function deleteClQuestion(i){
   if(!settings.checklist)return;
   const item=settings.checklist[i];
-  if(!confirm('Delete the question "'+((item&&item.q)||'this question')+'"?\n\nIt will be removed from the scoring and from the Add-Idea checklist. Existing saved answers are kept but no longer counted.'))return;
+  plConfirm2({title:'Delete this question?', body:'\u201c'+((item&&item.q)||'this question')+'\u201d will leave the scoring and the Add-Idea checklist. Saved answers are kept but no longer counted.', ok:'Delete', hue:'#FF5470',
+    onOk:function(){ settings.checklist.splice(i,1); persist(); renderClEditList(); }}); return;
   settings.checklist.splice(i,1);
   persist();
   renderClEditList();
@@ -4374,7 +4585,7 @@ function copyExport(){
     // If execCommand also fails, try clipboard API
     if(navigator.clipboard){
       navigator.clipboard.writeText(text).then(flash).catch(function(){
-        alert('Copy failed — please select the text in the preview and copy manually.');
+        showFlash('Copy failed \u2014 select the text in the preview and copy manually');
       });
     }
   }
@@ -4472,7 +4683,15 @@ function ensurePipe(n){
   return p;
 }
 function logHistory(n,type,text,sub){
-  ensurePipe(n).history.push({ts:Date.now(),type:type,text:text,sub:sub||''});
+  ensurePipe(n).history.push({ts:Date.now(),type:type,text:text,sub:sub||'',who:CURRENT_USER});
+  try{
+    const KIND={enter:'entered_pipeline', advance:'stage', back:'stage_back', launch:'launched', reject:'dropped', note:'note'};
+    const p=ensurePipe(n), st=p.stage, nm=v=>{ try{ return stageById(v).name; }catch(e){ return String(v); } };
+    const o={app:'pl', entity_kind:'product', entity_ref:n.id, entity_name:n.name, session_id:(brandState&&brandState.plRun&&brandState.plRun.clubId)||null,
+             detail:{text:String(text||'').replace(/<[^>]*>/g,'')}};
+    if(type==='advance'){ o.from=nm(st-1); o.to=nm(st); } else if(type==='back'){ o.from=nm(st+1); o.to=nm(st); } else if(type==='enter'){ o.to=nm(st); }
+    CLUB.log(KIND[type]||type, o);
+  }catch(e){}
 }
 function tasksForStage(n,stageId){
   const p=ensurePipe(n);
@@ -4742,7 +4961,8 @@ function pipeDrop(e,stageId){
 // ── bulk delete (referenced by toolbar) ──
 function bulkDelete(){
   if(!selectedIds.size)return;
-  if(!confirm('Delete '+selectedIds.size+' idea'+(selectedIds.size>1?'s':'')+'? This cannot be undone.'))return;
+  if(!window.__bulkOk){ plConfirm2({title:'Delete '+selectedIds.size+' idea'+(selectedIds.size>1?'s':'')+'?', body:'This cannot be undone.', ok:'Delete', hue:'#FF5470',
+    onOk:function(){ window.__bulkOk=true; try{ bulkDelete(); } finally { window.__bulkOk=false; } }}); return; }
   const victims=ideas.filter(n=>selectedIds.has(n.id));
   ideas=ideas.filter(n=>!selectedIds.has(n.id));
   victims.forEach(v=>deleteIdeaFromDb(v));
@@ -4823,7 +5043,8 @@ function delWeekTask(id){
   saveWeekTasks(weekTasks);renderWeek();
 }
 function clearDoneWeekTasks(){
-  if(!confirm('Clear all completed tasks?'))return;
+  plConfirm2({title:'Clear all completed tasks?', body:'Done tasks are removed from this week\u2019s list.', ok:'Clear', onOk:function(){
+    weekTasks=weekTasks.filter(function(x){return !x.done;}); saveWeekTasks(weekTasks);renderWeek(); }}); return;
   weekTasks=weekTasks.filter(function(x){return !x.done;});
   saveWeekTasks(weekTasks);renderWeek();
 }
@@ -4844,10 +5065,11 @@ function getWeekKpiSettings(){
 }
 function editWeekTargets(){
   var k=getWeekKpiSettings();
-  var ideas=parseInt(prompt('New ideas to add each week:',k.ideasPerWeek),10);if(!isNaN(ideas))k.ideasPerWeek=Math.max(0,ideas);
-  var adds=parseInt(prompt('Products to move into Pipeline each week:',k.pipelineAdds),10);if(!isNaN(adds))k.pipelineAdds=Math.max(0,adds);
-  var sourcing=parseInt(prompt('Minimum products in Sourcing:',k.minSourcing),10);if(!isNaN(sourcing))k.minSourcing=Math.max(0,sourcing);
-  persist();renderWeek();showFlash('Weekly targets updated ✓');
+  plForm2({title:'Weekly pace', sub:'The month is the KPI \u2014 these only shape the weekly bars.',
+    fields:[{label:'New ideas each week',value:k.ideasPerWeek},{label:'Into the Pipeline each week',value:k.pipelineAdds},{label:'Minimum products in Sourcing',value:k.minSourcing}],
+    onSave:function(v){ var n=function(x,f){ x=parseInt(x,10); return isNaN(x)?f:Math.max(0,x); };
+      k.ideasPerWeek=n(v[0],k.ideasPerWeek); k.pipelineAdds=n(v[1],k.pipelineAdds); k.minSourcing=n(v[2],k.minSourcing);
+      persist();renderWeek();showFlash('Weekly pace updated \u2713'); }});
 }
 function stageAge(n){var p=ensurePipe(n);return Math.max(0,daysAgo(p.lastMoved||p.enteredAt)||0);}
 function stageHardLimit(stageId){if(stageId===1)return 14;if(stageId===2)return 14;return getStageDays(stageId);}
@@ -4994,7 +5216,7 @@ function renderWeek(){
   var _mLabel=_mNow.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
   var header='<div class="ac2-header"><div><div class="ac2-eyebrow">ACTION CENTRE · '+esc(_mLabel)+'</div>'
     +'<h1>Are things moving?</h1><p>Movement first, then what needs pushing. Targets are monthly, judged at calendar pace.</p></div>'
-    +'<div class="ac2-header-actions"><button class="ac2-btn" onclick="plEditMonthlyK()">Monthly targets</button>'
+    +'<div class="ac2-header-actions"><button class="ac2-btn" onclick="plEditMonthlyK()">Monthly targets</button><button class="ac2-btn pri" onclick="clubSendTask()">\uff0b Send a task</button>'
     +'<button class="ac2-btn" onclick="nav(\'settings\')">Settings</button></div></div>';
   // the movement verdict — entered · moved forward · launched vs stuck · untouched, this week
   var wkAdvanced=productEvents.filter(function(e){return e.h.type==='advance';}).length;
@@ -5074,6 +5296,10 @@ function renderWeek(){
          : kind==='stuck'   ? {p:'MED', b:'Continue'}
          : {p:'LOW', b:'Review'}; }
   var _seen={}, qrows=[];
+  try{ var _me=CLUB.user(); if(_me) CLUB.tasksFor(_me.id).forEach(function(t){
+    qrows.push({it:{type:'club', clubId:t.id, title:t.title, product:t.related_name||('from '+CLUB.nameOf(t.created_by)),
+      next:(t.brief||'Sent by '+CLUB.nameOf(t.created_by))+(t.due?' \u00b7 due '+t.due:''), day:null},
+      r:{p:t.priority==='urgent'||t.priority==='high'?'HIGH':t.priority==='low'?'LOW':'MED', b:'Done'}}); }); }catch(e){}
   [['overdue',d.overdue],['stuck',d.stuck],['week',d.week]].forEach(function(pair){
     pair[1].forEach(function(it){
       var key=(it.productId!=null? 'p'+it.productId : (it.title||'')+'|'+(it.next||''));
@@ -5081,6 +5307,7 @@ function renderWeek(){
       qrows.push({it:it, r:acRank(it,pair[0])}); }); });
   var qHtml=qrows.slice(0,10).map(function(x){
     var it=x.it, click = it.type==='product'?'acOpenProduct('+it.productId+')'
+      : it.type==='club'?'clubTaskDone(\''+it.clubId+'\')'
       : it.type==='manual'?'acDismissManual('+it.taskId+')' : 'acOpenTarget(\''+esc(it.navTarget||'dash')+'\')';
     return '<tr onclick="'+click+'">'
       +'<td><span class="ov-p '+x.r.p.toLowerCase()+'">'+x.r.p+'</span></td>'
@@ -5106,7 +5333,7 @@ function renderWeek(){
   var srcbar='', wkld='';
   try{ srcbar=plSourceBar(); wkld=plWorkloadBox(); }catch(e){ console.error('sourcing bar',e); }
   var timeline=''; try{ timeline=plTimeline(); }catch(e){ console.error('timeline',e); }
-  document.getElementById('weekAlerts').innerHTML='<div class="ac2-shell">'+header+srcbar+wkld+top+monthCard+health+queue+timeline+gaps+completed+'</div>';
+  document.getElementById('weekAlerts').innerHTML='<div class="ac2-shell">'+header+top+srcbar+wkld+monthCard+health+queue+timeline+gaps+completed+'</div>';
   document.getElementById('weekFocus').innerHTML='';document.getElementById('weekMomentum').innerHTML='';document.getElementById('weekKpis').innerHTML='';document.getElementById('weekList').innerHTML='';
 }
 function toggleAcAll(){
@@ -5258,7 +5485,7 @@ function plTickAll(id,sid){
   const open=(tasksForStage(n,sid)||[]).filter(t=>!p.steps[t.key]);
   if(!open.length){ showFlash('Nothing left to tick'); return; }
   open.forEach(t=>{ p.steps[t.key]=true; });
-  try{ logHistory(n,'advance','Ticked all '+open.length+' remaining '+stageById(sid).name+' tasks in one go'); }catch(e){}
+  try{ logHistory(n,'note','Ticked all '+open.length+' remaining '+stageById(sid).name+' tasks in one go'); }catch(e){}
   persist(); renderProduct(); renderWeek();
   showFlash('Ticked '+open.length+' — stage complete ✓');
 }
@@ -5306,6 +5533,7 @@ function supRating(n,i,key,label){const s=ensurePipe(n).suppliers[i];const v=s[k
   for(let d=1;d<=5;d++)dots+='<div class="srate-dot '+(d<=v?'on':'')+'" onclick="setSupRating('+n.id+','+i+',\''+key+'\','+d+')"></div>';
   return '<div class="supplier-rating"><span class="srate-label">'+esc(label)+'</span><div class="srate-dots">'+dots+'</div></div>';}
 function addSupplier(id){const n=ideas.find(x=>x.id===id);if(!n)return;const p=ensurePipe(n);
+  try{ CLUB.log('supplier_added',{app:'pl',entity_kind:'product',entity_ref:n.id,entity_name:n.name}); }catch(e){}
   p.suppliers.push({id:'sup'+Date.now(),name:'',price:'',moq:'',lead:'',country:'',contact:'',sampleCost:'',comms:0,quality:0,trust:0,notes:'',shortlist:false});
   persist();renderProduct();}
 function updateSupplier(id,i,key,val){const n=ideas.find(x=>x.id===id);if(!n)return;ensurePipe(n).suppliers[i][key]=val;persist();}
@@ -5313,9 +5541,9 @@ function setSupRating(id,i,key,v){const n=ideas.find(x=>x.id===id);if(!n)return;
 function toggleShortlist(id,i){const n=ideas.find(x=>x.id===id);if(!n)return;const s=ensurePipe(n).suppliers[i];s.shortlist=!s.shortlist;
   logHistory(n,'note',(s.shortlist?'Shortlisted':'Un-shortlisted')+' supplier <b>'+esc(s.name||'(unnamed)')+'</b>');persist();renderProduct();}
 function removeSupplier(id,i){const n=ideas.find(x=>x.id===id);if(!n)return;const p=ensurePipe(n);const s=p.suppliers[i];
-  if(!confirm('Remove supplier '+(s.name||'')+'?'))return;
-  if(p.chosenSupplier===s.id)p.chosenSupplier=null;
-  p.suppliers.splice(i,1);persist();renderProduct();}
+  plConfirm2({title:'Remove supplier?', body:(s.name||'This supplier')+' comes off the product. Quotes and notes with it are lost.', ok:'Remove', hue:'#FF5470', onOk:function(){
+    if(p.chosenSupplier===s.id)p.chosenSupplier=null;
+    p.suppliers.splice(i,1);persist();renderProduct(); }});}
 function chooseSupplier(id,i){const n=ideas.find(x=>x.id===id);if(!n)return;const p=ensurePipe(n);const s=p.suppliers[i];
   if(p.chosenSupplier===s.id){p.chosenSupplier=null;}
   else{p.chosenSupplier=s.id;logHistory(n,'advance','Chose supplier <b>'+esc(s.name||'(unnamed)')+'</b>',(s.notes?'Why: '+s.notes:''));}
@@ -5351,11 +5579,13 @@ function sampField(n,i,key,label){const s=ensurePipe(n).samples[i];
 function sampRating(n,i,key,label){const s=ensurePipe(n).samples[i];const v=s[key]||0;let dots='';
   for(let d=1;d<=5;d++)dots+='<div class="srate-dot '+(d<=v?'on':'')+'" onclick="setSampleRating('+n.id+','+i+',\''+key+'\','+d+')"></div>';
   return '<div class="supplier-rating"><span class="srate-label">'+esc(label)+'</span><div class="srate-dots">'+dots+'</div></div>';}
-function addSample(id){const n=ideas.find(x=>x.id===id);if(!n)return;ensurePipe(n).samples.push({id:'smp'+Date.now(),name:'',cost:'',arrived:'',days:'',quality:0,look:0,vsComp:0,notes:''});persist();renderProduct();}
+function addSample(id){const n=ideas.find(x=>x.id===id);if(!n)return;
+  try{ CLUB.log('sample_added',{app:'pl',entity_kind:'product',entity_ref:n.id,entity_name:n.name}); }catch(e){}ensurePipe(n).samples.push({id:'smp'+Date.now(),name:'',cost:'',arrived:'',days:'',quality:0,look:0,vsComp:0,notes:''});persist();renderProduct();}
 function updateSample(id,i,key,val){const n=ideas.find(x=>x.id===id);if(!n)return;ensurePipe(n).samples[i][key]=val;persist();}
 function setSampleRating(id,i,key,v){const n=ideas.find(x=>x.id===id);if(!n)return;const s=ensurePipe(n).samples[i];s[key]=s[key]===v?0:v;persist();renderProduct();}
-function removeSample(id,i){const n=ideas.find(x=>x.id===id);if(!n)return;const p=ensurePipe(n);if(!confirm('Remove this sample?'))return;
-  if(p.chosenSample===p.samples[i].id)p.chosenSample=null;p.samples.splice(i,1);persist();renderProduct();}
+function removeSample(id,i){const n=ideas.find(x=>x.id===id);if(!n)return;const p=ensurePipe(n);
+  plConfirm2({title:'Remove this sample?', body:'Its scores and notes go with it.', ok:'Remove', hue:'#FF5470', onOk:function(){
+    if(p.chosenSample===p.samples[i].id)p.chosenSample=null;p.samples.splice(i,1);persist();renderProduct(); }});}
 function chooseSample(id,i){const n=ideas.find(x=>x.id===id);if(!n)return;const p=ensurePipe(n);const s=p.samples[i];
   if(p.chosenSample===s.id)p.chosenSample=null;
   else{p.chosenSample=s.id;logHistory(n,'advance','Chose winning sample <b>'+esc(s.name||'(unnamed)')+'</b>',(s.notes?'Why: '+s.notes:''));}
@@ -5460,7 +5690,8 @@ function renderProdFooter(n,p){
 // SAMPLE / FAKE DATA (safe — marked, removable)
 // ══════════════════════════════════════════════════
 function addSampleData(){
-  if(!confirm('Add 8 sample products to test the Pipeline?\n\nThis demonstrates every stage from Sourcing to Launch, plus a rejected one.\nThis will NOT affect your real ideas. Sample products are clearly marked and can be removed anytime from Settings.'))return;
+  plConfirm2({title:'Add 8 sample products?', body:'One at every stage from Sourcing to Launch, plus a rejected one. They are clearly marked, do not touch your real ideas, and can be removed from Settings.', ok:'Add samples', onOk:_addSampleDataNow}); }
+function _addSampleDataNow(){
   var now=Date.now();
   var D=86400000;
   // helper to build a supplier
@@ -5573,8 +5804,9 @@ function h(ts,type,text,sub){return {ts:ts,type:type,text:text,sub:sub||''};}
 
 function removeSampleData(){
   var sampleCount=ideas.filter(function(n){return n.isSample;}).length;
-  if(!sampleCount){alert('No sample data to remove.');return;}
-  if(!confirm('Remove all '+sampleCount+' sample products?\n\nYour real ideas will NOT be affected.'))return;
+  if(!sampleCount){showFlash('No sample data to remove');return;}
+  if(!window.__rmSampleOk){ plConfirm2({title:'Remove all '+sampleCount+' sample products?', body:'Your real ideas are not touched.', ok:'Remove', hue:'#FF5470',
+    onOk:function(){ window.__rmSampleOk=true; try{ removeSampleData(); } finally { window.__rmSampleOk=false; } }}); return; }
   // persist() only writes ideas that still exist — the stored rows must be deleted too,
   // exactly as confirmDelete()/bulkDelete() do, or every sample comes back on reload.
   var victims=ideas.filter(function(n){return n.isSample;});
@@ -5610,15 +5842,15 @@ function importData(e){
       const data=JSON.parse(ev.target.result);
       if(!data.ideas||!Array.isArray(data.ideas))throw new Error('Invalid file');
       const count=data.ideas.length;
-      if(!confirm(`Import ${count} idea${count!==1?'s':''} from backup?\n\nThis will REPLACE your current data. Make sure you export first if needed.`))return;
-      ideas=data.ideas;
-      if(data.settings)settings=data.settings;
-      persist();
-      renderDash();
-      if(document.getElementById("pane-settings").classList.contains("active"))renderSettings();
-      showFlash(`Imported ${count} idea${count!==1?'s':''} ✓`);
+      plConfirm2({title:`Import ${count} idea${count!==1?'s':''} from backup?`, body:'This REPLACES what you have. Export first if you need it.', ok:'Replace and import', hue:'#FF5470', onOk:function(){
+        ideas=data.ideas;
+        if(data.settings)settings=data.settings;
+        persist();
+        renderDash();
+        if(document.getElementById("pane-settings").classList.contains("active"))renderSettings();
+        showFlash(`Imported ${count} idea${count!==1?'s':''} \u2713`); }});
     }catch(err){
-      alert('Could not read that file. Make sure it is a PL Sourcing backup JSON.');
+      showFlash('Could not read that file \u2014 it needs to be a PL Sourcing backup JSON');
     }
   };
   reader.readAsText(file);
@@ -5896,14 +6128,19 @@ updateLastSaved();
     var pips=''; for(var k=0;k<prog.total;k++) pips+='<span class="plc-pip'+(k<prog.done?' on':'')+'"></span>';
     var taskText = isLive ? (next?next.label:'Live — tracking first review')
                  : next ? next.label : 'All current-stage tasks done — ready to move';
+    var dayPct = allowed>0 ? Math.min(100, Math.round(spent/allowed*100)) : 0;
+    var dayCls = spent>allowed ? 'over' : dayPct>=75 ? 'soon' : '';
+    var taskPct = prog.total ? Math.round(prog.done/prog.total*100) : 0;
     return '<article class="plc '+state+(isLive?' live':'')+'" style="--c:'+col+'" onclick="openProduct('+n.id+')">'
-      +'<div class="plc-top"><div class="plc-name">'+plEsc(cleanName(n))+'</div>'
-        +(pct?'<span class="plc-score">'+pct+'<i>%</i></span>':'')+'</div>'
-      +'<div class="plc-line">'+plEsc(countdown)+' · day <b>'+plCount(spent)+'</b> of '+plCount(allowed)
-        +' · <b>'+plCount(prog.done)+'/'+plCount(prog.total)+'</b> tasks'+(spent>allowed?' <span class="plc-late">over</span>':'')+'</div>'
-      +(prog.total?'<div class="plc-pips">'+pips+'</div>':'')
-      +flag
-      +'<div class="plc-next'+(!next?' done':'')+'">'+plEsc(taskText)+'</div>'
+      +'<div class="plc-top">'+(typeof plAvatar==='function'?plAvatar(cleanName(n),'sm'):'')
+        +'<div class="plc-name">'+plEsc(cleanName(n))+'</div>'
+        +(pct?'<span class="plc-score" title="Idea score">'+pct+'<i>%</i></span>':'')+'</div>'
+      +'<div class="plc-chips">'
+        +'<span class="plc-chip '+dayCls+'" title="Day in this stage vs its target">day '+plCount(spent)+'<i>/'+plCount(allowed)+'</i></span>'
+        +'<span class="plc-chip'+(isLive?' live':live!=null&&live<0?' over':'')+'">'+plEsc(countdown)+'</span>'
+        +flag+'</div>'
+      +(prog.total?'<div class="plc-bar" title="'+plCount(prog.done)+' of '+plCount(prog.total)+' stage tasks done"><i style="width:'+taskPct+'%"></i><b>'+plCount(prog.done)+'/'+plCount(prog.total)+'</b></div>':'')
+      +'<div class="plc-next'+(!next?' done':'')+'" title="'+plEsc(taskText)+'">'+plEsc(taskText)+'</div>'
     +'</article>';
   }
   function renderDroppedArchive(dropped){var el=document.getElementById('pipeRejected');if(!el)return;if(!dropped.length){el.innerHTML='';return;}var rows=dropped.slice().sort(function(a,b){return (plEnsure(b).rejectedAt||0)-(plEnsure(a).rejectedAt||0);}).map(function(n){var p=plEnsure(n);return '<div class="rejected-row"><span class="rejected-name" onclick="openProduct('+n.id+')">'+plEsc(cleanName(n))+'</span><span class="rejected-stage-tag">at '+plEsc(stageById(p.rejectStage||p.stage).name)+'</span><span class="rejected-reason">'+plEsc(p.rejectReason||'No reason recorded')+'</span><span class="rejected-date">'+(p.rejectedAt?plShort(new Date(p.rejectedAt)):'')+'</span><button class="rejected-reopen" onclick="reopenProduct('+n.id+')">↺ Re-open</button></div>';}).join('');el.innerHTML='<details class="pipe-rejected '+(pipeFilter==='dropped'?'open':'')+'"><summary class="pipe-rejected-hd"><span class="pipe-rejected-title">Dropped products <span class="pipe-rejected-count">'+plCount(dropped.length)+'</span></span><span class="pipe-rejected-chev">▾</span></summary><div class="pipe-rejected-body">'+rows+'</div></details>';}
@@ -5911,7 +6148,16 @@ updateLastSaved();
   window.moveToPipeline=function(id){var n=ideas.find(function(x){return x.id===id;});if(!n)return;var p=plEnsure(n),now=Date.now();n.inPipeline=true;p.stage=1;p.status='active';p.enteredAt=now;p.lastMoved=now;p.stageStartedAt=now;p.stageDates=p.stageDates||{};p.stageDates[1]=now;logHistory(n,'enter','Entered the Pipeline at <b>Sourcing</b>','Day 1 started');persist();renderDash();renderPipeline();updateNavCounts();showFlash(plEsc(cleanName(n))+' moved to Pipeline');};
   window.pipeAdvance=function(id,silent){var n=ideas.find(function(x){return x.id===id;});if(!n)return;var p=plEnsure(n),now=Date.now();if(p.status==='launched')return;if(p.stage>=7){p.status='launched';p.launchedAt=now;p.lastMoved=now;logHistory(n,'launch','Marked as <b>Launched</b>','Now live and ready for first-sale review');persist();renderPipeline();renderProdIfOpen(id);updateNavCounts();if(!silent)showFlash(plEsc(cleanName(n))+' marked live');return;}p.stage++;p.status='active';p.lastMoved=now;p.stageStartedAt=now;p.stageDates[p.stage]=now;prodStageView=null;logHistory(n,'advance','Advanced to <b>'+stageById(p.stage).name+'</b>');persist();renderPipeline();renderProdIfOpen(id);updateNavCounts();if(typeof renderWeek==='function')renderWeek();if(!silent)showFlash(plEsc(cleanName(n))+' → '+stageById(p.stage).name);};
   window.pipeMoveBack=function(id){var n=ideas.find(function(x){return x.id===id;});if(!n)return;var p=plEnsure(n),now=Date.now();if(p.status==='launched'){p.status='active';p.lastMoved=now;p.stageStartedAt=p.stageDates[p.stage]||now;logHistory(n,'back','Re-opened from Launched');}else if(p.stage>1){p.stage--;p.lastMoved=now;p.stageStartedAt=p.stageDates[p.stage]||now;logHistory(n,'back','Moved back to <b>'+stageById(p.stage).name+'</b>');}else{return;}persist();renderPipeline();renderProdIfOpen(id);};
-  window.confirmAdvance=function(id){var n=ideas.find(function(x){return x.id===id;});if(!n)return;var p=plEnsure(n);var next=p.stage>=7?'mark this product as Launched':'move to '+stageById(p.stage+1).name;var tasks=p.stage>=7?[]:tasksForStage(n,p.stage+1).slice(0,3).map(function(t){return '• '+t.label;});var msg='Confirm that '+cleanName(n)+' is ready to '+next+'?\n\n'+(tasks.length?'The next stage starts with:\n'+tasks.join('\n'):'This will record the product as live.')+'\n\nYou can always move it back later.';if(!confirm(msg))return;pipeAdvance(id);};
+  window.confirmAdvance=function(id){var n=ideas.find(function(x){return x.id===id;});if(!n)return;var p=plEnsure(n);
+    var toName=p.stage>=7?'Launched':stageById(p.stage+1).name;
+    var tasks=p.stage>=7?[]:tasksForStage(n,p.stage+1).slice(0,3).map(function(t){return t.label;});
+    var open=(tasksForStage(n,p.stage)||[]).filter(function(t){return !p.steps[t.key];}).length;
+    var body='<div class="plm-move"><div class="plm-move-row"><span>'+plEsc(stageById(p.stage).name)+'</span><i>\u2192</i><b>'+plEsc(toName)+'</b></div>'
+      +(open?'<div class="plm-warn">'+open+' task'+(open===1?'':'s')+' still unticked here \u2014 you can still move it.</div>':'<div class="plm-ok">Checklist complete.</div>')
+      +(tasks.length?'<div class="plm-next"><span>Next stage starts with</span><ul>'+tasks.map(function(t){return '<li>'+plEsc(t)+'</li>';}).join('')+'</ul></div>':'<div class="plm-next"><span>This records the product as live on Amazon.</span></div>')
+      +'<div class="plm-foot-note">You can always move it back.</div></div>';
+    plConfirm2({title:'Move '+cleanName(n)+'?', body:body, html:true, ok:(p.stage>=7?'Mark launched':'Move to '+toName)+' \u2192', hue:'#7C5CFF',
+      onOk:function(){ prodStageView=null; pipeAdvance(id); }}); };
   window.reopenProduct=function(id){var n=ideas.find(function(x){return x.id===id;});if(!n)return;var p=plEnsure(n),now=Date.now();p.status='active';p.rejectReason='';p.lastMoved=now;p.stageStartedAt=p.stageDates[p.stage]||now;logHistory(n,'enter','Re-opened into <b>'+stageById(p.stage).name+'</b>');persist();renderPipeline();updateNavCounts();if(document.getElementById('prodOverlay').classList.contains('open'))renderProduct();};
 
   window.setProdSubtab=function(tab){prodSubtab=tab;renderProduct();};
@@ -5998,11 +6244,13 @@ updateLastSaved();
   window.plAddSupplier=function(id){var n=ideas.find(function(x){return x.id===id;});if(!n)return;plEnsure(n).suppliers.push({id:'sup'+Date.now(),name:'',price:'',moq:'',lead:'',country:'',contact:'',sampleCost:'',notes:'',shortlist:false});persist();renderProduct();};
   window.plSupplierField=function(id,i,key,val){var n=ideas.find(function(x){return x.id===id;});if(!n)return;plEnsure(n).suppliers[i][key]=val;plQuietPersist();};
   window.plChooseSupplier=function(id,i){var n=ideas.find(function(x){return x.id===id;});if(!n)return;var p=plEnsure(n),s=p.suppliers[i];p.chosenSupplier=p.chosenSupplier===s.id?null:s.id;logHistory(n,'note',p.chosenSupplier?'Selected supplier <b>'+plEsc(s.name||'(unnamed)')+'</b>':'Cleared selected supplier');persist();renderProduct();};
-  window.plDeleteSupplier=function(id,i){var n=ideas.find(function(x){return x.id===id;});if(!n)return;if(!confirm('Delete this supplier?'))return;var p=plEnsure(n);if(p.chosenSupplier===p.suppliers[i].id)p.chosenSupplier=null;p.suppliers.splice(i,1);persist();renderProduct();};
+  window.plDeleteSupplier=function(id,i){var n=ideas.find(function(x){return x.id===id;});if(!n)return;var p=plEnsure(n);var sName=(p.suppliers[i]&&p.suppliers[i].name)||'This supplier';
+    plConfirm2({title:'Delete this supplier?', body:sName+' comes off the product. Quotes and notes with it are lost.', ok:'Delete', hue:'#FF5470', onOk:function(){ if(p.chosenSupplier===p.suppliers[i].id)p.chosenSupplier=null;p.suppliers.splice(i,1);persist();renderProduct(); }}); };
   function plSampleRounds(n){var p=plEnsure(n);if(!p.samples.length)return '<div class="pl-tab-empty">No sample rounds logged. Add one when a sample is ordered or received.</div>';return p.samples.map(function(s,i){return '<div class="pl-sample-card"><div class="pl-sample-head"><div class="pl-sample-title">Sample round '+(i+1)+'</div><button class="pl-icon-btn delete" onclick="plDeleteSampleRound('+n.id+','+i+')">Delete</button></div><div class="pl-sample-grid"><div><label class="pl-form-label">Supplier</label><input class="pl-input" value="'+plEsc(s.name||'')+'" placeholder="Supplier" oninput="plSampleField('+n.id+','+i+',\'name\',this.value)"></div><div><label class="pl-form-label">Ordered</label><input class="pl-input" type="date" value="'+plEsc(s.orderedAt||'')+'" oninput="plSampleField('+n.id+','+i+',\'orderedAt\',this.value)"></div><div><label class="pl-form-label">Received</label><input class="pl-input" type="date" value="'+plEsc(s.receivedAt||'')+'" oninput="plSampleField('+n.id+','+i+',\'receivedAt\',this.value)"></div><div><label class="pl-form-label">Outcome</label><select class="pl-select" onchange="plSampleField('+n.id+','+i+',\'outcome\',this.value)"><option value="">Choose</option>'+['Good to proceed','Needs changes','Need another sample','Rejected'].map(function(x){return '<option '+(s.outcome===x?'selected':'')+'>'+x+'</option>';}).join('')+'</select></div></div><textarea class="pl-textarea pl-note-input" placeholder="What was good, what failed and what needs changing?" oninput="plSampleField('+n.id+','+i+',\'notes\',this.value)">'+plEsc(s.notes||'')+'</textarea></div>';}).join('');}
   window.plAddSampleRound=function(id){var n=ideas.find(function(x){return x.id===id;});if(!n)return;plEnsure(n).samples.push({id:'smp'+Date.now(),name:'',orderedAt:'',receivedAt:'',outcome:'',notes:''});persist();renderProduct();};
   window.plSampleField=function(id,i,key,val){var n=ideas.find(function(x){return x.id===id;});if(!n)return;plEnsure(n).samples[i][key]=val;plQuietPersist();};
-  window.plDeleteSampleRound=function(id,i){var n=ideas.find(function(x){return x.id===id;});if(!n)return;if(!confirm('Delete this sample round?'))return;plEnsure(n).samples.splice(i,1);persist();renderProduct();};
+  window.plDeleteSampleRound=function(id,i){var n=ideas.find(function(x){return x.id===id;});if(!n)return;
+    plConfirm2({title:'Delete this sample round?', body:'Its scores and notes go with it.', ok:'Delete', hue:'#FF5470', onOk:function(){ plEnsure(n).samples.splice(i,1);persist();renderProduct(); }}); };
 
   function plRenderProfit(n){var p=plEnsure(n),d=p.data||{},sell=plNum(d.plSellPrice),cost=plNum(d.plCostPrice),gross=plNum(d.plGrossProfit),misc=plNum(d.plMiscPct),sales=plNum(d.plSalesMonth),revenue=sell*sales,mgross=gross*sales,mmisc=mgross*(misc/100),mnet=mgross-mmisc,netUnit=gross*(1-misc/100);return '<h2 class="pl-tab-title">Expected profit guide</h2><p class="pl-tab-sub">A simple editable guide — use your own manually entered profit per unit. PPC / miscellaneous is deducted as a percentage of gross profit.</p><div class="pl-profit-grid">'+plProfitInput(n,'plSellPrice','Selling price','£',d.plSellPrice)+plProfitInput(n,'plCostPrice','Cost price','£',d.plCostPrice)+plProfitInput(n,'plGrossProfit','Gross profit / unit','£',d.plGrossProfit)+plProfitInput(n,'plMiscPct','Misc / PPC','%',d.plMiscPct)+plProfitInput(n,'plSalesMonth','Sales / month','',d.plSalesMonth)+'</div><div class="pl-profit-results"><div class="pl-profit-result"><span>Monthly revenue</span><b id="prRevenue">'+plMoney(revenue)+'</b></div><div class="pl-profit-result"><span>Monthly gross profit</span><b id="prGross">'+plMoney(mgross)+'</b></div><div class="pl-profit-result"><span>Monthly misc / PPC</span><b id="prMisc">'+plMoney(mmisc)+'</b></div><div class="pl-profit-result net"><span>Monthly net profit</span><b id="prNet">'+plMoney(mnet)+'</b><small style="display:block;margin-top:5px;color:#92ddba;font:700 10px var(--mono)">NET / UNIT '+plMoney(netUnit)+'</small></div></div><div class="pl-stage-finish" style="margin-top:14px;border-color:#53535a;background:#1d1d1f"><b>How this works</b>Monthly net profit = gross profit per unit × sales per month, less your Misc / PPC percentage. Selling price and cost price are recorded for reference only, so you can use your own real profit-per-unit figure.</div>';}
   function plProfitInput(n,key,label,prefix,val){return '<div class="pl-profit-input"><label>'+plEsc(label)+'</label><input type="number" step="0.01" value="'+plEsc(val||'')+'" placeholder="'+prefix+'0" data-pl-key="'+key+'" oninput="plFinanceUpdate('+n.id+',this)"></div>';}
@@ -6193,15 +6441,15 @@ document.addEventListener('mousedown', function(e){
   window.plUXSaveTask=function(id,sid,key){
     var n=ideas.find(function(x){return x.id===id;});if(!n)return;var title=document.getElementById('plTaskTitle_'+key), scope=document.getElementById('plTaskScope_'+key);var label=title?title.value.trim():'';if(!label)return;var p=uxEnsure(n), all=scope&&scope.value==='all', tmpl=uxTemplateByKey(sid,key);
     if(all&&tmpl){ tmpl.label=label; logHistory(n,'note','Updated shared task wording: <b>'+uxEsc(label)+'</b>',stageById(sid).name+' · all products'); }
-    else if(all&&!tmpl){ alert('This is a product-only task. Add a shared task from “+ Add task” if you want it on every product in this stage.'); return; }
+    else if(all&&!tmpl){ showFlash('Product-only task \u2014 add a shared one from \u201c+ Add task\u201d'); return; }
     else { var ov=uxOverrides(p,sid);ov.labels[key]=label;logHistory(n,'note','Updated task wording: <b>'+uxEsc(label)+'</b>',stageById(sid).name); }
     uxPersist();uxRefresh();
   };
   window.plUXRemoveTask=function(id,sid,key){
     var n=ideas.find(function(x){return x.id===id;});if(!n)return;var scope=document.getElementById('plTaskScope_'+key);var all=scope&&scope.value==='all';var p=uxEnsure(n),task=uxFindTask(n,sid,key),tmpl=uxTemplateByKey(sid,key);
-    if(all&&tmpl){ if(!confirm('Remove “'+(task?task.label:'this task')+'” from every product in '+stageById(sid).name+'?\n\nIt will also be removed for future products entering this stage.'))return; settings.pipelineTaskTemplates[sid]=uxTemplates()[sid].filter(function(t){return t.id!==key;}); logHistory(n,'note','Removed shared stage task: <b>'+uxEsc(task?task.label:key)+'</b>',stageById(sid).name+' · all products'); }
-    else if(all&&!tmpl){ alert('This is a product-only task. Remove it from this product only.'); return; }
-    else { if(!confirm('Remove this task from '+cleanName(n)+' only?\n\nThis marks it as not applicable for this product and keeps the shared stage template intact.'))return; if(tmpl){p.hiddenTasks[key]=true;uxOverrides(p,sid).hidden[key]=true;}else{p.customTasks[sid]=(p.customTasks[sid]||[]).filter(function(t){return t.id!==key;});}delete p.steps[key];delete p.taskNotes[key];logHistory(n,'note','Marked task N/A: <b>'+uxEsc(task?task.label:key)+'</b>',stageById(sid).name); }
+    if(all&&tmpl){ plConfirm2({title:'Remove from every product in '+stageById(sid).name+'?', body:'\u201c'+(task?task.label:'this task')+'\u201d also disappears for future products entering this stage.', ok:'Remove everywhere', hue:'#FF5470', onOk:function(){ settings.pipelineTaskTemplates[sid]=uxTemplates()[sid].filter(function(t){return t.id!==key;}); logHistory(n,'note','Removed shared stage task: <b>'+uxEsc(task?task.label:key)+'</b>',stageById(sid).name+' · all products'); openState[String(id)+'_'+sid]=null; uxPersist();uxRefresh(); }}); return; }
+    else if(all&&!tmpl){ showFlash('Product-only task \u2014 remove it from this product only'); return; }
+    else { plConfirm2({title:'Remove from '+cleanName(n)+' only?', body:'Marks it not applicable for this product. The shared stage template is untouched.', ok:'Remove', hue:'#FF5470', onOk:function(){ if(tmpl){p.hiddenTasks[key]=true;uxOverrides(p,sid).hidden[key]=true;}else{p.customTasks[sid]=(p.customTasks[sid]||[]).filter(function(t){return t.id!==key;});}delete p.steps[key];delete p.taskNotes[key];logHistory(n,'note','Marked task N/A: <b>'+uxEsc(task?task.label:key)+'</b>',stageById(sid).name); openState[String(id)+'_'+sid]=null; uxPersist();uxRefresh(); }}); return; }
     openState[String(id)+'_'+sid]=null; uxPersist();uxRefresh();
   };
   window.plUXDuplicateTask=function(id,sid,key){
@@ -6858,7 +7106,10 @@ html,body{background:radial-gradient(950px 540px at 50% -210px,rgba(163,163,170,
     if(typeof showFlash==='function')showFlash('Plan action completed ✓');
   };
   window.clearWeekPlan=function(){
-    if(!confirm('Clear the unfinished generated plan? Your manual tasks will stay.'))return;
+    plConfirm2({title:'Clear the generated plan?', body:'Unfinished auto-generated actions go. Your manual tasks stay.', ok:'Clear', onOk:function(){
+      window.weekTasks=(window.weekTasks||[]).filter(function(t){return !t.auto || t.done;});
+      if(typeof saveWeekTasks==='function')saveWeekTasks(window.weekTasks);
+      if(typeof renderWeek==='function')renderWeek(); }}); return;
     window.weekTasks=(window.weekTasks||[]).filter(function(t){return !t.auto || t.done;});
     if(typeof saveWeekTasks==='function')saveWeekTasks(window.weekTasks);
     if(typeof renderWeek==='function')renderWeek();
@@ -6929,7 +7180,7 @@ html,body{background:radial-gradient(950px 540px at 50% -210px,rgba(163,163,170,
 .v6-guide-step b{display:block;color:#f3f3f3;font-size:12px;margin-bottom:5px}
 .v6-guide-step span{font-size:11px;line-height:1.4;color:#a2a2a9}
 .v6-guide-num{display:inline-grid;place-items:center;width:19px;height:19px;border-radius:6px;background:#5f5f65;color:#ededee;font:850 10px var(--mono);margin-right:5px}
-.v6-forecast-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin-bottom:13px}
+.v6-forecast-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:9px;margin-bottom:13px}   /* five tiles fit a 1280 laptop; below that they wrap 3+2 instead of leaving one orphan */
 .v6-forecast-kpi{min-height:96px;border:1px solid #3f3f44;border-radius:12px;padding:13px 14px;background:var(--s1)}
 .v6-forecast-kpi span{display:block;font:850 9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#a2a2a9}
 .v6-forecast-kpi b{display:block;margin-top:9px;color:#f7f7f7;font-size:20px;letter-spacing:-.055em}
@@ -7191,7 +7442,8 @@ html,body{background:radial-gradient(950px 540px at 50% -210px,rgba(163,163,170,
     var fMax=Math.max.apply(null,funnel.map(function(x){return x.n;}).concat([1]));
     var funnelHtml='<div class="f-funnel">'+funnel.map(function(x,i){
       var conv = i>0 && funnel[i-1].n>0 ? Math.round(x.n/funnel[i-1].n*100) : null;
-      return (i?'<div class="f-fn-gap">'+(conv!=null?'<span>'+conv+'%</span>':'')+'<i>›</i></div>':'')
+      // only a real drop-off is worth a number — '200%' between two stages meant nothing to anyone
+      return (i?'<div class="f-fn-gap">'+(conv!=null&&conv<100?'<span>'+conv+'%</span>':'')+'<i>›</i></div>':'')
         +'<div class="f-fn'+(x.n?'':' zero')+(x.live?' live':'')+'" style="--c:'+x.color+'">'
         +'<span class="f-fn-n">'+x.name+'</span>'
         +'<b>'+count(x.n)+'</b>'
@@ -7576,10 +7828,13 @@ html,body{background:radial-gradient(950px 540px at 50% -210px,rgba(163,163,170,
           +'Dropped: '+cM(m.droppedProducts)+'\n'
           +'Weekly tasks: '+cM(m.weeklyTasks)+'\n\n'
           +'This replaces the current local tracker data. Export a backup first if you need it.';
-        if(!confirm(prompt)){event.target.value='';return;}
-        restoreBackup(backup);
-        document.getElementById('migrationManifest').innerHTML=manifestMarkup(backup);
-        setStatus('Restored '+cM(m.ideas)+' ideas and related tracker data locally.','ok');
+        var _ev=event; plConfirm2({title:'Restore this backup?', body:prompt.replace(/\n/g,'<br>'), html:true, ok:'Restore', hue:'#FF5470',
+          onCancel:function(){ try{ _ev.target.value=''; }catch(e){} },
+          onOk:function(){
+            restoreBackup(backup);
+            document.getElementById('migrationManifest').innerHTML=manifestMarkup(backup);
+            setStatus('Restored '+cM(m.ideas)+' ideas and related tracker data locally.','ok'); }});
+        return;
         if(typeof showFlash==='function')showFlash('Full backup restored ✓');
       }catch(err){
         setStatus(err && err.message ? err.message : 'Could not read that backup file.','err');
@@ -7925,6 +8180,7 @@ body.sb-min .sb2 .sn-mark{width:28px;height:28px}
 .xt{font:750 11px inherit;color:var(--t3);background:none;border:none;border-radius:99px;padding:5px 11px;cursor:pointer;transition:color .13s,background .13s}
 .xt:hover{color:var(--t1)} .xt.on{background:#232329;color:var(--t1);box-shadow:inset 0 0 0 1px var(--b2)}
 .xver{font-size:9px;font-weight:800;color:var(--t4);padding:0 8px 0 5px}
+@media(max-width:1360px){.xver{display:none}}
 /* dead-space diet: page headers earn a third of what they took */
 .page-eyebrow,[class*=pane] .sec-eyebrow{font-size:8.5px!important;margin-bottom:1px!important}
 .page-title{font-size:19px!important;margin-bottom:1px!important;letter-spacing:-.4px!important}
@@ -8400,7 +8656,7 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
       try{ pack = JSON.parse(e.target.result); }catch(err){ try{ showFlash("That file can't be read"); }catch(x){} return; }
       if(!pack || !pack.data || !Array.isArray(pack.data.ideas)){ try{ showFlash('No ideas list in that file'); }catch(x){} return; }
       if(pack.schema === 'pl-tracker-migration-backup' && pack.mode !== 'add'){
-        if(!confirm('That is a full backup, which REPLACES everything.\n\nAdd its ideas to what you have instead?\n\nOK = add · Cancel = stop')) return;
+        plConfirm2({title:'That is a full backup', body:'It would replace everything. Add its ideas to what you have instead?', ok:'Add them', onOk:function(){ dialog(pack, file.name); }}); return;
       }
       dialog(pack, file.name);
     };
@@ -8587,6 +8843,7 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
     return h;
   }
   function plmClose(){ var h=document.getElementById('plm2'); if(h) h.classList.remove('open'); }
+  window.plmHost=plmHost; window.plmClose=plmClose;   // the send-a-task dialog lives in a later block and needs the same host
   window.plConfirm2=function(o){
     var h=plmHost();
     h.querySelector('.plm-bar').style.background=o.hue||'var(--brand,#7C6CFF)';
@@ -8595,7 +8852,7 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
     document.getElementById('plmFoot').innerHTML=
       '<button class="plm-btn ghost" id="plmNo">Cancel</button>'
       +'<button class="plm-btn '+(o.danger?'danger':'primary')+'" id="plmYes">'+(o.ok||'Confirm')+'</button>';
-    document.getElementById('plmNo').onclick=plmClose;
+    document.getElementById('plmNo').onclick=function(){ plmClose(); try{ if(o.onCancel) o.onCancel(); }catch(e){} };
     document.getElementById('plmYes').onclick=function(){ plmClose(); o.onOk&&o.onOk(); };
     h.classList.add('open');
     setTimeout(function(){ document.getElementById('plmYes').focus(); },40);
@@ -8609,7 +8866,7 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
     document.getElementById('plmFoot').innerHTML=
       '<button class="plm-btn ghost" id="plmNo">Cancel</button><button class="plm-btn primary" id="plmYes">'+(o.ok||'Save')+'</button>';
     var save=function(){ var vals=o.fields.map(function(f,ix){ var v=parseInt(document.getElementById('plmF'+ix).value,10); return isNaN(v)?f.value:Math.max(0,v); }); plmClose(); o.onSave&&o.onSave(vals); };
-    document.getElementById('plmNo').onclick=plmClose;
+    document.getElementById('plmNo').onclick=function(){ plmClose(); try{ if(o.onCancel) o.onCancel(); }catch(e){} };
     document.getElementById('plmYes').onclick=save;
     h.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('keydown',function(e){ if(e.key==='Enter') save(); }); });
     h.classList.add('open');
@@ -8633,7 +8890,7 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
     document.getElementById('plmFoot').innerHTML='<button class="plm-btn ghost" id="plmNo">Cancel</button><button class="plm-btn primary" id="plmYes">Add task</button>';
     var save=function(){ var v=(document.getElementById('plmT').value||'').trim(); if(!v) return; plmClose();
       var p=ensurePipe(n); p.customTasks[sid]=p.customTasks[sid]||[]; p.customTasks[sid].push({id:'c'+Date.now(),label:v}); persist(); renderProduct(); };
-    document.getElementById('plmNo').onclick=plmClose;
+    document.getElementById('plmNo').onclick=function(){ plmClose(); try{ if(o.onCancel) o.onCancel(); }catch(e){} };
     document.getElementById('plmYes').onclick=save;
     document.getElementById('plmT').addEventListener('keydown',function(e){ if(e.key==='Enter') save(); });
     h.classList.add('open');
@@ -8646,7 +8903,7 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
   //  moving is a worse week than 5h with four products progressed.
   //  So the number is hard and the VERDICT is workload-aware.
   // ══════════════════════════════════════════════════════════════
-  var PL_KINDS=[{k:'ideas',l:'New ideas'},{k:'validate',l:'Validating'},{k:'supplier',l:'Suppliers'},{k:'pricing',l:'Pricing / viability'}];
+  var PL_KINDS=CLUB.workTypes().map(function(w){ return {k:w.key,l:w.label}; });
   window.PL_KINDS=PL_KINDS;
   window.plSess=function(){ if(!brandState) brandState={}; if(!brandState.plSess) brandState.plSess=[]; return brandState.plSess; };
   // Monthly, at calendar pace. These are monthly KPIs — 20h/week is the floor,
@@ -8679,30 +8936,35 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
   // live timer
   var PL_TICK=null;
   window.plSessStart=function(){ if(!brandState) brandState={};
-    brandState.plRun={start:Date.now()}; persistBrandState(); plSessPaint();
+    brandState.plRun={start:Date.now()};
+    try{ brandState.plRun.clubId=CLUB.sessionStart('pl','ideas').id; }catch(e){}
+    persistBrandState(); plSessPaint();
     showFlash('Sourcing session started \u23f1'); };
   window.plSessStop=function(){
     var r=brandState&&brandState.plRun; if(!r) return;
     var mins=Math.max(1,Math.round((Date.now()-r.start)/60000));
     brandState.plRun=null;
     var id='s'+Date.now();
-    plSess().push({id:id,at:Date.now(),mins:mins,kind:''});
+    plSess().push({id:id,at:Date.now(),mins:mins,kind:'',clubId:r.clubId||null});
+    try{ if(r.clubId) CLUB.sessionEnd(r.clubId,{mins:mins}); }catch(e){}
     brandState.plAskTag=id;                       // offer a tag, never demand one
     persistBrandState(); try{renderWeek();}catch(e){}
     showFlash(plFmtH(mins/60)+' logged \u2713'); };
   window.plSessCancel=function(){ if(brandState) brandState.plRun=null; persistBrandState(); plSessPaint(); showFlash('Session discarded'); };
   window.plSessQuick=function(mins){
-    var id='s'+Date.now();
-    plSess().push({id:id,at:Date.now(),mins:mins,kind:''});
+    var id='s'+Date.now(), cid=null;
+    try{ cid=CLUB.sessionQuick('pl','ideas',mins).id; }catch(e){}
+    plSess().push({id:id,at:Date.now(),mins:mins,kind:'',clubId:cid});
     brandState.plAskTag=id; persistBrandState(); try{renderWeek();}catch(e){}
     showFlash(plFmtH(mins/60)+' logged \u2713'); };
   window.plSessTag=function(kind){
     var id=brandState&&brandState.plAskTag; if(!id) return;
-    var row=plSess().filter(function(x){return x.id===id;})[0]; if(row) row.kind=kind;
+    var row=plSess().filter(function(x){return x.id===id;})[0]; if(row){ row.kind=kind; try{ if(row.clubId) CLUB.update('sessions',row.clubId,{work_type:CLUB.wtKey(kind)}); }catch(e){} }
     brandState.plAskTag=null; persistBrandState(); try{renderWeek();}catch(e){}; };
   window.plSessSkipTag=function(){ if(brandState) brandState.plAskTag=null; persistBrandState(); try{renderWeek();}catch(e){}; };
   window.plSessUndo=function(){ var a=plSess(); if(!a.length) return;
     var last=a.pop(); brandState.plAskTag=null; persistBrandState(); try{renderWeek();}catch(e){}
+    try{ if(last.clubId) CLUB.update('sessions',last.clubId,{mins:0,note:'undone'}); }catch(e){}
     showFlash('Removed '+plFmtH((last.mins||0)/60)); };
   window.plSetHoursTarget=function(v){ if(!brandState) brandState={};
     brandState.plMonthlyHours=Math.max(0,parseFloat(v)||0); persistBrandState();
@@ -8987,12 +9249,30 @@ document.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent = 'v'
           !/^(search volume|thoughts?|listings?|market|notes?|pros|cons|asin|amazon link)\b/i.test(l); })[0];
       if(line){ nameEl.value=line; got.push('name'); }
     }
-    setIf('f_sv',    num(txt.match(/(?:search\s*vol(?:ume)?|\bSV\b)[^\d]{0,40}([\d,]+)/i)), 'search volume');
-    setIf('f_price', num(txt.match(/£\s*([\d]+(?:\.\d{1,2})?)/) || txt.match(/price[^\d]{0,12}([\d]+(?:\.\d{1,2})?)/i)), 'price');
-    setIf('f_tcs',   num(txt.match(/([\d,]+)\s*(?:comp\s*)?(?:sales|sold|units)\s*(?:per\s*month|\/\s*mo\b|pm\b|a month)/i)
-                      || txt.match(/(?:comp\s*sales|sales|sold)[^\d]{0,20}([\d,]+)/i)), 'competitor sales');
-    setIf('f_ncomp', num(txt.match(/(\d[\d,]*)\s*(?:[a-z]+\s+){0,2}competitors?\b/i)
-                      || txt.match(/competitors?[^\d]{0,20}([\d,]+)/i)), 'competitors');
+    // These used to run against the WHOLE blob, so `\s*` and `[^\d]{0,20}` walked
+    // across line breaks. Real failure: "sell price £26.99" on one line and
+    // "top competitor ..." on the next made "number of competitors" = 99 — a wrong
+    // number, silently filled, that then scored the idea. Every numeric rule is
+    // now matched ONE LINE AT A TIME, and a digit that follows a decimal point
+    // can never start a match.
+    var _lines = txt.split(/\r?\n/);
+    function mline(re){
+      for(var i=0;i<_lines.length;i++){ var m=_lines[i].match(re); if(m) return m; }
+      return null;
+    }
+    setIf('f_sv',    num(mline(/(?:search\s*vol(?:ume)?|\bSV\b)[^\d]{0,40}([\d,]+)/i)), 'search volume');
+    setIf('f_price', num(mline(/£\s*([\d]+(?:\.\d{1,2})?)/) || mline(/price[^\d]{0,12}([\d]+(?:\.\d{1,2})?)/i)), 'price');
+    setIf('f_tcs',   num(mline(/(?:^|[^.\d])([\d,]+)\s*(?:comp\s*)?(?:sales|sold|units)\s*(?:per\s*month|\/\s*mo\b|pm\b|a month)/i)
+                      || mline(/(?:comp\s*sales|sales|sold)[^\d]{0,20}([\d,]+)/i)), 'competitor sales');
+    // "top competitor doing about 380 sales/mo" is a SALES figure. The old
+    // fallback (competitors? ... digits) read it as 380 competitors, so one line
+    // filled two unrelated fields with the same number. A count only counts when
+    // the number comes BEFORE the word ("8 competitors") or is written explicitly
+    // ("competitors: 8"), and never when a sales unit follows it.
+    setIf('f_ncomp', num(mline(/(?:^|[^.\d])(\d[\d,]*)\s*(?:[a-z]+[ \t]+){0,2}competitors?\b/i)
+                      || mline(/(?:number|no\.?|count)\s+of\s+competitors?[^\d]{0,10}([\d,]+)/i)
+                      || mline(/competitors?\s*[:=\u2013-]\s*([\d,]+)(?!\s*(?:sales|sold|units|\/\s*mo|per\s*month|pm\b|a month))/i)),
+                     'competitors');
 
     // the prose itself is worth keeping — he wrote it once already
     var th=document.getElementById('f_myThoughts');
@@ -9488,7 +9768,7 @@ button[disabled],.btn[disabled],input[disabled],select[disabled]{opacity:.42!imp
 </style>
 <style>
 /* ══ PL FORECAST — the numbers were already there, they were just grey ══ */
-.f-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(212px,1fr));gap:9px;margin-bottom:12px}
+.f-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(188px,1fr));gap:9px;margin-bottom:12px}   /* five across on a 1280 laptop — 212px left one tile orphaned on its own row */
 .f-kpi{border:1px solid var(--b1);border-radius:var(--r-lg);background:var(--s1);padding:13px 15px;
   box-shadow:var(--sh-card);border-top:2px solid var(--c);position:relative;overflow:hidden}
 .f-kpi.warn{border-color:rgba(255,84,112,.3)}
@@ -9651,6 +9931,334 @@ button[disabled],.btn[disabled],input[disabled],select[disabled]{opacity:.42!imp
 .tl-k.launch{background:#00E5A0;border-color:#00E5A0}
 .tl-k.touch{background:rgba(255,197,61,.20);border-color:rgba(255,197,61,.36)}
 </style>
+
+<script>
+/* ══ PLUB hooks (PL) ══ */
+(function(){
+  if(typeof openProduct==='function'){ var _o=openProduct; openProduct=function(id){
+    try{ var n=ideas.find(function(x){return x.id===id;}); CLUB.log('product_opened',{app:'pl',entity_kind:'product',entity_ref:id,entity_name:n?n.name:''}); }catch(e){}
+    return _o.apply(this,arguments); }; }
+})();
+window.clubTaskDone=function(id){ CLUB.taskStatus(id,'done'); try{ showFlash('Done \u2713'); }catch(e){} try{ renderWeek(); }catch(e){} };
+window.clubSendTask=function(){
+  // its own dialog — plForm2 is a numbers-only form, so the title and name boxes were number inputs nobody could type in
+  var me=CLUB.user(); if(!me) return;
+  var users=CLUB.users(), others=users.filter(function(u){return u.id!==me.id;});
+  var to=(others[0]||me).id;
+  var h=plmHost();
+  h.querySelector('.plm-bar').style.background='var(--brand,#7C6CFF)';
+  document.getElementById('plmTitle').textContent='Send a task';
+  var esc2=function(t){ return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); };
+  var PRI=[['urgent','#FF5470'],['high','#FFC53D'],['normal','#3B9EFF'],['low','#787A87']];
+  document.getElementById('plmBody').innerHTML=
+    '<p class="plm-p">Lands in their Action Centre and Tasks on both sides.</p>'
+    +'<label class="plm-fld col"><span>What needs doing?</span><input type="text" id="plmT" placeholder="e.g. Get trade pricing for the garlic press" autocomplete="off"></label>'
+    +'<div class="plm-fld col"><span>To</span><div class="plm-chips" id="plmWho">'
+      +users.map(function(u){ return '<button type="button" class="plm-chip'+(u.id===to?' on':'')+'" data-id="'+esc2(u.id)+'">'+esc2(u.display_name)+(u.id===me.id?' (me)':'')+'</button>'; }).join('')+'</div></div>'
+    +'<div class="plm-fld col"><span>Priority</span><div class="plm-chips" id="plmPri">'
+      +PRI.map(function(x){ return '<button type="button" class="plm-chip'+(x[0]==='normal'?' on':'')+'" data-id="'+x[0]+'" style="--d:'+x[1]+'"><i></i>'+x[0]+'</button>'; }).join('')+'</div></div>'
+    +'<label class="plm-fld col"><span>Due (optional)</span><input type="date" id="plmDue" style="width:170px"></label>';
+  document.getElementById('plmFoot').innerHTML='<button class="plm-btn ghost" id="plmNo">Cancel</button><button class="plm-btn primary" id="plmYes">Send</button>';
+  h.querySelectorAll('.plm-chips').forEach(function(g){ g.addEventListener('click',function(e){ var b=e.target.closest('.plm-chip'); if(!b) return; g.querySelectorAll('.plm-chip').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); }); });
+  var save=function(){
+    var title=(document.getElementById('plmT').value||'').trim();
+    if(!title){ var t=document.getElementById('plmT'); t.focus(); t.classList.add('shake'); setTimeout(function(){t.classList.remove('shake');},400); return; }
+    var who=(h.querySelector('#plmWho .plm-chip.on')||{}).dataset||{}; var pri=(h.querySelector('#plmPri .plm-chip.on')||{}).dataset||{};
+    var u=users.filter(function(x){return x.id===who.id;})[0]||me;
+    plmClose();
+    CLUB.taskAdd({title:title, assigned_to:u.id, priority:pri.id||'normal', due:(document.getElementById('plmDue').value||'').trim()||null, related_app:'pl'});
+    try{ showFlash('Sent to '+u.display_name+' \u2713'); }catch(e){} try{ renderWeek(); }catch(e){}
+  };
+  document.getElementById('plmNo').onclick=function(){ plmClose(); };
+  document.getElementById('plmYes').onclick=save;
+  document.getElementById('plmT').addEventListener('keydown',function(e){ if(e.key==='Enter') save(); });
+  h.classList.add('open');
+  setTimeout(function(){ document.getElementById('plmT').focus(); },40);
+};
+try{ CLUB.on(function(){ var u=CLUB.user(); if(u && u.display_name!==CURRENT_USER) CURRENT_USER=u.display_name;
+  try{ var a=document.querySelector('#pane-week.active'); if(a) renderWeek(); }catch(e){} }); }catch(e){}
+</script>
+<style>
+/* send-a-task chips (person, priority) — same chip language as the quick capture screen */
+.plm-chips{display:flex;flex-wrap:wrap;gap:6px}
+.plm-chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;transition:border-color .12s,background .12s,color .12s}
+.plm-chip:hover{border-color:var(--b3);color:var(--t1)}
+.plm-chip.on{border-color:var(--brand,#7C6CFF);background:rgba(124,108,255,.16);color:var(--t1)}
+.plm-chip i{width:8px;height:8px;border-radius:50%;background:var(--d,#3B9EFF);display:inline-block}
+.plm-fld.col{flex-direction:column;align-items:stretch;gap:6px}
+.plm-fld.col input{width:100%;text-align:left}
+.plm-fld input.shake{animation:plmShake .35s}
+@keyframes plmShake{20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+/* the move dialog: stage → stage, what is unticked, what comes next */
+.plm-move{display:flex;flex-direction:column;gap:9px}
+.plm-move-row{display:flex;align-items:center;gap:10px;font-size:14px}
+.plm-move-row span{color:var(--t3);font-weight:700} .plm-move-row i{font-style:normal;color:var(--t4)}
+.plm-move-row b{color:#C9B8FF;font-weight:850;padding:3px 10px;border-radius:99px;background:rgba(124,92,255,.14);border:1px solid rgba(167,139,255,.42)}
+.plm-warn{font-size:12px;font-weight:750;color:#FFD066;background:rgba(255,197,61,.10);border:1px solid rgba(255,197,61,.34);border-radius:9px;padding:7px 10px}
+.plm-ok{font-size:12px;font-weight:750;color:#5CE6B0;background:rgba(0,229,160,.10);border:1px solid rgba(0,229,160,.34);border-radius:9px;padding:7px 10px}
+.plm-next span{display:block;font:850 9.5px var(--sans);letter-spacing:1px;text-transform:uppercase;color:var(--t4);margin-bottom:5px}
+.plm-next ul{margin:0;padding-left:18px;color:var(--t2);font-size:12px;line-height:1.6}
+.plm-foot-note{font-size:11px;color:var(--t4)}
+.plm-html{font-size:12.5px;color:var(--t2);line-height:1.55}
+/* the Work tab: the next-task panel was stretched to the height of the rail beside it */
+#prodOverlay .pl-work-top{align-items:start!important}
+#prodOverlay .pl-next-panel{min-height:0!important;padding:14px 16px!important}
+</style>
+<style>
+/* pipeline card, tightened */
+.plc{padding:10px 12px 10px!important}
+.plc-top{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.plc-top .pav.sm{width:22px;height:22px}
+.plc-name{font-size:12.5px!important;font-weight:800!important;white-space:normal!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25!important}   /* two lines beats 'Bamboo Cuttin…' */
+.week-focus:empty{display:none!important}   /* the old focus slot is cleared every render — it was leaving a 30px empty frame under the gaps */
+.plc-score{font-size:11px!important;padding:2px 6px!important;border-radius:6px!important}
+.plc-chips{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:7px}
+.plc-chip{display:inline-flex;align-items:center;gap:2px;font:800 9.5px var(--sans);letter-spacing:.2px;padding:2px 7px;border-radius:99px;
+  color:var(--t3);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09)}
+.plc-chip i{font-style:normal;color:var(--t4);font-weight:700}
+.plc-chip.soon{color:#FFD066;background:rgba(255,197,61,.10);border-color:rgba(255,197,61,.34)}
+.plc-chip.over{color:#FF93A6;background:rgba(255,84,112,.11);border-color:rgba(255,84,112,.38)}
+.plc-chip.live{color:#5CE6B0;background:rgba(0,229,160,.11);border-color:rgba(0,229,160,.38)}
+.plc-chips .plc-flag{margin:0}
+.plc-bar{position:relative;height:6px;border-radius:99px;background:rgba(255,255,255,.07);margin:0 0 7px;overflow:visible}
+.plc-bar i{display:block;height:100%;border-radius:99px;background:var(--c);transition:width .3s var(--ease)}
+.plc-bar b{position:absolute;right:0;top:-15px;font:850 9.5px var(--sans);color:var(--t4);font-variant-numeric:tabular-nums}
+.plc-next{font-size:11px!important;line-height:1.35!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--t2)!important}
+.plc-line,.plc-pips{display:none!important}
+</style>
+<style>
+/* Action Centre: the page-notes strip was injected above the real header as a dead band.
+   The pane is a column now and the strip sorts last. */
+#pane-week.active{display:flex!important;flex-direction:column!important}
+#pane-week .page-notes{order:99;margin:12px 0 0!important}
+#pane-week>.page-hd{display:none!important}
+</style>
+<style>
+.xtabs{padding:3px!important;gap:2px!important;border-color:rgba(255,255,255,.12)!important}
+.xt{font:800 11.5px var(--sans)!important;padding:6px 13px!important;color:var(--t3)!important}
+.xt.on.xt-ub{background:rgba(124,92,255,.22)!important;color:#D6CBFF!important;box-shadow:inset 0 0 0 1px rgba(167,139,255,.55),0 0 14px rgba(124,92,255,.25)!important}
+.xt.on.xt-pl{background:rgba(34,211,238,.18)!important;color:#9FEDF8!important;box-shadow:inset 0 0 0 1px rgba(34,211,238,.55),0 0 14px rgba(34,211,238,.22)!important}
+.xt.on:not(.xt-ub):not(.xt-pl){background:rgba(255,255,255,.08)!important;color:var(--t1)!important}
+/* "no slider on the bottom" — the board scrolls sideways but the bar was invisible */
+.pipe-board.pl-board{overflow-x:auto!important;padding-bottom:14px!important;scrollbar-width:thin;scrollbar-color:rgba(167,139,255,.55) rgba(255,255,255,.06)}
+.pipe-board.pl-board::-webkit-scrollbar{height:12px}
+.pipe-board.pl-board::-webkit-scrollbar-track{background:rgba(255,255,255,.06);border-radius:99px}
+.pipe-board.pl-board::-webkit-scrollbar-thumb{background:rgba(167,139,255,.55);border-radius:99px;border:2px solid transparent;background-clip:content-box}
+.pipe-board.pl-board::-webkit-scrollbar-thumb:hover{background:rgba(167,139,255,.85);background-clip:content-box}
+</style>
+<script>
+/* ══ QUICK CAPTURE — the fun front door on Add Idea ══ */
+var PLQ_EXAMPLES=['Bamboo bath caddy','Magnetic spice rack','Chicory coffee 2-pack','Weighted sensory blanket','Travel shoe organiser','Silicone baking mat set','Cable tidy box','Reindeer food bags'];
+var _plqTimer=null, _plqBand=null;
+function plQuickOpen(data){
+  var modal=document.getElementById('modal'); if(!modal) return;
+  var body=modal.querySelector('.modal-body'); if(!body) return;
+  var old=document.getElementById('plQuick'); if(old) old.remove();
+  var name=(data&&data.name)||'';
+  var chips=(settings.sourcing||[]).map(function(m){ return '<button type="button" class="plq-chip" data-m="'+esc(m)+'" onclick="plQuickPick(this)">'+esc(m)+'</button>'; }).join('');
+  var el=document.createElement('div'); el.id='plQuick'; el.className='plq';
+  el.innerHTML=''
+    +'<div class="plq-l">'
+      +'<div class="plq-k">New idea</div>'
+      +'<label class="plq-name"><span>What\u2019s the idea?</span>'
+        +'<input id="plqName" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. '+esc(PLQ_EXAMPLES[0])+'" value="'+esc(name)+'" oninput="plQuickName(this.value)" onkeydown="plQuickKey(event)"></label>'
+      +'<div class="plq-sec"><span>Where did it come from?</span><div class="plq-chips">'+chips+'</div></div>'
+      +'<div class="plq-sec"><span>Got notes? Paste them \u2014 I\u2019ll fill the numbers and ASINs</span>'
+        +'<textarea id="plqPaste" placeholder="Paste anything: a link, a few ASINs, \u201csearch volume 5400\u201d, \u201cprice \u00a324.99\u201d, \u201closds of uk sellers, not chinese dominated\u201d\u2026" onkeydown="if((event.metaKey||event.ctrlKey)&&event.key===\'Enter\'){event.preventDefault();plQuickFill();}"></textarea>'
+        +'<div class="plq-paste-row"><button type="button" class="btn sm" onclick="plQuickFill()">\u2728 Fill it in</button><span id="plqFilled" class="plq-filled"></span></div></div>'
+    +'</div>'
+    +'<div class="plq-r">'
+      +'<div class="plq-ring" id="plqRing"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="9"/>'
+        +'<circle id="plqArc" cx="60" cy="60" r="52" fill="none" stroke="#7A7A85" stroke-width="9" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7" transform="rotate(-90 60 60)"/></svg>'
+        +'<div class="plq-ring-in"><b id="plqPct">0<i>%</i></b><span id="plqWord">start typing</span></div></div>'
+      +'<div class="plq-prog" id="plqProg">0 of 14 answered</div>'
+      +'<div class="plq-actions">'
+        +'<button type="button" class="btn primary lg" onclick="plQuickSave()">\u2713 Save idea</button>'
+        +'<button type="button" class="btn lg" onclick="plQuickClose()">Keep going \u2192</button>'
+      +'</div>'
+      +'<div class="plq-hint"><kbd>Enter</kbd> save \u00b7 <kbd>Tab</kbd> keep going \u00b7 <kbd>\u2318\u23ce</kbd> in the paste box fills it in</div>'
+    +'</div>';
+  body.insertBefore(el, body.firstChild);
+  modal.classList.add('pl-quick');
+  // rotate the example while the field is empty — a small nudge, not a loop of noise
+  clearInterval(_plqTimer); var i=0;
+  _plqTimer=setInterval(function(){ var f=document.getElementById('plqName'); if(!f){ clearInterval(_plqTimer); return; }
+    if(f.value) return; i=(i+1)%PLQ_EXAMPLES.length; f.placeholder='e.g. '+PLQ_EXAMPLES[i]; }, 2600);
+  plQuickChipSync(); try{ plQuickSync(score(readForm())); }catch(e){}
+  setTimeout(function(){ var f=document.getElementById('plqName'); if(f){ try{ f.focus({preventScroll:true}); }catch(e){ f.focus(); } } }, 60);
+}
+function plQuickClose(silent){
+  var modal=document.getElementById('modal'); if(modal) modal.classList.remove('pl-quick');
+  var el=document.getElementById('plQuick'); if(el) el.remove();
+  clearInterval(_plqTimer); _plqTimer=null; _plqBand=null;
+  if(!silent){ switchTab(0); setTimeout(function(){ var f=document.getElementById('f_name'); var n=document.getElementById('plqName');
+    // land on the first thing that still needs an answer
+    var first=[...document.querySelectorAll('#tab-0 input,#tab-0 select,#tab-0 textarea')].find(function(x){ return !x.value && x.type!=='hidden'; });
+    if(first){ try{ first.focus({preventScroll:true}); }catch(e){} } }, 80); }
+}
+function plQuickName(v){ var f=document.getElementById('f_name'); if(f){ f.value=v; } try{ checkDupName&&checkDupName(); }catch(e){} liveUpdate(true); }
+function plQuickKey(e){
+  if(e.key==='Enter'){ e.preventDefault(); plQuickSave(); }
+  else if(e.key==='Tab' && !e.shiftKey){ e.preventDefault(); plQuickClose(); }
+}
+function plQuickPick(btn){
+  var m=btn.getAttribute('data-m');
+  var item=[...document.querySelectorAll('#cdd_d_sourcing .cdd-item')].find(function(x){ return x.getAttribute('data-value')===m; });
+  if(item){ cddPickEl(item); } else { var lbl=document.getElementById('cdd_l_sourcing'); if(lbl){ lbl.textContent=m; lbl.style.color='var(--t1)'; } }
+  plQuickChipSync(); liveUpdate(true);
+}
+function plQuickChipSync(){
+  var cur=''; try{ cur=readForm().sourcing||''; }catch(e){}
+  document.querySelectorAll('#plQuick .plq-chip').forEach(function(c){ c.classList.toggle('on', c.getAttribute('data-m')===cur); });
+}
+function plQuickFill(){
+  var q=document.getElementById('plqPaste'); if(!q||!q.value.trim()){ showFlash('Paste something in first'); return; }
+  var w=document.getElementById('plPasteWrap'); if(w && !w.querySelector('#plPasteBox')) plPasteToggle();
+  var box=document.getElementById('plPasteBox'); if(!box){ showFlash('Paste box not ready'); return; }
+  box.value=q.value; var before=(readForm().name||'');
+  plFillFromPaste();
+  var f=document.getElementById('f_name'), n=document.getElementById('plqName');
+  if(f&&n&&f.value&&!n.value) n.value=f.value;                     // the parser found a name — show it
+  var sc=score(readForm()); plQuickChipSync(); plQuickSync(sc);
+  var got=document.getElementById('plqFilled'); if(got){ got.textContent='filled \u2014 '+sc.answered+' of '+sc.total+' answered'; }
+}
+function plQuickSave(){
+  // the form is the source of truth (paste-fill or a mirror may have set the name); the box is a fallback
+  var n=document.getElementById('plqName'), f=document.getElementById('f_name');
+  var name=((f&&f.value)||(n&&n.value)||'').trim();
+  if(!name){ if(n){ n.classList.add('missing'); setTimeout(function(){ n.classList.remove('missing'); },1200); n.focus(); } showFlash('Give it a name first'); return; }
+  if(f && !f.value) f.value=name; if(n && !n.value) n.value=name;
+  saveIdea(true);      // name is enough — the rest can be filled from the card any time
+}
+function plQuickSync(sc){
+  var el=document.getElementById('plQuick'); if(!el||!sc) return;
+  var pct=Math.max(0,Math.min(100,sc.pct||0)), C=326.7;
+  var arc=document.getElementById('plqArc'), p=document.getElementById('plqPct'), w=document.getElementById('plqWord'), pr=document.getElementById('plqProg');
+  var band = pct>=80?'launch':pct>=70?'good':pct>=60?'potential':pct>=50?'revisit':sc.answered>0?'building':'empty';
+  var col={launch:'#00E5A0',good:'#4ADE80',potential:'#FFC53D',revisit:'#FF8A3D',building:'#A78BFF',empty:'#7A7A85'}[band];
+  var word={launch:'Launch ASAP',good:'Good \u2014 look ASAP',potential:'Has potential',revisit:'Worth revisiting',building:'keeps climbing as you answer',empty:'start typing'}[band];
+  if(arc){ arc.style.stroke=col; arc.style.strokeDashoffset=(C*(1-pct/100)).toFixed(1); }
+  if(p){ p.innerHTML=pct+'<i>%</i>'; p.style.color=col; }
+  if(w){ w.textContent=word; w.style.color=band==='empty'||band==='building'?'var(--t4)':col; }
+  if(pr) pr.textContent=sc.answered+' of '+sc.total+' answered';
+  var rank={empty:0,building:1,revisit:2,potential:3,good:4,launch:5};
+  if(_plqBand!=null && rank[band]>rank[_plqBand] && rank[band]>=3){
+    var ring=document.getElementById('plqRing'); if(ring){ ring.classList.remove('pop'); void ring.offsetWidth; ring.classList.add('pop'); }
+    try{ showFlash((band==='launch'?'\ud83d\udd25 ':'')+word); }catch(e){}
+  }
+  _plqBand=band;
+}
+</script>
+<style>
+/* ══ quick capture ══ */
+#modal.pl-quick .modal-tabs,#modal.pl-quick .tab-pane,#modal.pl-quick .prog-strip{display:none!important}
+#modal.pl-quick .modal-ft{display:none!important}   /* the quick screen has its own Save / Keep going / Close — the full form's footer showed a second Close and shortcut hints for tabs that are hidden */
+.plq{display:grid;grid-template-columns:minmax(0,1.5fr) 280px;gap:22px;padding:22px 24px 18px;min-height:420px}
+@media(max-width:900px){.plq{grid-template-columns:1fr}}
+.plq-k{font:850 10px var(--sans);letter-spacing:1.6px;text-transform:uppercase;color:#A79BC4;margin-bottom:10px}
+.plq-name span{display:block;font-size:22px;font-weight:850;color:var(--t1);letter-spacing:-.5px;margin-bottom:10px}
+.plq-name input{width:100%;height:56px;font-size:20px!important;font-weight:750;padding:0 18px!important;border-radius:var(--r-lg)!important;
+  background:var(--s2)!important;border:1px solid var(--b2)!important;color:var(--t1)!important;transition:all .15s var(--ease)}
+.plq-name input:focus{border-color:#A78BFF!important;box-shadow:0 0 0 4px rgba(124,92,255,.18),0 12px 34px rgba(124,92,255,.14)!important}
+.plq-name input.missing{border-color:#FF5470!important;box-shadow:0 0 0 4px rgba(255,84,112,.18)!important;animation:plqShake .3s}
+@keyframes plqShake{0%,100%{transform:none}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.plq-sec{margin-top:20px}
+.plq-sec>span{display:block;font-size:12px;font-weight:750;color:var(--t3);margin-bottom:8px}
+.plq-chips{display:flex;flex-wrap:wrap;gap:6px}
+.plq-chip{border:1px solid var(--b2);background:var(--s2);color:var(--t2);font:750 12px var(--sans);padding:8px 13px;border-radius:99px;cursor:pointer;transition:all .13s var(--ease)}
+.plq-chip:hover{border-color:rgba(167,139,255,.5);color:var(--t1);transform:translateY(-1px)}
+.plq-chip.on{background:rgba(124,92,255,.2);border-color:rgba(167,139,255,.6);color:#D6CBFF;box-shadow:0 0 14px rgba(124,92,255,.25)}
+#plqPaste{width:100%;min-height:118px;resize:vertical;font-size:13px!important;line-height:1.5;padding:12px 14px!important;
+  border-radius:var(--r-lg)!important;border:1px dashed rgba(167,139,255,.42)!important;background:rgba(124,92,255,.05)!important;color:var(--t1)!important}
+#plqPaste:focus{border-style:solid!important;border-color:#A78BFF!important;box-shadow:0 0 0 4px rgba(124,92,255,.16)!important}
+.plq-paste-row{display:flex;align-items:center;gap:10px;margin-top:8px}
+.plq-filled{font-size:11.5px;font-weight:750;color:#5CE6B0}
+.plq-r{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-left:1px solid var(--b1);padding-left:22px}
+@media(max-width:900px){.plq-r{border-left:0;padding-left:0;border-top:1px solid var(--b1);padding-top:18px}}
+.plq-ring{position:relative;width:150px;height:150px;display:grid;place-items:center}
+.plq-ring svg{position:absolute;inset:0;width:150px;height:150px}
+.plq-ring svg circle{transition:stroke-dashoffset .5s var(--ease),stroke .3s}
+.plq-ring.pop{animation:plqPop .45s var(--ease)}
+@keyframes plqPop{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
+.plq-ring-in{position:relative;text-align:center}
+.plq-ring-in b{display:block;font-size:34px;font-weight:850;letter-spacing:-1.5px;line-height:1;transition:color .3s}
+.plq-ring-in b i{font-style:normal;font-size:16px;font-weight:700;letter-spacing:0}
+.plq-ring-in span{display:block;margin-top:5px;font-size:11px;font-weight:800;color:var(--t4);max-width:110px;line-height:1.3}
+.plq-prog{font-size:11px;color:var(--t4);font-weight:700}
+.plq-actions{display:flex;flex-direction:column;gap:8px;width:100%;margin-top:6px}
+.plq-actions .btn{width:100%;justify-content:center;height:42px!important;font-size:13.5px!important}
+.plq-hint{font-size:10.5px;color:var(--t4);text-align:center;line-height:1.8}
+.plq-hint kbd{font:800 9.5px var(--sans);padding:1px 6px;border-radius:5px;background:var(--s3);border:1px solid var(--b2);color:var(--t3)}
+</style>
+<script>
+/* rail foot shows the signed-in person, same as the Overview rail; ⇄ switches */
+function plubFoot(){
+  try{
+    var u=(window.CLUB&&CLUB.user())||null; var nm=u?u.display_name:(typeof CURRENT_USER!=='undefined'?CURRENT_USER:'?');
+    var role=(u&&u.role==='owner')?'Owner':'Staff'; var mode=(window.CLUB&&CLUB.mode()==='supabase')?'cloud':'local';
+    document.querySelectorAll('.sb2 .sn-user').forEach(function(e){ e.textContent=nm; });
+    document.querySelectorAll('.sb2 .sn-role').forEach(function(e){ e.textContent=role+' \u00b7 '+mode; });
+    document.querySelectorAll('.sb2 .sn-av').forEach(function(e){ e.textContent=(nm[0]||'?'); });
+    var foot=document.querySelector('.sb2 .sn-foot');
+    if(foot && !foot.querySelector('.sn-switch')){ var b=document.createElement('button'); b.className='sn-switch'; b.title=mode==='cloud'?'Sign out':'Switch user'; b.textContent='\u21c4';
+      b.onclick=function(){ try{ parent.clubSignOut(); }catch(e){} }; foot.appendChild(b); }
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', plubFoot); setTimeout(plubFoot, 300); setTimeout(plubFoot, 1500);
+try{ CLUB.on(plubFoot); }catch(e){}
+function tbMoreToggle(){ var m=document.getElementById('tbMenu'); if(m) m.classList.toggle('open'); }
+document.addEventListener('click', function(e){ var m=document.getElementById('tbMenu'); if(m && m.classList.contains('open') && !e.target.closest('.tb-more')) m.classList.remove('open'); });
+</script>
+<style>
+/* ═══ RAIL PARITY — same rail in UB, PL and the Overview ═══ */
+.sb2 .sn-sec{padding:13px 8px 4px!important;font-size:9px!important;letter-spacing:1.5px!important;color:#5E5E6C!important}
+.sb2 .sn-sec::after{background:rgba(255,255,255,.06)!important}
+.sb2 .sn-nav{padding:4px 10px 6px!important;display:flex!important;flex-direction:column!important}
+.sb2 .sn-spacer{flex:1;min-height:10px}
+.sb2 .nav-item{padding:7px!important;margin-bottom:1px!important;color:#9A9AA8!important;font-size:13px!important;font-weight:650!important;justify-content:flex-start!important;gap:10px!important}
+.sb2 .nav-item:hover{background:rgba(255,255,255,.045)!important;color:#F2F2F6!important}
+.sb2 .sn-ic{width:24px!important;height:24px!important;border-radius:7px!important;background:transparent!important;color:#75757F!important}
+.sb2 .sn-ic svg{width:18px!important;height:18px!important}
+.sb2 .nav-item:hover .sn-ic{color:#C6C6D2!important}
+.sb2 .nav-item.active{color:#FFFFFF!important;font-weight:800!important;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--c) 20%,transparent),color-mix(in srgb,var(--c) 5%,transparent) 72%,transparent)!important}
+.sb2 .nav-item.active .sn-ic{background:color-mix(in srgb,var(--c) 20%,transparent)!important;color:var(--c)!important}
+.sb2 .nav-item.active::before{top:5px!important;bottom:5px!important;box-shadow:0 0 12px color-mix(in srgb,var(--c) 65%,transparent)}
+.sb2 .nav-badge{font-size:9.5px!important;padding:2px 6px!important;background:rgba(255,255,255,.05)!important;border-color:rgba(255,255,255,.09)!important;color:#8C8C99!important}
+.sb2 .nav-item.active .nav-badge{background:color-mix(in srgb,var(--c) 17%,transparent)!important;border-color:color-mix(in srgb,var(--c) 40%,transparent)!important;color:var(--c)!important}
+.sb2 .sn-mark{background:linear-gradient(135deg,#7C5CFF,#A78BFF)!important}
+.sb2 .sn-foot{border-top:1px solid rgba(255,255,255,.06)!important;gap:9px!important}
+.sb2 .sn-av{background:linear-gradient(135deg,#7C5CFF,#A78BFF)!important;border-radius:8px!important}
+.sb2 .sn-role{text-transform:none!important;letter-spacing:0!important;font-size:10px!important;color:var(--t4)!important}
+.sn-switch{margin-left:auto;width:26px;height:26px;border-radius:8px;border:1px solid var(--b2);background:var(--s2);color:var(--t3);cursor:pointer;font-size:13px;flex:none}
+.sn-switch:hover{color:var(--t1);border-color:var(--b3)}
+body.sb-min .sb2 .sn-spacer{display:none}
+body.sb-min .sb2 .nav-item{justify-content:center!important;gap:0!important}
+body.sb-min .sb2 .sn-switch{display:none}
+/* ═══ BAR PARITY ═══ */
+.topbar .tb-page{font-size:13px;font-weight:850;color:var(--t1);letter-spacing:-.2px;white-space:nowrap;margin:0 6px 0 2px}
+.tb-more{position:relative}
+.tb-more>button{width:30px;height:30px;border-radius:9px;background:var(--s3);border:1px solid var(--b2);color:var(--t2);cursor:pointer;font-weight:900}
+.tb-more>button:hover{border-color:var(--b3);color:var(--t1)}
+.tb-menu{display:none;position:absolute;right:0;top:36px;min-width:230px;background:var(--s1);border:1px solid var(--b2);border-radius:var(--r-md);box-shadow:var(--sh-hover);padding:5px;z-index:60}
+.tb-menu.open{display:block}
+.tb-menu button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--t2);font:700 12px var(--sans);padding:8px 10px;border-radius:8px;cursor:pointer}
+.tb-menu button:hover{background:rgba(255,255,255,.05);color:var(--t1)}
+.tb-menu hr{border:0;border-top:1px solid var(--b1);margin:4px 0}
+</style>
+<style>
+/* bar order parity with UB: switcher first, then the page title */
+#appTopbar{display:flex!important}
+#appTopbar .xtabs{order:0!important;margin-right:10px!important}
+#appTopbar .tb-logo{display:none!important}   /* static "PL Tracker" — stays hidden */
+/* the page title is #appTopbar::before (content:attr(data-page), set by plPaintPage). A ::before
+   is the first flex item by default, which is why it sat in front of the switcher — give it an
+   order and the same look as UB's .tb-page */
+#appTopbar::before{order:1!important;margin:0 6px 0 2px!important;font:850 13px var(--sans)!important;color:var(--t1)!important;letter-spacing:-.2px!important;white-space:nowrap}
+#appTopbar .tb-logo-name{font-size:13px!important;font-weight:850!important;color:var(--t1)!important;letter-spacing:-.2px}
+#appTopbar .tb-mark{display:none!important}
+#appTopbar .tb-spacer-ub{order:2!important} #appTopbar .tb-actions{order:3!important}
+</style>
 <!-- plub-design-system --><style>
 /* ══════════════════════════════════════════════════════════════════════
    PLUB DESIGN SYSTEM — one copy, byte-identical in ub.html, pl.html and
@@ -9744,6 +10352,29 @@ body.sb-min .sb2 .sn-spacer{display:none}
 .btn.primary:hover,.btn-pri:hover,.tb-add:hover,.pl-action-btn.primary:hover,
 .pl-task-save:hover,.pl-footer-advance:hover,.prod-advance:hover{filter:brightness(1.12)}
 .btn.sm,.btn-sm{height:26px!important;padding:0 9px!important;font-size:11px!important}
+/* Destructive and positive variants. The .btn rule above uses !important, which
+   flattened .btn.danger to the same grey as Cancel — so "Yes, delete it" and
+   "Cancel" looked identical in every confirm dialog. These restore the meaning. */
+.btn.danger,.btn-danger,.prod-reject,.pl-action-btn.danger,.tsk-danger{
+  background:rgba(255,84,112,.11)!important;border:1px solid rgba(255,84,112,.42)!important;
+  color:#FF93A6!important;font-weight:800!important}
+.btn.danger:hover,.btn-danger:hover,.prod-reject:hover,.pl-action-btn.danger:hover{
+  background:rgba(255,84,112,.24)!important;border-color:rgba(255,84,112,.65)!important;color:#fff!important}
+.btn.success,.btn-success,.pl-action-btn.success{
+  background:rgba(0,229,160,.11)!important;border:1px solid rgba(0,229,160,.42)!important;
+  color:#5CE6B0!important;font-weight:800!important}
+.btn.success:hover,.btn-success:hover{background:rgba(0,229,160,.24)!important;color:#fff!important}
+.btn.warn,.btn-warn,.pl-action-btn.warn{
+  background:rgba(255,197,61,.11)!important;border:1px solid rgba(255,197,61,.42)!important;
+  color:#FFD066!important;font-weight:800!important}
+.btn.warn:hover,.btn-warn:hover{background:rgba(255,197,61,.24)!important;color:#fff!important}
+.btn.ghost,.btn-ghost{background:transparent!important;border:1px solid var(--b2)!important;color:var(--t3)!important}
+.btn.ghost:hover,.btn-ghost:hover{background:rgba(255,255,255,.05)!important;color:var(--t1)!important}
+/* every confirm dialog gets the same shell */
+#delOverlay>div,#rejectOverlay>div,#bulkOverlay>div,#exportOverlay>div,#modal,.pl-quick-panel{
+  border-radius:var(--r-xl)!important;background:var(--s1)!important;border:1px solid var(--b2)!important;
+  box-shadow:0 30px 90px rgba(0,0,0,.6),0 0 0 1px rgba(167,139,255,.06)!important}
+
 .btn.lg{height:36px!important;padding:0 16px!important;font-size:13px!important}
 
 /* eyebrows: flat muted caps in both apps. PL's gradient-clipped text was the single
