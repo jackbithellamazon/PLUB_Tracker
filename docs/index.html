@@ -210,17 +210,28 @@ window.CLUB = (function(){
   var DEF_USERS=[
     {id:'jack',  display_name:'Jack',  role:'owner', active:true},
     {id:'becki', display_name:'Becki', role:'staff', active:true}];
+  /* The five session types (UK staff spec, 9 Sept 2026). Sourcing Hours is the time spent
+     finding AND building a new product — discovery, research, suppliers and getting the
+     listing ready. Growth & Optimisation is deliberately outside it: by then the product is
+     launched and proven, so that time is improving an existing product, not building a new one.
+     It is still timed and reported, just not against the KPI. */
+  var WT_VERSION=2;
   var DEF_WT=[
-    {key:'ideas',    label:'Finding new ideas',                              sort:10, active:true, counts_as_sourcing:true},
-    {key:'validate', label:'Validating an existing idea',                    sort:20, active:true, counts_as_sourcing:true},
-    {key:'supplier', label:'Supplier sourcing',                              sort:30, active:true, counts_as_sourcing:true},
-    {key:'contact',  label:'Contacting wholesalers / distributors / brands', sort:40, active:true, counts_as_sourcing:true},
-    {key:'pricing',  label:'Trade & bulk pricing',                           sort:50, active:true, counts_as_sourcing:true},
-    {key:'listing',  label:'Creating listings',                              sort:60, active:true, counts_as_sourcing:false},
-    {key:'images',   label:'Images & creative',                              sort:70, active:true, counts_as_sourcing:false},
-    {key:'pipeline', label:'Progressing products through the pipeline',      sort:80, active:true, counts_as_sourcing:false}];
-  // old session types from both apps map onto the shared list
-  var LEGACY={fresh:'ideas', working:'validate'};
+    {key:'fresh',     label:'Fresh sourcing',         sort:10, active:true, counts_as_sourcing:true,
+     hint:'New product ideas and opportunities \u2014 market research, competitor discovery, browsing'},
+    {key:'research',  label:'Research & validation',  sort:20, active:true, counts_as_sourcing:true,
+     hint:'Is this idea worth progressing \u2014 demand, competitors, pricing, margin, differentiation'},
+    {key:'suppliers', label:'Suppliers & purchasing', sort:30, active:true, counts_as_sourcing:true,
+     hint:'Finding and contacting suppliers, quotes, trade pricing, MOQs, samples, freight, purchasing'},
+    {key:'listing',   label:'Listing & creative',     sort:40, active:true, counts_as_sourcing:true,
+     hint:'Keyword and competitor listing research, images, A+ content, building the listing'},
+    {key:'growth',    label:'Growth & optimisation',  sort:50, active:true, counts_as_sourcing:false,
+     hint:'Improving a product that is already live \u2014 PPC, SEO, conversion, pricing tests'}];
+  /* Every key either app has ever written maps onto the five, so no logged hour is lost and
+     no session history reads as blank. */
+  var LEGACY={ ideas:'fresh', working:'research', validate:'research',
+    supplier:'suppliers', contact:'suppliers', pricing:'suppliers',
+    images:'listing', pipeline:'research', ppc:'growth', optimise:'growth' };
 
   var S=null;
   function load(){
@@ -230,7 +241,11 @@ window.CLUB = (function(){
     COLS.forEach(function(c){ if(!Array.isArray(S[c])) S[c]=[]; });
     if(!S.settings||typeof S.settings!=='object') S.settings={};
     if(!S.users.length) S.users=DEF_USERS.map(function(u){return Object.assign({},u);});
-    if(!S.work_types.length) S.work_types=DEF_WT.map(function(w){return Object.assign({},w);});
+    // upgrade an older stored list in place — a saved copy of the previous eight would
+    // otherwise keep the old options on screen for ever
+    if(!S.work_types.length || (S.wt_version||1) < WT_VERSION){
+      S.work_types=DEF_WT.map(function(w){return Object.assign({},w);}); S.wt_version=WT_VERSION;
+    }
   }
   load();
   function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} notify(); }
@@ -270,8 +285,11 @@ window.CLUB = (function(){
   /* ── sessions: time by type of work ───────────────────────────────── */
   function workTypes(activeOnly){ var w=S.work_types.slice().sort(function(a,b){return (a.sort||0)-(b.sort||0);});
     return activeOnly===false? w : w.filter(function(x){return x.active!==false;}); }
-  function wtKey(k){ return LEGACY[k]||k; }
+  function wtKey(k){ k=k||'fresh'; return LEGACY[k]||k; }
   function wtLabel(k){ k=wtKey(k); var w=S.work_types.filter(function(x){return x.key===k;})[0]; return w?w.label:k; }
+  function wtHint(k){ k=wtKey(k); var w=S.work_types.filter(function(x){return x.key===k;})[0]; return (w&&w.hint)||''; }
+  // does this type count toward the Sourcing Hours KPI? unknown keys count, so nothing is lost silently
+  function wtCounts(k){ k=wtKey(k); var w=S.work_types.filter(function(x){return x.key===k;})[0]; return w? w.counts_as_sourcing!==false : true; }
   function saveWorkTypes(list){ S.work_types=list; save(); }
   function sessionStart(app,work_type,note){
     var u=user(); var row=add('sessions',{ user_id:u?u.id:null, app:app, work_type:wtKey(work_type), started_at:now(), ended_at:null, mins:null, note:note||'', entity_refs:[] });
@@ -375,7 +393,7 @@ window.CLUB = (function(){
     var inM=function(t){ t=(typeof t==='number')?t:(t?new Date(t).getTime():0); return isFinite(t)&&t>=ws&&t<me; };
     var out={ub:null,pl:null};
     try{ var ub=JSON.parse(localStorage.getItem('ub_tracker_v1')||'null'); if(ub){
-      var mins=(ub.sessionLog||[]).filter(function(x){return inM(x.date);}).reduce(function(a,x){return a+(x.mins||0);},0);
+      var mins=(ub.sessionLog||[]).filter(function(x){return inM(x.date) && wtCounts(x.type);}).reduce(function(a,x){return a+(x.mins||0);},0);
       if(ub.session&&ub.session.start>=ws) mins+=Math.max(0,Math.round((Date.now()-ub.session.start)/60000));
       var kh=((ub.settings&&ub.settings.kpis)||[]).filter(function(k){return k.id==='hours';})[0]; var ev=ub.events||[];
       out.ub={hrs:mins/60, tgt:(kh&&kh.target)||32, active:(ub.pipeline||[]).length,
@@ -383,7 +401,7 @@ window.CLUB = (function(){
         launched:ev.filter(function(e){return e.type==='launches'&&inM(e.at);}).length}; } }catch(e){}
     try{ var pl=JSON.parse(localStorage.getItem('pl_sourcing_v1')||'null'); if(pl){
       var B=(pl.brand_state&&pl.brand_state[0]&&pl.brand_state[0].data)||{};
-      var m2=(B.plSess||[]).filter(function(x){return inM(x.at);}).reduce(function(a,x){return a+(x.mins||0);},0);
+      var m2=(B.plSess||[]).filter(function(x){return inM(x.at) && wtCounts(x.kind);}).reduce(function(a,x){return a+(x.mins||0);},0);
       if(B.plRun&&B.plRun.start>=ws) m2+=Math.max(0,Math.round((Date.now()-B.plRun.start)/60000));
       var moved=0,launched=0,active=0;
       (pl.ideas||[]).forEach(function(r){ var i=r.data||{}, p=i.pipeline||{}; if(p.launchedAt&&inM(p.launchedAt)) launched++;
@@ -405,7 +423,7 @@ window.CLUB = (function(){
 
   return { mode:mode, user:user, users:users, setWho:setWho, signOut:signOut, nameOf:nameOf, byId:byId,
     log:log, activityBetween:activityBetween, summarise:summarise,
-    workTypes:workTypes, wtKey:wtKey, wtLabel:wtLabel, saveWorkTypes:saveWorkTypes,
+    workTypes:workTypes, wtKey:wtKey, wtLabel:wtLabel, wtHint:wtHint, wtCounts:wtCounts, saveWorkTypes:saveWorkTypes,
     sessionStart:sessionStart, sessionEnd:sessionEnd, sessionQuick:sessionQuick, sessionsFor:sessionsFor,
     taskAdd:taskAdd, taskStatus:taskStatus, taskNote:taskNote, tasksFor:tasksFor, taskNotes:taskNotes,
     setting:setting, all:all, add:add, update:update, on:on, reload:function(){ load(); notify(); },
@@ -418,7 +436,7 @@ window.CLUB = (function(){
 <script>
 // BUILD is the version people see — moves by 0.05 a release; STAMP is what actually busts the cache. Bump STAMP every push.
 var BUILD = '0.90';
-var STAMP = '2026-09-09b';
+var STAMP = '2026-09-09c';
 document.getElementById('buildChip').textContent = 'v' + BUILD;
 
 var FRAMES = { ub: document.getElementById('f_ub'), pl: document.getElementById('f_pl') };
@@ -529,8 +547,9 @@ function sideUB(ub){
   pipe.forEach(function(p){
     var w = p.waiting && p.waiting.until && new Date(p.waiting.until) >= new Date();
     if(w) waiting++; else needsUs++; });
-  var mins=log.filter(function(x){ return inWk(x.date); }).reduce(function(a,x){ return a+(x.mins||0); },0);
-  if(ub.session && ub.session.start>=ws) mins += Math.max(0,Math.round((Date.now()-ub.session.start)/60000));
+  // sourcing hours = the four counting session types; growth & optimisation is reported, not counted
+  var mins=log.filter(function(x){ return inWk(x.date) && CLUB.wtCounts(x.type); }).reduce(function(a,x){ return a+(x.mins||0); },0);
+  if(ub.session && ub.session.start>=ws && CLUB.wtCounts(ub.session.type)) mins += Math.max(0,Math.round((Date.now()-ub.session.start)/60000));
   var kh=((ub.settings&&ub.settings.kpis)||[]).filter(function(k){return k.id==='hours';})[0];
   var tgt=(kh&&kh.target)||32;   // UB's hours KPI was always a monthly figure
   var mins2=(ub.settings&&ub.settings.minStage)||{};
@@ -566,7 +585,7 @@ function sidePL(pl){
     if(h.some(function(x){ return x.ts>=ws && x.ts<me && (x.type==='advance'||x.type==='launch'); })) moved++;
     if(h.some(function(x){ return x.ts>=ws && x.ts<me; })) touched++;
   });
-  var mins=((B.plSess)||[]).filter(function(x){return x.at>=ws && x.at<me;}).reduce(function(a,x){return a+(x.mins||0);},0);
+  var mins=((B.plSess)||[]).filter(function(x){return x.at>=ws && x.at<me && CLUB.wtCounts(x.kind);}).reduce(function(a,x){return a+(x.mins||0);},0);
   if(B.plRun && B.plRun.start>=ws) mins += Math.max(0,Math.round((Date.now()-B.plRun.start)/60000));
   var minC=(B.settings&&B.settings.minStage)||{};
   var stages=PL_STAGE_ORDER.map(function(p){

@@ -2257,17 +2257,28 @@ window.CLUB = (function(){
   var DEF_USERS=[
     {id:'jack',  display_name:'Jack',  role:'owner', active:true},
     {id:'becki', display_name:'Becki', role:'staff', active:true}];
+  /* The five session types (UK staff spec, 9 Sept 2026). Sourcing Hours is the time spent
+     finding AND building a new product — discovery, research, suppliers and getting the
+     listing ready. Growth & Optimisation is deliberately outside it: by then the product is
+     launched and proven, so that time is improving an existing product, not building a new one.
+     It is still timed and reported, just not against the KPI. */
+  var WT_VERSION=2;
   var DEF_WT=[
-    {key:'ideas',    label:'Finding new ideas',                              sort:10, active:true, counts_as_sourcing:true},
-    {key:'validate', label:'Validating an existing idea',                    sort:20, active:true, counts_as_sourcing:true},
-    {key:'supplier', label:'Supplier sourcing',                              sort:30, active:true, counts_as_sourcing:true},
-    {key:'contact',  label:'Contacting wholesalers / distributors / brands', sort:40, active:true, counts_as_sourcing:true},
-    {key:'pricing',  label:'Trade & bulk pricing',                           sort:50, active:true, counts_as_sourcing:true},
-    {key:'listing',  label:'Creating listings',                              sort:60, active:true, counts_as_sourcing:false},
-    {key:'images',   label:'Images & creative',                              sort:70, active:true, counts_as_sourcing:false},
-    {key:'pipeline', label:'Progressing products through the pipeline',      sort:80, active:true, counts_as_sourcing:false}];
-  // old session types from both apps map onto the shared list
-  var LEGACY={fresh:'ideas', working:'validate'};
+    {key:'fresh',     label:'Fresh sourcing',         sort:10, active:true, counts_as_sourcing:true,
+     hint:'New product ideas and opportunities \u2014 market research, competitor discovery, browsing'},
+    {key:'research',  label:'Research & validation',  sort:20, active:true, counts_as_sourcing:true,
+     hint:'Is this idea worth progressing \u2014 demand, competitors, pricing, margin, differentiation'},
+    {key:'suppliers', label:'Suppliers & purchasing', sort:30, active:true, counts_as_sourcing:true,
+     hint:'Finding and contacting suppliers, quotes, trade pricing, MOQs, samples, freight, purchasing'},
+    {key:'listing',   label:'Listing & creative',     sort:40, active:true, counts_as_sourcing:true,
+     hint:'Keyword and competitor listing research, images, A+ content, building the listing'},
+    {key:'growth',    label:'Growth & optimisation',  sort:50, active:true, counts_as_sourcing:false,
+     hint:'Improving a product that is already live \u2014 PPC, SEO, conversion, pricing tests'}];
+  /* Every key either app has ever written maps onto the five, so no logged hour is lost and
+     no session history reads as blank. */
+  var LEGACY={ ideas:'fresh', working:'research', validate:'research',
+    supplier:'suppliers', contact:'suppliers', pricing:'suppliers',
+    images:'listing', pipeline:'research', ppc:'growth', optimise:'growth' };
 
   var S=null;
   function load(){
@@ -2277,7 +2288,11 @@ window.CLUB = (function(){
     COLS.forEach(function(c){ if(!Array.isArray(S[c])) S[c]=[]; });
     if(!S.settings||typeof S.settings!=='object') S.settings={};
     if(!S.users.length) S.users=DEF_USERS.map(function(u){return Object.assign({},u);});
-    if(!S.work_types.length) S.work_types=DEF_WT.map(function(w){return Object.assign({},w);});
+    // upgrade an older stored list in place — a saved copy of the previous eight would
+    // otherwise keep the old options on screen for ever
+    if(!S.work_types.length || (S.wt_version||1) < WT_VERSION){
+      S.work_types=DEF_WT.map(function(w){return Object.assign({},w);}); S.wt_version=WT_VERSION;
+    }
   }
   load();
   function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} notify(); }
@@ -2317,8 +2332,11 @@ window.CLUB = (function(){
   /* ── sessions: time by type of work ───────────────────────────────── */
   function workTypes(activeOnly){ var w=S.work_types.slice().sort(function(a,b){return (a.sort||0)-(b.sort||0);});
     return activeOnly===false? w : w.filter(function(x){return x.active!==false;}); }
-  function wtKey(k){ return LEGACY[k]||k; }
+  function wtKey(k){ k=k||'fresh'; return LEGACY[k]||k; }
   function wtLabel(k){ k=wtKey(k); var w=S.work_types.filter(function(x){return x.key===k;})[0]; return w?w.label:k; }
+  function wtHint(k){ k=wtKey(k); var w=S.work_types.filter(function(x){return x.key===k;})[0]; return (w&&w.hint)||''; }
+  // does this type count toward the Sourcing Hours KPI? unknown keys count, so nothing is lost silently
+  function wtCounts(k){ k=wtKey(k); var w=S.work_types.filter(function(x){return x.key===k;})[0]; return w? w.counts_as_sourcing!==false : true; }
   function saveWorkTypes(list){ S.work_types=list; save(); }
   function sessionStart(app,work_type,note){
     var u=user(); var row=add('sessions',{ user_id:u?u.id:null, app:app, work_type:wtKey(work_type), started_at:now(), ended_at:null, mins:null, note:note||'', entity_refs:[] });
@@ -2422,7 +2440,7 @@ window.CLUB = (function(){
     var inM=function(t){ t=(typeof t==='number')?t:(t?new Date(t).getTime():0); return isFinite(t)&&t>=ws&&t<me; };
     var out={ub:null,pl:null};
     try{ var ub=JSON.parse(localStorage.getItem('ub_tracker_v1')||'null'); if(ub){
-      var mins=(ub.sessionLog||[]).filter(function(x){return inM(x.date);}).reduce(function(a,x){return a+(x.mins||0);},0);
+      var mins=(ub.sessionLog||[]).filter(function(x){return inM(x.date) && wtCounts(x.type);}).reduce(function(a,x){return a+(x.mins||0);},0);
       if(ub.session&&ub.session.start>=ws) mins+=Math.max(0,Math.round((Date.now()-ub.session.start)/60000));
       var kh=((ub.settings&&ub.settings.kpis)||[]).filter(function(k){return k.id==='hours';})[0]; var ev=ub.events||[];
       out.ub={hrs:mins/60, tgt:(kh&&kh.target)||32, active:(ub.pipeline||[]).length,
@@ -2430,7 +2448,7 @@ window.CLUB = (function(){
         launched:ev.filter(function(e){return e.type==='launches'&&inM(e.at);}).length}; } }catch(e){}
     try{ var pl=JSON.parse(localStorage.getItem('pl_sourcing_v1')||'null'); if(pl){
       var B=(pl.brand_state&&pl.brand_state[0]&&pl.brand_state[0].data)||{};
-      var m2=(B.plSess||[]).filter(function(x){return inM(x.at);}).reduce(function(a,x){return a+(x.mins||0);},0);
+      var m2=(B.plSess||[]).filter(function(x){return inM(x.at) && wtCounts(x.kind);}).reduce(function(a,x){return a+(x.mins||0);},0);
       if(B.plRun&&B.plRun.start>=ws) m2+=Math.max(0,Math.round((Date.now()-B.plRun.start)/60000));
       var moved=0,launched=0,active=0;
       (pl.ideas||[]).forEach(function(r){ var i=r.data||{}, p=i.pipeline||{}; if(p.launchedAt&&inM(p.launchedAt)) launched++;
@@ -2452,7 +2470,7 @@ window.CLUB = (function(){
 
   return { mode:mode, user:user, users:users, setWho:setWho, signOut:signOut, nameOf:nameOf, byId:byId,
     log:log, activityBetween:activityBetween, summarise:summarise,
-    workTypes:workTypes, wtKey:wtKey, wtLabel:wtLabel, saveWorkTypes:saveWorkTypes,
+    workTypes:workTypes, wtKey:wtKey, wtLabel:wtLabel, wtHint:wtHint, wtCounts:wtCounts, saveWorkTypes:saveWorkTypes,
     sessionStart:sessionStart, sessionEnd:sessionEnd, sessionQuick:sessionQuick, sessionsFor:sessionsFor,
     taskAdd:taskAdd, taskStatus:taskStatus, taskNote:taskNote, tasksFor:tasksFor, taskNotes:taskNotes,
     setting:setting, all:all, add:add, update:update, on:on, reload:function(){ load(); notify(); },
@@ -2491,8 +2509,15 @@ function promptModal(title, label, placeholder, cb, initial){
    Two kinds of session — fresh sourcing, or working the ideas she already has. Everything the
    session counts comes from the event log, so nothing is typed in twice. An inactivity guard
    stops a forgotten session from inflating the hours KPI. */
-const SESSION_TYPES = { fresh:{label:'Fresh sourcing', hint:'Finding new ideas — storefronts, keywords, the review queue'}, working:{label:'Working existing ideas', hint:'Validating, pricing components, progressing and rejecting what you already have'} };
-try{ CLUB.workTypes().forEach(w=>{ SESSION_TYPES[w.key]={label:w.label, hint:w.counts_as_sourcing?'Counts toward the sourcing hours KPI':'Pipeline work — recorded, not counted as sourcing', club:true}; }); }catch(e){}
+// The five shared types are the only choices — the old pair used to sit above them, so the
+// chooser offered ten options for what is really five jobs.
+const SESSION_TYPES = {};
+try{ CLUB.workTypes().forEach(w=>{ SESSION_TYPES[w.key]={label:w.label, hint:w.hint||'', kpi:w.counts_as_sourcing!==false, club:true}; }); }catch(e){}
+if(!Object.keys(SESSION_TYPES).length) SESSION_TYPES.fresh={label:'Fresh sourcing', hint:'Finding new ideas', kpi:true};
+// the five replace the old pair — an old key still resolves through CLUB.wtKey for history
+function sessTypeKey(t){ try{ return CLUB.wtKey(t||'fresh'); }catch(e){ return t||'fresh'; } }
+function sessCounts(t){ try{ return CLUB.wtCounts(t); }catch(e){ return true; } }
+function sessLabel(t){ try{ return CLUB.wtLabel(t); }catch(e){ return t||'—'; } }
 const idleWarnMin = () => ((SETTINGS.sessions||{}).idleWarn)||45, idleEndMin = () => ((SETTINGS.sessions||{}).idleEnd)||50;
 let session = null;   // {id, type, start, lastActive}
 let sessionTick = null, idleTick = null;
@@ -2506,17 +2531,18 @@ function sessionChooser(){ resetJkBtn();
   document.getElementById('jkTitle').textContent = 'Start a sourcing session';
   document.getElementById('jkBody').innerHTML = `
     <div class="sess-choose">
-      ${Object.keys(SESSION_TYPES).map(t=>`<button class="sess-choice sc-${t}" onclick="startSession('${t}');closeModal('mJack')">
-        <div class="scc-t">${SESSION_TYPES[t].label}</div><div class="scc-s">${SESSION_TYPES[t].hint}</div></button>`).join('')}
+      ${Object.keys(SESSION_TYPES).map(t=>`<button class="sess-choice sc-${t} ${SESSION_TYPES[t].kpi===false?'no-kpi':''}" onclick="startSession('${t}');closeModal('mJack')">
+        <div class="scc-t">${SESSION_TYPES[t].label}${SESSION_TYPES[t].kpi===false?'<span class="scc-x">not sourcing hours</span>':''}</div>
+        <div class="scc-s">${SESSION_TYPES[t].hint}</div></button>`).join('')}
     </div>
-    <div class="lock-note">Both count towards the monthly hours target. The split is shown so you can see where the time went.</div>`;
+    <div class="lock-note">The first four are the sourcing hours KPI — finding <b>and</b> building a new product. Growth &amp; optimisation is timed and reported separately, because by then the product is already launched.</div>`;
   document.getElementById('jkConfirm').style.display = 'none';
   document.getElementById('jkCancel').textContent = 'Not now';
   openModal('mJack');
 }
 function startSession(type){ saveState();
   if(session) return;
-  type = SESSION_TYPES[type] ? type : 'fresh';
+  type = SESSION_TYPES[sessTypeKey(type)] ? sessTypeKey(type) : 'fresh';
   session = { id: nid(), type, start: Date.now(), lastActive: Date.now() };
   try{ session.clubId = CLUB.sessionStart('ub', type).id; }catch(e){}
   paintSessionButton();
@@ -2573,7 +2599,7 @@ function renderSessionBar(){
   if(!session) return;
   const st = sessionStats();
   document.getElementById('sessBar').innerHTML = `
-    <div class="sb-live"><span class="rec-dot"></span>${SESSION_TYPES[session.type].label}</div>
+    <div class="sb-live"><span class="rec-dot"></span>${sessLabel(session.type)}</div>
     <div class="sb-clock" id="sbClock">${sessionClock()}</div>
     <div class="sb-stats">
       <span class="sb-stat"><b>${st.ideas}</b> ideas</span>
@@ -2626,7 +2652,7 @@ function sessionSummary(entry){ resetJkBtn();
   const cell = (v,l,c) => `<div class="ss-cell"><div class="v" ${c?`style="color:${c}"`:''}>${v}</div><div class="l">${l}</div></div>`;
   document.getElementById('jkTitle').textContent = 'Session summary · '+fmtMins(entry.mins);
   document.getElementById('jkBody').innerHTML = `
-    <div class="ss-type">${SESSION_TYPES[entry.type].label} · ${fmtMins(entry.mins)} counted towards this month's hours</div>
+    <div class="ss-type">${sessLabel(entry.type)} · ${fmtMins(entry.mins)} ${sessCounts(entry.type)?"counted towards this month's hours":'recorded — outside the sourcing hours KPI'}</div>
     <div class="ss-grid">
       ${cell(entry.ideas,'ideas added')}${cell(entry.reviewed,'ASINs reviewed')}${cell(entry.rejected,'rejected')}${cell(entry.greens,'greens found','var(--gt)')}
       ${cell(entry.ranked,'ideas ranked')}${cell(entry.moved,'moved to sourcing')}${cell(entry.progressed,'stage moves')}${cell(entry.jack,'validation decisions','var(--pt)')}
@@ -3108,8 +3134,8 @@ function renderSessions(){ saveState();
     ${session ? `
       <div class="sess-live-card sl-${session.type}">
         <div class="slc-top">
-          <div><div class="slc-live"><span class="rec-dot"></span>${SESSION_TYPES[session.type].label} · in progress</div>
-            <div class="slc-hint">${SESSION_TYPES[session.type].hint}</div></div>
+          <div><div class="slc-live"><span class="rec-dot"></span>${sessLabel(session.type)} · in progress</div>
+            <div class="slc-hint">${(SESSION_TYPES[sessTypeKey(session.type)]||{}).hint||''}</div></div>
           <div class="slc-clock" id="slcClock">${sessionClock()}</div>
         </div>
         <div class="slc-stats">
@@ -3136,8 +3162,8 @@ function renderSessions(){ saveState();
       <div class="sm-hours">
         <div class="sm-big" style="color:${tierC}">${fmtKpi(hoursK,hrs)}<span class="of">/${fmtKpi(hoursK,kpiTarget(hoursK))}h</span></div>
         <div class="sm-label">sourcing hours · <b style="color:${tierC}">${hState.label}</b> · expected ${fmtKpi(hoursK,hState.exp)}h by today</div>
-        <div class="sm-bar"><div class="sm-fill fresh" style="width:${Math.min(100, m.freshMins/60/Math.max(0.1,kpiTarget(hoursK))*100)}%"></div><div class="sm-fill working" style="width:${Math.min(100, m.workingMins/60/Math.max(0.1,kpiTarget(hoursK))*100)}%"></div><div class="sm-pace" style="left:${Math.round(mp.pace*100)}%"></div></div>
-        <div class="sm-split"><span class="sp-fresh">● ${fmtKpi(hoursK,m.freshMins/60)}h fresh sourcing</span><span class="sp-working">● ${fmtKpi(hoursK,m.workingMins/60)}h working ideas</span><span class="sp-pace">│ where today sits</span></div>
+        <div class="sm-bar">${sessBarSegments(m, kpiTarget(hoursK))}<div class="sm-pace" style="left:${Math.round(mp.pace*100)}%"></div></div>
+        ${sessSplitLegend(m, hoursK)}
       </div>
       <div class="sm-grid">
         <div class="sm-cell"><div class="v">${m.sessions}</div><div class="l">sessions</div></div>
@@ -3153,12 +3179,12 @@ function renderSessions(){ saveState();
     <div class="card">
       ${log.length? `<div class="sess-hist">
         ${log.slice(0,14).map(x=>{
-          const ty = SESSION_TYPES[x.type||'fresh'];
+          const tk = sessTypeKey(x.type); const ty = SESSION_TYPES[tk] || {label:sessLabel(x.type), hint:''};
           return `<div class="sh-row">
             <div class="sh-date">${fmtDate(x.date)}<div class="sh-time">${new Date(x.date).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div></div>
-            <span class="sh-type st-${x.type||'fresh'}">${ty.label}</span>
+            <span class="sh-type st-${tk}" style="--wt:${wtHue(tk)}">${ty.label}</span>
             <div class="sh-dur" title="Click to correct" onclick="sessionEditMins(${x.id||0})">${fmtMins(x.mins||0)}${x.edited?' <i>edited</i>':''}${x.autoEnded?' <i>auto-ended</i>':''}</div>
-            <div class="sh-bar"><div class="sh-fill ${x.type==='working'?'working':'fresh'}" style="width:${Math.round((x.mins||0)/maxMins*100)}%"></div></div>
+            <div class="sh-bar"><div class="sh-fill" style="width:${Math.round((x.mins||0)/maxMins*100)}%;background:${wtHue(tk)}"></div></div>
             <div class="sh-chips">
               <span><b>${x.ideas||0}</b> ideas</span>
               <span><b>${x.reviewed||0}</b> reviewed</span>
@@ -3189,13 +3215,38 @@ function sessionDetail(id){ resetJkBtn();
   document.getElementById('jkCancel').style.display = 'none';   // read-only modal — one dismiss button is enough
   openModal('mJack');
 }
+/* ── session reporting: every type reports its own hours, the four sourcing ones make the KPI ── */
+const WT_HUE = {fresh:'#22D3EE', research:'#A78BFF', suppliers:'#FFC53D', listing:'#FF8A3D', growth:'#00E5A0'};
+function WT_ORDER(){ try{ return CLUB.workTypes(); }catch(e){ return []; } }
+function wtHue(k){ return WT_HUE[sessTypeKey(k)] || '#787A87'; }
+function sessBarSegments(m, targetH){
+  // only the KPI types fill the bar — the target is a sourcing-hours target
+  const tgt = Math.max(0.1, targetH);
+  return WT_ORDER().filter(w=>w.counts_as_sourcing!==false).map(w=>{
+    const mins = (m.byType||{})[w.key]||0; if(!mins) return '';
+    return `<div class="sm-fill" style="width:${Math.min(100, mins/60/tgt*100)}%;background:${wtHue(w.key)}" title="${esc(w.label)} — ${(mins/60).toFixed(1)}h"></div>`;
+  }).join('');
+}
+function sessSplitLegend(m, hoursK){
+  const rows = WT_ORDER().map(w=>{
+    const mins=(m.byType||{})[w.key]||0;
+    if(!mins && w.counts_as_sourcing===false) return '';
+    return `<span class="sp-t ${w.counts_as_sourcing===false?'off':''}" title="${esc(w.hint||'')}">
+      <i style="background:${wtHue(w.key)}"></i>${fmtKpi(hoursK,mins/60)}h ${esc(w.label.toLowerCase())}${w.counts_as_sourcing===false?' <b>· not in the KPI</b>':''}</span>`;
+  }).join('');
+  return `<div class="sm-split">${rows}<span class="sp-pace">│ where today sits</span></div>`;
+}
 function monthRollup(ref){
   const log = initSessionLog().filter(x=>sameMonth(x.date, ref));
   const sum = a => a.reduce((t,x)=>({mins:t.mins+(x.mins||0), ideas:t.ideas+(x.ideas||0), reviewed:t.reviewed+(x.reviewed||0), greens:t.greens+(x.greens||0), progressed:t.progressed+(x.progressed||0), rejected:t.rejected+(x.rejected||0)}),{mins:0,ideas:0,reviewed:0,greens:0,progressed:0,rejected:0});
   const m = sum(log);
-  m.freshMins = log.filter(x=>(x.type||'fresh')==='fresh').reduce((t,x)=>t+(x.mins||0),0);
-  m.workingMins = log.filter(x=>x.type==='working').reduce((t,x)=>t+(x.mins||0),0);
-  if(session){ const live = Math.max(0, Math.round((Date.now()-session.start)/60000)); m.mins += live; if((session.type||'fresh')==='fresh') m.freshMins += live; else m.workingMins += live; }
+  // every type reports its own hours; the four sourcing ones add up to the KPI
+  m.byType = {}; m.kpiMins = 0; m.otherMins = 0;
+  const addMins = (t,v)=>{ const k=sessTypeKey(t); m.byType[k]=(m.byType[k]||0)+v; if(sessCounts(k)) m.kpiMins+=v; else m.otherMins+=v; };
+  log.forEach(x=>addMins(x.type, x.mins||0));
+  if(session){ const live = Math.max(0, Math.round((Date.now()-session.start)/60000)); m.mins += live; addMins(session.type, live); }
+  m.freshMins = m.byType['fresh']||0;
+  m.workingMins = (m.byType['research']||0) + (m.byType['suppliers']||0) + (m.byType['listing']||0);
   m.sessions = log.length + (session?1:0);
   m.rate = m.mins>0 ? m.ideas/(m.mins/60) : 0;
   return m;
@@ -3852,8 +3903,10 @@ function kpiActual(k, ref){
 // Sourcing hours this month = every logged session plus the one running now. Never typed in.
 function monthMins(ref, type){
   const log = initSessionLog();
-  let mins = log.filter(x=>sameMonth(x.date, ref) && (!type || (x.type||'fresh')===type)).reduce((t,x)=>t+(x.mins||0),0);
-  if(session && sameMonth(new Date(session.start).toISOString(), ref) && (!type || (session.type||'fresh')===type)) mins += Math.max(0, Math.round((Date.now()-session.start)/60000));
+  // the KPI is the four sourcing types; growth & optimisation is tracked but never counted here
+  const ok = x => type ? sessTypeKey(x)===sessTypeKey(type) : sessCounts(x);
+  let mins = log.filter(x=>sameMonth(x.date, ref) && ok(x.type)).reduce((t,x)=>t+(x.mins||0),0);
+  if(session && sameMonth(new Date(session.start).toISOString(), ref) && ok(session.type)) mins += Math.max(0, Math.round((Date.now()-session.start)/60000));
   return mins;
 }
 function monthHours(ref, type){ return Math.round(monthMins(ref, type)/60*10)/10; }
@@ -4080,8 +4133,8 @@ function weekFrac(){ const n=new Date(), dow=(n.getDay()+6)%7;
   return Math.max(0.02, Math.min(1,(dow + (n.getHours()*60+n.getMinutes())/1440)/7)); }
 function weekMins(){ const log=initSessionLog(), ws=monthStartMs();
   const me=new Date(new Date(TODAY).getFullYear(), new Date(TODAY).getMonth()+1, 1).getTime();
-  let m=log.filter(x=>{const t=new Date(x.date).getTime(); return t>=ws && t<me;}).reduce((t,x)=>t+(x.mins||0),0);
-  if(session && session.start>=ws) m += Math.max(0, Math.round((Date.now()-session.start)/60000));
+  let m=log.filter(x=>{const t=new Date(x.date).getTime(); return t>=ws && t<me && sessCounts(x.type);}).reduce((t,x)=>t+(x.mins||0),0);
+  if(session && session.start>=ws && sessCounts(session.type)) m += Math.max(0, Math.round((Date.now()-session.start)/60000));
   return m; }
 function weekHoursTarget(){
   // the monthly figure is the contract; the week is that figure spread evenly
@@ -4970,7 +5023,7 @@ function renderAction(){ saveState();
           return `<div class="card sec" style="padding:12px 14px;cursor:pointer" onclick="nav('sessions')">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px">
               <div style="font-size:12.5px;font-weight:700">${m.sessions} session${m.sessions===1?'':'s'} · ${fmtKpi({unit:'h'},m.mins/60)}h${session?' · <span style="color:var(--rt)">live now</span>':''}</div>
-              <div style="font-size:10.5px;color:var(--t3)">${fmtKpi({unit:'h'},m.freshMins/60)}h fresh · ${fmtKpi({unit:'h'},m.workingMins/60)}h working ideas</div>
+              <div style="font-size:10.5px;color:var(--t3)">${WT_ORDER().filter(w=>(m.byType||{})[w.key]>0).map(w=>fmtKpi({unit:'h'},m.byType[w.key]/60)+'h '+w.label.toLowerCase()).join(' · ')||'no time logged yet'}</div>
             </div>
             <div class="sw-grid" style="grid-template-columns:repeat(4,1fr)">
               <div class="sw-metric"><div class="v">${m.ideas}</div><div class="l">ideas</div></div>
@@ -8351,6 +8404,19 @@ tr:hover .comp-del{opacity:1}
 .sup-add-g{display:grid;grid-template-columns:1fr 80px 100px;gap:8px;margin-bottom:8px}
 .sup-add-g2{display:grid;grid-template-columns:1fr 1fr auto;gap:8px}
 .sup-add input{width:100%}
+</style>
+<style>
+/* five session types: legend + chooser */
+.sm-split{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:11px;align-items:center}
+.sp-t{display:inline-flex;align-items:center;gap:5px;color:var(--t3);white-space:nowrap}
+.sp-t i{width:7px;height:7px;border-radius:50%;flex:none}
+.sp-t.off{color:var(--t4)}
+.sp-t.off b{font-weight:700;color:var(--t4);opacity:.8}
+.sess-choice.no-kpi{border-style:dashed}
+.scc-x{margin-left:7px;font-size:9px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--t4);border:1px solid var(--b2);border-radius:99px;padding:1px 6px;vertical-align:middle}
+</style>
+<style>
+.sh-type{border-color:color-mix(in srgb,var(--wt,#787A87) 45%,transparent)!important;color:var(--wt,var(--t3))!important;background:color-mix(in srgb,var(--wt,#787A87) 12%,transparent)!important}
 </style>
 </body>
 </html>
