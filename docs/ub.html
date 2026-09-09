@@ -2653,7 +2653,10 @@ if(typeof document!=='undefined' && document.addEventListener){
 if(typeof document!=='undefined' && document.addEventListener){
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && session){ renderSessionBar(); if(currentPane()==='sessions') renderSessions(); } });
 }
-function resetJkBtn(){ const c=document.getElementById('jkConfirm'); if(c){ c.className='btn btn-pri'; c.style.display=''; } const x=document.getElementById('jkCancel'); if(x) x.style.display=''; }
+function resetJkBtn(){ const c=document.getElementById('jkConfirm'); if(c){ c.className='btn btn-pri'; c.style.display=''; }
+  // the suppliers panel relabels Cancel to "Done" — put it back, or every later dialog inherits it
+  const x=document.getElementById('jkCancel'); if(x){ x.style.display=''; x.textContent='Cancel'; }
+  const b=document.getElementById('jkBar'); if(b) b.style.background='var(--brand,#7C6CFF)'; }
 function confirmModal(title, body, btnLabel, cb, danger){
   resetJkBtn();
   document.getElementById('jkTitle').textContent = title;
@@ -6410,10 +6413,166 @@ function syncSourceChecklist(p){
   tick('Confirm stock availability', cs.every(c=>['Source found','Price confirmed','Approved'].includes(c.stock)));
   tick('Complete estimated bundle costing', cs.every(c=>c.packCost>0) && p.sell>0);
 }
+/* ── components: rename, delete, and a log of every supplier we can buy from ──
+   A component keeps its chosen supplier/url/packSize/packCost exactly as before — every
+   economics, checklist and export path is untouched. `quotes` is the comparison log, and
+   "Use this" copies a quote onto the component. */
+function perUnit(q){ return (Number(q&&q.packCost)||0) / Math.max(1, Number(q&&q.packSize)||1); }
+function quoteMatchesComp(q,c){
+  return (q.supplier||'')===(c.supplier||'') && Number(q.packCost)===Number(c.packCost) && Number(q.packSize)===Number(c.packSize);
+}
+function compQuotes(c){
+  if(!Array.isArray(c.quotes)) c.quotes = [];
+  // The supplier actually in use must always appear in the log — otherwise an undo, an import
+  // or an edit made outside this panel leaves the product costed by a supplier that isn't listed.
+  const hasSomething = (c.supplier && c.supplier!=='—') || (c.url && c.url!=='#') || Number(c.packCost)>0;
+  if(hasSomething && !c.quotes.some(q=>quoteMatchesComp(q,c))){
+    c.quotes.unshift({id:nid(), supplier:c.supplier||'—', url:c.url||'#',
+      packSize:Number(c.packSize)||1, packCost:Number(c.packCost)||0, note:''});
+  }
+  return c.quotes;
+}
+function cheapestQuote(qs){
+  const priced = (qs||[]).filter(q=>Number(q.packCost)>0);
+  if(!priced.length) return null;
+  return priced.reduce((a,b)=> perUnit(b) < perUnit(a) ? b : a);
+}
+function renameComp(pid,i){
+  const p = pipeline.find(x=>x.id===pid); const c = p.components[i]; const was = c.name;
+  promptModal('Rename component', 'What is this component called?', 'e.g. Walkers Assorted Biscuits', (v)=>{
+    v = (v||'').trim(); if(!v){ toast('Give it a name'); return; }
+    if(v===was) return;
+    saveState();
+    c.name = v;
+    p.hist.unshift(['Component renamed — '+was+' → '+v, CURRENT_USER, 0, new Date().toISOString()]);
+    syncSourceChecklist(p); renderWorkspace(); refreshPanes(); toast('Renamed');
+  }, was);
+}
+function delComponent(pid,i){
+  const p = pipeline.find(x=>x.id===pid); const c = p.components[i];
+  confirmModal('Delete this component?', `<b>${esc(c.name)}</b> and its supplier prices will be removed from this product. The bundle cost recalculates straight away.`, 'Delete component', ()=>{
+    saveState();
+    p.components.splice(i,1);
+    p.hist.unshift(['Component removed — '+c.name, CURRENT_USER, 0, new Date().toISOString()]);
+    syncSourceChecklist(p); renderWorkspace(); refreshPanes();
+    undoToast('Component deleted', ()=>{ p.components.splice(i,0,c); syncSourceChecklist(p); renderWorkspace(); refreshPanes(); });
+  }, true);
+}
+/* the suppliers panel — every place we can buy this component, cheapest flagged */
+let _supCtx = null;
+function openCompSuppliers(pid,i){
+  _supCtx = {pid, i};
+  resetJkBtn();
+  const p = pipeline.find(x=>x.id===pid), c = p.components[i];
+  document.getElementById('jkTitle').textContent = 'Suppliers — ' + c.name;
+  document.getElementById('jkConfirm').style.display = 'none';
+  document.getElementById('jkCancel').textContent = 'Done';
+  paintCompSuppliers();
+  openModal('mJack');
+}
+function paintCompSuppliers(){
+  if(!_supCtx) return;
+  const p = pipeline.find(x=>x.id===_supCtx.pid), c = p.components[_supCtx.i];
+  const qs = compQuotes(c), cheap = cheapestQuote(qs);
+  const inUse = q => quoteMatchesComp(q,c);
+  const rows = qs.map((q,qi)=>{
+    const isCheap = cheap && q.id===cheap.id && qs.length>1;
+    const used = inUse(q);
+    return `<div class="sup-row ${used?'on':''}">
+      <div class="sup-main">
+        <div class="sup-name">${esc(q.supplier||'—')}
+          ${used?'<span class="sup-chip use">in use</span>':''}
+          ${isCheap?'<span class="sup-chip cheap">cheapest</span>':''}</div>
+        <div class="sup-meta">${q.packSize||1} per pack · ${gbp(Number(q.packCost)||0)} a pack${q.note?' · '+esc(q.note):''}
+          ${q.url&&q.url!=='#'?`<a class="link-mini" target="_blank" href="${esc(q.url)}">open ↗</a>`:''}</div>
+      </div>
+      <div class="sup-cost"><b>${gbp(perUnit(q))}</b><span>per unit</span></div>
+      <div class="sup-acts">
+        ${used?'':`<button class="btn btn-sm btn-pri" onclick="useCompQuote(${qi})">Use this</button>`}
+        <button class="btn btn-sm" onclick="editCompQuote(${qi})">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="delCompQuote(${qi})">×</button>
+      </div></div>`;
+  }).join('');
+  document.getElementById('jkBody').innerHTML = `
+    <p class="sup-intro">Every place this component can be bought, with the price per unit so they compare properly. <b>Use this</b> puts a supplier's price into the bundle economics.</p>
+    <div class="sup-list">${rows || '<div class="sup-empty">No suppliers logged yet.</div>'}</div>
+    <div class="sup-add">
+      <div class="fld-l">Add a supplier</div>
+      <div class="sup-add-g">
+        <input type="text" id="sqSup" placeholder="Supplier — e.g. Kingdom Coffee">
+        <input type="number" id="sqPack" placeholder="Pack" value="1">
+        <input type="number" step="0.01" id="sqCost" placeholder="Pack £">
+      </div>
+      <div class="sup-add-g2">
+        <input type="text" id="sqUrl" placeholder="https://… (optional)">
+        <input type="text" id="sqNote" placeholder="Note — e.g. 5 day lead (optional)">
+        <button class="btn btn-sm btn-pri" onclick="addCompQuote()">+ Add</button>
+      </div>
+    </div>`;
+}
+function addCompQuote(){
+  const p = pipeline.find(x=>x.id===_supCtx.pid), c = p.components[_supCtx.i];
+  const sup = document.getElementById('sqSup').value.trim();
+  if(!sup){ toast('Give the supplier a name'); return; }
+  saveState();
+  const q = {id:nid(), supplier:sup, url:document.getElementById('sqUrl').value.trim()||'#',
+    packSize:Math.max(1, numOf(document.getElementById('sqPack').value)||1),
+    packCost:Math.max(0, numOf(document.getElementById('sqCost').value)||0),
+    note:document.getElementById('sqNote').value.trim()};
+  compQuotes(c).push(q);
+  // the first supplier logged is the one in use
+  if(compQuotes(c).length===1) applyQuote(c,q);
+  p.hist.unshift(['Supplier logged — '+sup+' for '+c.name, CURRENT_USER, 0, new Date().toISOString()]);
+  paintCompSuppliers(); renderWorkspace(); refreshPanes(); toast('Supplier added');
+}
+function applyQuote(c,q){ c.supplier=q.supplier||'—'; c.url=q.url||'#'; c.packSize=Math.max(1,Number(q.packSize)||1); c.packCost=Math.max(0,Number(q.packCost)||0); }
+function useCompQuote(qi){
+  const p = pipeline.find(x=>x.id===_supCtx.pid), c = p.components[_supCtx.i], q = compQuotes(c)[qi];
+  saveState(); applyQuote(c,q);
+  p.hist.unshift(['Supplier switched — '+c.name+' → '+q.supplier+' at '+gbp(perUnit(q))+'/unit', CURRENT_USER, 0, new Date().toISOString()]);
+  syncSourceChecklist(p); paintCompSuppliers(); renderWorkspace(); refreshPanes(); toast('Now using '+q.supplier);
+}
+function delCompQuote(qi){
+  const p = pipeline.find(x=>x.id===_supCtx.pid), c = p.components[_supCtx.i], qs = compQuotes(c), q = qs[qi];
+  saveState(); qs.splice(qi,1);
+  paintCompSuppliers(); renderWorkspace(); refreshPanes(); toast('Removed '+(q.supplier||'supplier'));
+}
+function editCompQuote(qi){
+  const p = pipeline.find(x=>x.id===_supCtx.pid), c = p.components[_supCtx.i], q = compQuotes(c)[qi];
+  const ctx = _supCtx;
+  resetJkBtn();
+  document.getElementById('jkTitle').textContent = 'Edit supplier';
+  document.getElementById('jkBody').innerHTML = `
+    <div class="fld"><div class="fld-l">Supplier</div><input type="text" id="eqSup" value="${esc(q.supplier||'')}"></div>
+    <div class="fld" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><div class="fld-l">Pack size</div><input type="number" id="eqPack" value="${Number(q.packSize)||1}"></div>
+      <div><div class="fld-l">Pack cost £</div><input type="number" step="0.01" id="eqCost" value="${Number(q.packCost)||0}"></div>
+    </div>
+    <div class="fld"><div class="fld-l">Link</div><input type="text" id="eqUrl" value="${q.url&&q.url!=='#'?esc(q.url):''}" placeholder="https://…"></div>
+    <div class="fld" style="margin-bottom:0"><div class="fld-l">Note</div><input type="text" id="eqNote" value="${esc(q.note||'')}" placeholder="e.g. 5 day lead"></div>`;
+  document.getElementById('jkConfirm').textContent = 'Save supplier';
+  document.getElementById('jkConfirm').onclick = ()=>{
+    const wasUsed = quoteMatchesComp(q,c);
+    saveState();
+    q.supplier = document.getElementById('eqSup').value.trim() || '—';
+    q.packSize = Math.max(1, numOf(document.getElementById('eqPack').value)||1);
+    q.packCost = Math.max(0, numOf(document.getElementById('eqCost').value)||0);
+    q.url = document.getElementById('eqUrl').value.trim() || '#';
+    q.note = document.getElementById('eqNote').value.trim();
+    if(wasUsed) applyQuote(c,q);   // editing the one in use keeps the economics honest
+    _supCtx = ctx;
+    openCompSuppliers(ctx.pid, ctx.i);
+    renderWorkspace(); refreshPanes(); toast('Saved');
+  };
+  openModal('mJack');
+}
 function editCompMeta(pid,i,f){ saveState();
   const p = pipeline.find(x=>x.id===pid); const c = p.components[i];
   promptModal(f==='supplier'?'Supplier':'Supplier link', f==='supplier'?'Who supplies '+c.name+'?':'URL for '+c.name, f==='supplier'?'e.g. AliBaba — CleanPro':'https://…', (v)=>{
     if(f==='supplier') c.supplier = v||'—'; else c.url = v||'#';
+    // keep the matching entry in the supplier log in step
+    const q = compQuotes(c).filter(x=>x.supplier===c.supplier)[0];
+    if(q){ if(f==='supplier') q.supplier=c.supplier; else q.url=c.url; }
     renderWorkspace(); toast('Saved');
   }, f==='supplier'? (c.supplier==='—'?'':c.supplier) : (c.url==='#'?'':c.url));
 }
@@ -6566,17 +6725,19 @@ function wsCosts(p){
       ${p.components.length?`<div class="tblwrap"><table class="tbl comp-tbl"><thead><tr>
         <th>Component</th><th>Supplier</th><th>Pack</th><th>Pack cost</th><th>Per bundle</th><th>Cost / bundle</th><th>Status</th>
       </tr></thead><tbody>
-      ${p.components.map((c,i)=>`<tr style="cursor:default">
-        <td class="td-title">${esc(c.name)}</td>
-        <td class="td-sub"><span style="cursor:pointer" title="Edit supplier" onclick="editCompMeta(${p.id},${i},'supplier')">${esc(c.supplier)}</span>
+      ${p.components.map((c,i)=>{ const qs=compQuotes(c), cheap=cheapestQuote(qs); const saving=(cheap&&qs.length>1&&perUnit(cheap)<perUnit(c)-0.0001)?(perUnit(c)-perUnit(cheap)):0; return `<tr style="cursor:default">
+        <td class="td-title"><span class="comp-name" title="Rename this component" onclick="renameComp(${p.id},${i})">${esc(c.name)}</span>
+          <button class="comp-del" title="Delete this component" onclick="delComponent(${p.id},${i})">×</button></td>
+        <td class="td-sub"><span style="cursor:pointer" title="Suppliers and prices" onclick="openCompSuppliers(${p.id},${i})">${esc(c.supplier)}</span>
           ${c.url&&c.url!=='#'?`<a class="link-mini" target="_blank" href="${esc(c.url)}">open ↗</a>`:''}
-          <button class="link-mini" title="Edit supplier link" onclick="editCompMeta(${p.id},${i},'url')">${c.url&&c.url!=='#'?'✎':'+ link'}</button></td>
+          <button class="link-mini" title="Edit supplier link" onclick="editCompMeta(${p.id},${i},'url')">${c.url&&c.url!=='#'?'✎':'+ link'}</button>
+          <button class="comp-sup ${saving?'cheaper':''}" title="Every place we can buy this, with prices" onclick="openCompSuppliers(${p.id},${i})">${qs.length>1?qs.length+' suppliers':'+ supplier'}${saving?' · save '+gbp(saving)+'/unit':''}</button></td>
         <td style="width:76px"><input value="${c.packSize}" onchange="editComp(${p.id},${i},'packSize',this.value)"></td>
         <td style="width:94px"><input value="${(Number(c.packCost)||0).toFixed(2)}" onchange="editComp(${p.id},${i},'packCost',this.value)"></td>
         <td style="width:70px"><input value="${c.units}" onchange="editComp(${p.id},${i},'units',this.value)"></td>
         <td class="mono" style="font-weight:600" id="cb${i}">${gbp(c.packCost/Math.max(1,c.packSize||1)*c.units)}</td>
         <td><select class="filter-sel comp-st ${stockCls(c.stock)}" onchange="setCompStatus(${p.id},${i},this.value)">${COMP_STATUSES.map(s=>`<option ${c.stock===s?'selected':''}>${s}</option>`).join('')}</select></td>
-      </tr>`).join('')}</tbody></table></div>`
+      </tr>`; }).join('')}</tbody></table></div>`
       :`<div class="empty"><div class="empty-t">No components yet</div><div class="empty-s">Add each component with its supplier, pack size and cost — the bundle economics update live.</div></div>`}
     </div>
     <div class="econ">
@@ -6713,6 +6874,7 @@ function addComponent(pid){ resetJkBtn();
       packSize:Math.max(1, numOf(document.getElementById('cmPack').value)||1),
       packCost:Math.max(0, numOf(document.getElementById('cmCost').value)||0),
       units:Math.max(1, Math.round(numOf(document.getElementById('cmUnits').value))||1), stock:'Not started'});
+    compQuotes(p.components[p.components.length-1]);   // start its supplier log from what was just typed
     p.hist.unshift(['Component added — '+n, CURRENT_USER, 0, new Date().toISOString()]);
     syncSourceChecklist(p);
     closeModal('mJack'); renderWorkspace(); refreshPanes();
@@ -8158,6 +8320,37 @@ setInterval(plubRailMonth, 20000);
 body.plub-embed .shell>.sidebar{display:none!important}
 body.plub-embed .topbar{display:none!important}
 body.plub-embed .sn-month{display:none!important}
+</style>
+<style>
+/* component rename / delete / supplier log */
+.comp-name{cursor:pointer;border-bottom:1px dashed transparent}
+.comp-name:hover{border-bottom-color:var(--b3);color:var(--t1)}
+.comp-del{opacity:0;margin-left:6px;width:18px;height:18px;line-height:1;border-radius:5px;border:1px solid var(--b2);background:var(--s3);color:var(--t4);cursor:pointer;font-weight:800;font-family:inherit;vertical-align:middle}
+tr:hover .comp-del{opacity:1}
+.comp-del:hover{color:#FF93A6;border-color:rgba(255,84,112,.45)}
+.comp-sup{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:99px;border:1px solid var(--b2);background:var(--s3);color:var(--t4);font-size:10px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap}
+.comp-sup:hover{color:var(--t1);border-color:var(--b3)}
+.comp-sup.cheaper{color:#00E5A0;border-color:rgba(0,229,160,.4);background:rgba(0,229,160,.10)}
+.sup-intro{font-size:12.5px;color:var(--t3);line-height:1.55;margin:0 0 12px}
+.sup-intro b{color:var(--t2)}
+.sup-list{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto}
+.sup-row{display:flex;align-items:center;gap:12px;padding:9px 11px;border:1px solid var(--b1);border-radius:10px;background:var(--s2)}
+.sup-row.on{border-color:rgba(124,108,255,.45);background:rgba(124,108,255,.08)}
+.sup-main{flex:1;min-width:0}
+.sup-name{font-size:13px;font-weight:750;color:var(--t1);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.sup-chip{font-size:9px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:1px 6px;border-radius:99px}
+.sup-chip.use{color:#C4B9FF;background:rgba(124,108,255,.18);border:1px solid rgba(124,108,255,.4)}
+.sup-chip.cheap{color:#00E5A0;background:rgba(0,229,160,.12);border:1px solid rgba(0,229,160,.4)}
+.sup-meta{font-size:11px;color:var(--t4);margin-top:2px}
+.sup-cost{text-align:right;flex:none}
+.sup-cost b{display:block;font-size:14px;font-weight:800;color:var(--t1);font-variant-numeric:tabular-nums}
+.sup-cost span{font-size:9.5px;color:var(--t4);text-transform:uppercase;letter-spacing:.6px;font-weight:800}
+.sup-acts{display:flex;gap:5px;flex:none}
+.sup-empty{font-size:12px;color:var(--t4);padding:14px;text-align:center;border:1px dashed var(--b2);border-radius:10px}
+.sup-add{margin-top:14px;padding-top:12px;border-top:1px solid var(--b1)}
+.sup-add-g{display:grid;grid-template-columns:1fr 80px 100px;gap:8px;margin-bottom:8px}
+.sup-add-g2{display:grid;grid-template-columns:1fr 1fr auto;gap:8px}
+.sup-add input{width:100%}
 </style>
 </body>
 </html>
