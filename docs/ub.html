@@ -68,7 +68,7 @@ textarea::placeholder,input::placeholder{color:var(--t3);opacity:1}
 .main{flex:1;display:flex;flex-direction:column;min-width:0}
 .content{flex:1;overflow-y:auto;padding:26px 30px 60px}
 .pane{display:none;max-width:1720px;margin:0 auto}
-.pane.active{display:block;animation:fadeUp .22s ease}
+.pane.active{display:block}   /* no entrance animation — a page change is a cut, not a slide */
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 /* ═══════ SIDEBAR ═══════ */
@@ -1317,7 +1317,7 @@ hr,.divider{border-color:var(--b1)}
 
 /* the pane change gets a soft entrance so navigation feels continuous */
 @keyframes paneIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.pane.active{animation:paneIn .22s cubic-bezier(.2,.8,.3,1)}
+/* paneIn removed: every page switch slid and faded, which read as a glitch */
 
 /* focus that is visible without being a bloom */
 :focus-visible{outline:2px solid var(--accent2);outline-offset:2px;border-radius:8px}
@@ -2061,6 +2061,7 @@ body:has(#roBanner) .topbar{margin-top:30px}
       <button class="nav-item" data-pane="archive" style="--c:#9BA3B8" onclick="nav('archive')" title="Archive">
         <span class="sn-ic"><svg viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="4.5" rx="1.5" fill="currentColor" opacity=".18"/><rect x="2.5" y="3.5" width="15" height="4.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 8v7.5a1.5 1.5 0 001.5 1.5h9A1.5 1.5 0 0016 15.5V8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 11.5h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="sn-t">Archive</span><span class="nav-badge" id="nb-archive">–</span>
       </button>
+      <div class="sn-month" id="snMonth" onclick="try{parent.show('pipe')}catch(e){}" title="Open the Overview"></div>
       <div class="sn-spacer"></div>
       <button class="nav-item" data-pane="guide" style="--c:#7FE9F5" onclick="nav('guide')" title="How it works">
         <span class="sn-ic"><svg viewBox="0 0 20 20"><path d="M4 4.5a2 2 0 012-2h10v13H6a2 2 0 00-2 2z" fill="currentColor" opacity=".18"/><path d="M4 4.5a2 2 0 012-2h10v13H6a2 2 0 00-2 2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M4 17.5a2 2 0 012-2h10" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 7h5M8 10h3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="sn-t">How it works</span>
@@ -2415,6 +2416,40 @@ window.CLUB = (function(){
   }
   function disable(){ sb=null; try{ localStorage.setItem(MODE,'local'); }catch(e){} }
 
+  /* ── this month, both sides: read straight from the two trackers' stores (same origin) ── */
+  function monthBoth(){
+    var now=new Date(), ws=new Date(now.getFullYear(),now.getMonth(),1).getTime(), me=new Date(now.getFullYear(),now.getMonth()+1,1).getTime();
+    var inM=function(t){ t=(typeof t==='number')?t:(t?new Date(t).getTime():0); return isFinite(t)&&t>=ws&&t<me; };
+    var out={ub:null,pl:null};
+    try{ var ub=JSON.parse(localStorage.getItem('ub_tracker_v1')||'null'); if(ub){
+      var mins=(ub.sessionLog||[]).filter(function(x){return inM(x.date);}).reduce(function(a,x){return a+(x.mins||0);},0);
+      if(ub.session&&ub.session.start>=ws) mins+=Math.max(0,Math.round((Date.now()-ub.session.start)/60000));
+      var kh=((ub.settings&&ub.settings.kpis)||[]).filter(function(k){return k.id==='hours';})[0]; var ev=ub.events||[];
+      out.ub={hrs:mins/60, tgt:(kh&&kh.target)||32, active:(ub.pipeline||[]).length,
+        moved:ev.filter(function(e){return e.type==='stage'&&inM(e.at);}).length,
+        launched:ev.filter(function(e){return e.type==='launches'&&inM(e.at);}).length}; } }catch(e){}
+    try{ var pl=JSON.parse(localStorage.getItem('pl_sourcing_v1')||'null'); if(pl){
+      var B=(pl.brand_state&&pl.brand_state[0]&&pl.brand_state[0].data)||{};
+      var m2=(B.plSess||[]).filter(function(x){return inM(x.at);}).reduce(function(a,x){return a+(x.mins||0);},0);
+      if(B.plRun&&B.plRun.start>=ws) m2+=Math.max(0,Math.round((Date.now()-B.plRun.start)/60000));
+      var moved=0,launched=0,active=0;
+      (pl.ideas||[]).forEach(function(r){ var i=r.data||{}, p=i.pipeline||{}; if(p.launchedAt&&inM(p.launchedAt)) launched++;
+        if(!i.inPipeline||p.status==='rejected'||p.status==='launched') return; active++;
+        if((p.history||[]).some(function(x){return inM(x.ts)&&(x.type==='advance'||x.type==='launch');})) moved++; });
+      out.pl={hrs:m2/60, tgt:(typeof B.plMonthlyHours==='number'?B.plMonthlyHours:(typeof B.plWeeklyHours==='number'?Math.round(B.plWeeklyHours*52/12):87)), active:active, moved:moved, launched:launched}; } }catch(e){}
+    return out;
+  }
+  function railMonthHtml(){
+    var m=monthBoth(); var fh=function(h){ return h>=10?Math.round(h)+'h':(Math.round(h*10)/10)+'h'; };
+    var row=function(d,who,app,col){
+      if(!d) return '<div class="snm-row off"><i style="--av:'+col+'">'+who[0]+'</i><b>'+who+'</b><span>'+app+'</span><em>not opened</em></div>';
+      var pct=d.tgt>0?Math.min(100,Math.round(d.hrs/d.tgt*100)):0;
+      return '<div class="snm-row"><i style="--av:'+col+'">'+who[0]+'</i><b>'+who+'</b><span>'+app+'</span><em>'+fh(d.hrs)+' <u>/ '+fh(d.tgt)+'</u></em></div><div class="snm-bar" style="--c:'+col+'"><s style="width:'+pct+'%"></s></div>'; };
+    var n=function(k){ return ((m.ub&&m.ub[k])||0)+((m.pl&&m.pl[k])||0); };
+    return '<div class="snm-h">This month<span>both sides</span></div>'+row(m.ub,'Becki','UB','#00E5A0')+row(m.pl,'Jack','PL','#A78BFF')
+      +'<div class="snm-foot"><b>'+n('active')+'</b> active · <b>'+n('moved')+'</b> moved · <b>'+n('launched')+'</b> launched</div>';
+  }
+
   return { mode:mode, user:user, users:users, setWho:setWho, signOut:signOut, nameOf:nameOf, byId:byId,
     log:log, activityBetween:activityBetween, summarise:summarise,
     workTypes:workTypes, wtKey:wtKey, wtLabel:wtLabel, saveWorkTypes:saveWorkTypes,
@@ -2422,6 +2457,7 @@ window.CLUB = (function(){
     taskAdd:taskAdd, taskStatus:taskStatus, taskNote:taskNote, tasksFor:tasksFor, taskNotes:taskNotes,
     setting:setting, all:all, add:add, update:update, on:on, reload:function(){ load(); notify(); },
     sync:{ enable:enable, disable:disable, flush:flush, pending:function(){ return outbox.length; } },
+    monthBoth:monthBoth, railMonthHtml:railMonthHtml,
     _dump:function(){ return JSON.parse(JSON.stringify(S)); } };
 })();
 
@@ -2643,20 +2679,28 @@ function taskKind(url){
   if(extractAsin(s)) return 'asin';
   return 'general';
 }
+// a link box that swallows a sentence turns the task into 'General — review' with the sentence hidden behind Open ↗
+function looksLikeUrl(s){ s=(s||'').trim(); if(!s) return false; return /^(https?:\/\/|www\.)/i.test(s) || /^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(s) || !!extractAsin(s); }
 function tkDetect(){
   tkCapture();
   const url = (tkDraft.url||'').trim();
+  if(url && !looksLikeUrl(url)) return;   // not a link — leave it, sendTask() moves it into the title
   const k = taskKind(url);
   if(k && k!==tkType){ tkType = k; renderTasks(); toast('Detected a '+TASK_TYPES[k].label.toLowerCase()+' link'); }
 }
 function sendTask(){
   tkCapture();
-  const title = tkDraft.title.trim();
-  const url = tkDraft.url.trim();
+  let title = tkDraft.title.trim();
+  let url = tkDraft.url.trim();
+  let brief = tkDraft.brief.trim();
+  if(url && !looksLikeUrl(url)){   // a sentence in the link box is the task, not a link
+    if(!title) title = url; else if(!brief) brief = url; else brief += ' — ' + url;
+    url = '';
+  }
   if(!title && !url){ toast('Give the task a title or paste a link'); return; }
   const t = {id:nid(), title: title || (TASK_TYPES[tkType].label+' — review'), type:tkType, url:url||null,
     from:CURRENT_USER, to:tkTo, status:'not_started', pri:tkPri,
-    brief:tkDraft.brief.trim()||null,
+    brief:brief||null,
     due:tkDraft.due||null,
     rel:tkDraft.rel||null,
     repeat:tkDraft.repeat||null,
@@ -2797,8 +2841,8 @@ function renderTasks(){ saveState();
       <div class="tk-types">
         ${Object.entries(TASK_TYPES).map(([k,v])=>`<button class="tk-type ${tkType===k?'on':''}" onclick="tkCapture();tkType='${k}';renderTasks()">${v.ic} ${v.label}</button>`).join('')}
       </div>
-      <input class="tk-in" id="tkUrl" value="${esc(tkDraft.url)}" placeholder="Paste the link — storefront, Keepa, Helium 10, ASIN, training video… (optional)" oninput="tkDraft.url=this.value" onchange="tkDetect()">
-      <input class="tk-in" id="tkTitle" value="${esc(tkDraft.title)}" placeholder="What is it? e.g. Christmas eve boxes — what can we do design wise" oninput="tkDraft.title=this.value" onkeydown="if(event.key==='Enter')sendTask()">
+      <input class="tk-in" id="tkTitle" value="${esc(tkDraft.title)}" placeholder="What is it? e.g. Gorilla Filler — restock at Decco, cheapest supplier" oninput="tkDraft.title=this.value" onkeydown="if(event.key==='Enter')sendTask()">
+      <input class="tk-in" id="tkUrl" value="${esc(tkDraft.url)}" placeholder="Link (optional) — storefront, Keepa, Helium 10, ASIN, training video" oninput="tkDraft.url=this.value" onchange="tkDetect()">
       <input class="tk-in" id="tkBrief" value="${esc(tkDraft.brief)}" placeholder="Why / what to focus on (optional)" oninput="tkDraft.brief=this.value">
       <div class="tk-quick"><span class="td-sub">Notes you use a lot</span>
         ${taskQuick.map(q=>`<button class="tk-q" onclick="taskQuickNote('${esc(q).replace(/'/g,"&#39;")}')">${esc(q)}</button>`).join('')}</div>
@@ -2871,7 +2915,7 @@ function taskRow(t){
       <span class="tsk-type ${ty.cls}">${ty.ic}</span>
     </div>
     <div class="tsk-acts">
-      ${t.url?`<a class="tsk-go" target="_blank" href="${esc(t.url)}" onclick="event.stopPropagation()" title="Open ${ty.label}">Open ↗</a>`:''}
+      ${t.url&&looksLikeUrl(t.url)?`<a class="tsk-go" target="_blank" href="${esc(t.url)}" onclick="event.stopPropagation()" title="Open ${ty.label}">Open ↗</a>`:''}
       ${t.url&&['storefront','keepa','asin','h10'].includes(t.type)?`<button class="tsk-go" onclick="event.stopPropagation();taskToQueue(${t.id})" title="Send what you find into the Review Queue">→ Queue</button>`:''}
       <button class="tsk-x" title="Delete" onclick="event.stopPropagation();taskDelete(${t.id})">✕</button>
     </div>
@@ -3330,7 +3374,9 @@ function applyState(s){
 // missing field used to take a whole pane down. Fill the shapes in once, on load.
 function normaliseRecords(){
   // a task from an older backup or a hand-made import can arrive without a notes list — one such task used to take the whole Tasks page down
-  (tasks||[]).forEach(t=>{ if(!Array.isArray(t.notes)) t.notes=[]; });
+  (tasks||[]).forEach(t=>{ if(!Array.isArray(t.notes)) t.notes=[];
+    // repair tasks saved with a sentence in the link box: the sentence becomes the title
+    if(t.url && !looksLikeUrl(t.url) && /\u2014 review$/.test(t.title||'')){ t.title=t.url; t.url=null; t.type='general'; } });
   pipeline.forEach(p=>{
     if(!Array.isArray(p.tasks))      p.tasks = [];
     if(!Array.isArray(p.components)) p.components = [];
@@ -5219,7 +5265,7 @@ function sfChecked(id){
   promptModal('Checked — any finds?', 'Paste ASINs or links (optional, separated by spaces or commas)', 'B0XXXXXXXX B0YYYYYYYY …', (raw)=>{
     if(!raw){ return; }
     let added=0, dup=0;
-    raw.split(/[\s,]+/).filter(Boolean).forEach(tok=>{
+    splitPaste(raw).forEach(tok=>{
       const asin=extractAsin(tok); const lk=asin?null:linkKind(tok);
       if(!asin && !lk) return;
       if(asin && existingLocation(asin)){ dup++; return; }
@@ -5338,7 +5384,7 @@ function addToQueue(){
   promptModal('Add to review queue', 'ASINs or links — paste one or many', 'B0XXXXXXXX B0YYYYYYYY · or any Amazon / storefront / Keepa links', (raw)=>{
     if(!raw) return;
     let added=0, dup=0, bad=0;
-    raw.split(/\s+/).filter(Boolean).forEach(tok=>{
+    splitPaste(raw).forEach(tok=>{
       const asin = extractAsin(tok);
       const lk = asin ? null : linkKind(tok);
       if(!asin && !lk){ bad++; return; }
@@ -5350,7 +5396,7 @@ function addToQueue(){
     });
     updateBadges();
     if(currentPane()==='inbox') renderInbox();
-    toast(added? added+' added'+(dup? ' · '+dup+' already known':'')+(bad? ' · '+bad+' unreadable':'') : (dup? 'Already in the tracker' : "Couldn't read that — expected ASINs or links"));
+    toast(added? added+' added'+(dup? ' · '+dup+' already known':'')+(bad? ' · '+bad+' unreadable':'') : (dup? 'Already in the tracker' : "Nothing added — paste an ASIN (B0…) or a web link"));
   });
 }
 
@@ -5379,13 +5425,50 @@ function existingLocation(asin){
   const dl = archive.launched.find(x=>x.asin===asin); if(dl) return {where:'Archive (launched)', title:dl.title, status:'Launched'};
   return null;
 }
-function linkKind(line){
-  const s = line.trim();
-  if(/keepa\.com\/#!finder/i.test(s)) return {kind:'keepa-search', label:'Keepa finder'};
-  if(/keepa\.com\/#!category/i.test(s)) return {kind:'keepa-search', label:'Keepa category'};
-  if(/selleramp\.com\/sas\/(?!lookup)/i.test(s)) return {kind:'sas-search', label:'SellerAmp search'};
-  if(/amazon\.[a-z.]+\/(stores|s\?|b\?|gp\/bestsellers|bestsellers)/i.test(s)) return {kind:'amz-search', label:'Amazon storefront / search'};
+// A pasted link is a link. Recognise the common ones so the queue row reads nicely,
+// but NEVER reject a valid URL just because its shape is unfamiliar — a Keepa product
+// finder query (a page of encoded JSON, no ASIN in it) used to come back "couldn't read that".
+function urlIn(line){
+  const s = String(line||'').trim();
+  let m = s.match(/https?:\/\/[^\s<>"']+/i);
+  if(m) return m[0].replace(/[),.;]+$/,'');
+  m = s.match(/(?:^|\s)(www\.[^\s<>"']+)/i);
+  if(m) return 'https://' + m[1].replace(/[),.;]+$/,'');
+  m = s.match(/(?:^|\s)((?:keepa|amazon|selleramp|helium10)\.[a-z][^\s<>"']*)/i);
+  if(m) return 'https://' + m[1].replace(/[),.;]+$/,'');
   return null;
+}
+function linkKind(line){
+  const u = urlIn(line); if(!u) return null;
+  const s = u;
+  if(/keepa\.com\/#!finder/i.test(s))            return {kind:'keepa-search', label:'Keepa product finder'};
+  if(/keepa\.com\/#!category/i.test(s))          return {kind:'keepa-search', label:'Keepa category'};
+  if(/keepa\.com\/#!seller/i.test(s))            return {kind:'keepa-search', label:'Keepa seller'};
+  if(/keepa\.com\/#!search/i.test(s))            return {kind:'keepa-search', label:'Keepa search'};
+  if(/keepa\.com\/#!(deals|bestsellers|topseller)/i.test(s)) return {kind:'keepa-search', label:'Keepa deals'};
+  if(/keepa\.com\/#!manufacturer/i.test(s))      return {kind:'keepa-search', label:'Keepa brand'};
+  if(/keepa\.com/i.test(s))                       return {kind:'keepa-search', label:'Keepa link'};
+  if(/selleramp\.com\/sas\/(?!lookup)/i.test(s)) return {kind:'sas-search', label:'SellerAmp search'};
+  if(/selleramp\.com/i.test(s))                   return {kind:'sas-search', label:'SellerAmp link'};
+  if(/helium10|members\.helium10/i.test(s))       return {kind:'h10-search', label:'Helium 10 link'};
+  if(/amazon\.[a-z.]+\/(stores|sp\?|s\?|b\?|gp\/bestsellers|bestsellers|merchant)/i.test(s))
+                                                   return {kind:'amz-search', label:'Amazon storefront / search'};
+  if(/amazon\.[a-z.]+/i.test(s))                  return {kind:'amz-search', label:'Amazon link'};
+  // anything else that is genuinely a link: keep it, name it after the site
+  let host=''; try{ host = new URL(s).hostname.replace(/^www\./,''); }catch(e){}
+  return {kind:'link', label: host ? host + ' link' : 'Saved link'};
+}
+// Split a paste into items WITHOUT shattering links: a line holding a URL is one item,
+// a line of bare ASINs splits on spaces and commas.
+function splitPaste(raw){
+  const out=[];
+  String(raw||'').split(/[\r\n]+/).forEach(line=>{
+    line = line.trim(); if(!line) return;
+    const u = urlIn(line);
+    if(u){ out.push(u); return; }
+    line.split(/[\s,;]+/).filter(Boolean).forEach(t=>out.push(t));
+  });
+  return out;
 }
 let importParsed = [];
 function openImport(){ document.getElementById('imPaste').value=''; document.getElementById('imBatch').value=''; parseImport(); openModal('mImport'); setTimeout(()=>document.getElementById('imPaste').focus(),60); }
@@ -8036,6 +8119,45 @@ button[disabled],.btn[disabled],input[disabled],select[disabled]{opacity:.42!imp
   list-style:none!important;cursor:pointer}
 .page-notes>summary:hover{color:var(--t2)!important}
 .page-notes[open]>summary{border-bottom:1px solid var(--b1)!important}
+</style>
+<style>
+/* condensed page header — the 33px title, sub and 20px gap took a third of a laptop screen before any content */
+.page-head{margin-bottom:10px!important;padding-bottom:8px!important;gap:10px;align-items:center}
+.page-title,h1.page-title{font-size:23px;letter-spacing:-.6px;line-height:1.15}
+.page-sub{font-size:12.5px;color:var(--t3);margin-top:2px}
+.eyebrow{font-size:10px;letter-spacing:1.4px;margin-bottom:2px}
+
+/* rail: the month at a glance for both of us — this space was empty above Settings */
+.sb2 .sn-month{margin:10px 6px 4px;padding:10px 11px;border:1px solid var(--b1);border-radius:12px;background:var(--s1);cursor:pointer;transition:border-color .12s}
+.sb2 .sn-month:hover{border-color:var(--b3)}
+.snm-h{font-size:9.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--t4);display:flex;justify-content:space-between;margin-bottom:6px}
+.snm-h span{letter-spacing:.2px;text-transform:none;font-weight:650}
+.snm-row{display:flex;align-items:center;gap:7px;font-size:12px;margin-top:7px}
+.snm-row i{width:18px;height:18px;border-radius:50%;background:var(--av,#7C6CFF);color:#08080a;font-size:10px;line-height:18px;font-weight:800;text-align:center;font-style:normal;flex-shrink:0;font-family:inherit}
+.snm-row b{font-weight:750;color:var(--t1)}
+.snm-row span{font-size:9.5px;font-weight:800;color:var(--t4);letter-spacing:.6px}
+.snm-row em{margin-left:auto;font-style:normal;font-weight:800;color:var(--t1);font-size:12px;white-space:nowrap}
+.snm-row em u{text-decoration:none;color:var(--t4);font-weight:650}
+.snm-row.off em{color:var(--t4);font-weight:600}
+.snm-bar{height:4px;border-radius:2px;background:var(--s3);margin:4px 0 0 25px;overflow:hidden}
+.snm-bar s{display:block;height:100%;background:var(--c,#7C6CFF);border-radius:2px;text-decoration:none}
+.snm-foot{margin-top:9px;padding-top:8px;border-top:1px solid var(--b1);font-size:11px;color:var(--t3)}
+.snm-foot b{color:var(--t2);font-weight:800}
+body.sb-min .sb2 .sn-month{display:none}
+</style>
+
+<script>
+function plubRailMonth(){ var el=document.getElementById('snMonth'); if(!el||!window.CLUB) return; try{ el.innerHTML=CLUB.railMonthHtml(); }catch(e){} }
+plubRailMonth();
+window.addEventListener('storage', plubRailMonth);
+try{ CLUB.on(plubRailMonth); }catch(e){}
+setInterval(plubRailMonth, 20000);
+</script>
+<style>
+/* inside the PLUB shell the shell draws the rail and the bar — this app renders content only */
+body.plub-embed .shell>.sidebar{display:none!important}
+body.plub-embed .topbar{display:none!important}
+body.plub-embed .sn-month{display:none!important}
 </style>
 </body>
 </html>

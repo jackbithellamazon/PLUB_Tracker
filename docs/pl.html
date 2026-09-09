@@ -183,6 +183,40 @@ window.CLUB = (function(){
   }
   function disable(){ sb=null; try{ localStorage.setItem(MODE,'local'); }catch(e){} }
 
+  /* ── this month, both sides: read straight from the two trackers' stores (same origin) ── */
+  function monthBoth(){
+    var now=new Date(), ws=new Date(now.getFullYear(),now.getMonth(),1).getTime(), me=new Date(now.getFullYear(),now.getMonth()+1,1).getTime();
+    var inM=function(t){ t=(typeof t==='number')?t:(t?new Date(t).getTime():0); return isFinite(t)&&t>=ws&&t<me; };
+    var out={ub:null,pl:null};
+    try{ var ub=JSON.parse(localStorage.getItem('ub_tracker_v1')||'null'); if(ub){
+      var mins=(ub.sessionLog||[]).filter(function(x){return inM(x.date);}).reduce(function(a,x){return a+(x.mins||0);},0);
+      if(ub.session&&ub.session.start>=ws) mins+=Math.max(0,Math.round((Date.now()-ub.session.start)/60000));
+      var kh=((ub.settings&&ub.settings.kpis)||[]).filter(function(k){return k.id==='hours';})[0]; var ev=ub.events||[];
+      out.ub={hrs:mins/60, tgt:(kh&&kh.target)||32, active:(ub.pipeline||[]).length,
+        moved:ev.filter(function(e){return e.type==='stage'&&inM(e.at);}).length,
+        launched:ev.filter(function(e){return e.type==='launches'&&inM(e.at);}).length}; } }catch(e){}
+    try{ var pl=JSON.parse(localStorage.getItem('pl_sourcing_v1')||'null'); if(pl){
+      var B=(pl.brand_state&&pl.brand_state[0]&&pl.brand_state[0].data)||{};
+      var m2=(B.plSess||[]).filter(function(x){return inM(x.at);}).reduce(function(a,x){return a+(x.mins||0);},0);
+      if(B.plRun&&B.plRun.start>=ws) m2+=Math.max(0,Math.round((Date.now()-B.plRun.start)/60000));
+      var moved=0,launched=0,active=0;
+      (pl.ideas||[]).forEach(function(r){ var i=r.data||{}, p=i.pipeline||{}; if(p.launchedAt&&inM(p.launchedAt)) launched++;
+        if(!i.inPipeline||p.status==='rejected'||p.status==='launched') return; active++;
+        if((p.history||[]).some(function(x){return inM(x.ts)&&(x.type==='advance'||x.type==='launch');})) moved++; });
+      out.pl={hrs:m2/60, tgt:(typeof B.plMonthlyHours==='number'?B.plMonthlyHours:(typeof B.plWeeklyHours==='number'?Math.round(B.plWeeklyHours*52/12):87)), active:active, moved:moved, launched:launched}; } }catch(e){}
+    return out;
+  }
+  function railMonthHtml(){
+    var m=monthBoth(); var fh=function(h){ return h>=10?Math.round(h)+'h':(Math.round(h*10)/10)+'h'; };
+    var row=function(d,who,app,col){
+      if(!d) return '<div class="snm-row off"><i style="--av:'+col+'">'+who[0]+'</i><b>'+who+'</b><span>'+app+'</span><em>not opened</em></div>';
+      var pct=d.tgt>0?Math.min(100,Math.round(d.hrs/d.tgt*100)):0;
+      return '<div class="snm-row"><i style="--av:'+col+'">'+who[0]+'</i><b>'+who+'</b><span>'+app+'</span><em>'+fh(d.hrs)+' <u>/ '+fh(d.tgt)+'</u></em></div><div class="snm-bar" style="--c:'+col+'"><s style="width:'+pct+'%"></s></div>'; };
+    var n=function(k){ return ((m.ub&&m.ub[k])||0)+((m.pl&&m.pl[k])||0); };
+    return '<div class="snm-h">This month<span>both sides</span></div>'+row(m.ub,'Becki','UB','#00E5A0')+row(m.pl,'Jack','PL','#A78BFF')
+      +'<div class="snm-foot"><b>'+n('active')+'</b> active · <b>'+n('moved')+'</b> moved · <b>'+n('launched')+'</b> launched</div>';
+  }
+
   return { mode:mode, user:user, users:users, setWho:setWho, signOut:signOut, nameOf:nameOf, byId:byId,
     log:log, activityBetween:activityBetween, summarise:summarise,
     workTypes:workTypes, wtKey:wtKey, wtLabel:wtLabel, saveWorkTypes:saveWorkTypes,
@@ -190,6 +224,7 @@ window.CLUB = (function(){
     taskAdd:taskAdd, taskStatus:taskStatus, taskNote:taskNote, tasksFor:tasksFor, taskNotes:taskNotes,
     setting:setting, all:all, add:add, update:update, on:on, reload:function(){ load(); notify(); },
     sync:{ enable:enable, disable:disable, flush:flush, pending:function(){ return outbox.length; } },
+    monthBoth:monthBoth, railMonthHtml:railMonthHtml,
     _dump:function(){ return JSON.parse(JSON.stringify(S)); } };
 })();
 
@@ -1557,6 +1592,7 @@ body,.app{background:var(--bg)}
       <button class="nav-item ntab" id="ntab-forecast" data-pane="forecast" style="--c:#FF8A3D" onclick="nav('forecast')" title="PL Forecast">
         <span class="sn-ic"><svg viewBox="0 0 20 20"><path d="M3 16l4-5 3 3 7-8v10H3z" fill="currentColor" opacity=".18"/><path d="M3 16l4-5 3 3 7-8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 6h4v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="sn-t">PL Forecast</span>
       </button>
+      <div class="sn-month" id="snMonth" onclick="try{parent.show('pipe')}catch(e){}" title="Open the Overview"></div>
       <div class="sn-spacer"></div>
       <button class="nav-item ntab" id="ntab-settings" data-pane="settings" style="--c:#B4B6C4" onclick="nav('settings')" title="Settings">
         <span class="sn-ic"><svg viewBox="0 0 20 20"><path d="M3.5 6h13M3.5 10h13M3.5 14h13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".45"/><circle cx="7" cy="6" r="2" fill="currentColor"/><circle cx="13" cy="10" r="2" fill="currentColor"/><circle cx="8.5" cy="14" r="2" fill="currentColor"/></svg></span><span class="sn-t">Settings</span>
@@ -6908,7 +6944,9 @@ html,body{background:radial-gradient(950px 540px at 50% -210px,rgba(163,163,170,
   window.deletePageNote=function(page,id){var all=loadNotes();all[page]=(all[page]||[]).filter(function(n){return n.id!==id;});saveNotes(all);decoratePageNotes();};
   function noteMarkup(page,label){var notes=pageNotes(page),rows=notes.map(function(n){return '<div class="page-note-row"><div><div class="page-note-copy">'+xEsc(n.text)+'</div><div class="page-note-time">'+xDate(n.ts)+'</div></div><button class="page-note-delete" title="Delete note" onclick="deletePageNote(\''+page+'\','+n.id+')">×</button></div>';}).join('');return '<details class="page-notes" id="pageNotes-'+page+'"><summary>'+label+' notes &amp; decisions <span class="page-notes-count">'+xCount(notes.length)+'</span></summary><div class="page-notes-body">'+(rows?'<div class="page-notes-list">'+rows+'</div>':'<div class="page-notes-empty">No page notes yet. Use this for decisions, rules or reminders that affect this whole view.</div>')+'<div class="page-notes-compose"><textarea id="pageNoteInput-'+page+'" placeholder="Add a note or decision for '+label+'…"></textarea><button onclick="addPageNote(\''+page+'\')">Add note</button></div></div></details>';}
   function decoratePageNotes(){
-    [['dash','Ideas'],['pipeline','Pipeline'],['week','Action Centre'],['pl','P&amp;L'],['forecast','Portfolio Forecast']].forEach(function(pair){var pane=document.getElementById('pane-'+pair[0]);if(!pane)return;var existing=pane.querySelector('.page-notes');if(existing)existing.remove();var hd=pane.querySelector('.page-hd');if(hd)hd.insertAdjacentHTML('afterend',noteMarkup(pair[0],pair[1]));});
+    [['dash','Ideas'],['pipeline','Pipeline'],['week','Action Centre'],['pl','P&amp;L'],['forecast','Portfolio Forecast']].forEach(function(pair){var pane=document.getElementById('pane-'+pair[0]);if(!pane)return;var existing=pane.querySelector('.page-notes');if(existing)existing.remove();var hd=pane.querySelector('.page-hd');if(hd)hd.insertAdjacentHTML(pair[0]==='week'?'afterend':'beforeend',noteMarkup(pair[0],pair[1]));});
+    // notes live in the page header as a pill that opens a popover — the full-width strip was a dead row on every page
+    document.addEventListener('click',function(e){ document.querySelectorAll('.page-hd>.page-notes[open]').forEach(function(d){ if(!d.contains(e.target)) d.open=false; }); });
   }
 
   /* Compact weekly KPI settings: there should only be four active levers, not a wall of metrics. */
@@ -10464,6 +10502,50 @@ button[disabled],.btn[disabled],input[disabled],select[disabled]{opacity:.42!imp
   list-style:none!important;cursor:pointer}
 .page-notes>summary:hover{color:var(--t2)!important}
 .page-notes[open]>summary{border-bottom:1px solid var(--b1)!important}
+</style>
+<style>
+/* condensed page header */
+.page-hd{margin-bottom:10px!important;padding-bottom:10px!important;align-items:center!important}
+.page-title{font-size:21px!important;letter-spacing:-.5px!important;line-height:1.15!important}
+.page-sub{font-size:12.5px!important;margin-top:2px!important}
+.page-hd .eyebrow,.page-hd .page-eyebrow,.page-hd .page-kicker{font-size:10px!important;letter-spacing:1.4px!important;margin-bottom:2px!important}
+/* notes pill in the header */
+.page-hd>.page-notes{position:relative;margin:0 0 0 auto!important;flex:0 0 auto;align-self:center;border-radius:999px!important;background:var(--s2)!important;width:auto;overflow:visible!important}
+.page-hd>.page-notes>summary{padding:5px 12px!important;border-bottom:none!important;white-space:nowrap}
+.page-hd>.page-notes>.page-notes-body{position:absolute;right:0;top:calc(100% + 8px);width:440px;max-width:80vw;z-index:40;background:var(--s1);border:1px solid var(--b2);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.55);padding:10px 12px}
+
+/* rail: the month at a glance for both of us — this space was empty above Settings */
+.sb2 .sn-month{margin:10px 6px 4px;padding:10px 11px;border:1px solid var(--b1);border-radius:12px;background:var(--s1);cursor:pointer;transition:border-color .12s}
+.sb2 .sn-month:hover{border-color:var(--b3)}
+.snm-h{font-size:9.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--t4);display:flex;justify-content:space-between;margin-bottom:6px}
+.snm-h span{letter-spacing:.2px;text-transform:none;font-weight:650}
+.snm-row{display:flex;align-items:center;gap:7px;font-size:12px;margin-top:7px}
+.snm-row i{width:18px;height:18px;border-radius:50%;background:var(--av,#7C6CFF);color:#08080a;font-size:10px;line-height:18px;font-weight:800;text-align:center;font-style:normal;flex-shrink:0;font-family:inherit}
+.snm-row b{font-weight:750;color:var(--t1)}
+.snm-row span{font-size:9.5px;font-weight:800;color:var(--t4);letter-spacing:.6px}
+.snm-row em{margin-left:auto;font-style:normal;font-weight:800;color:var(--t1);font-size:12px;white-space:nowrap}
+.snm-row em u{text-decoration:none;color:var(--t4);font-weight:650}
+.snm-row.off em{color:var(--t4);font-weight:600}
+.snm-bar{height:4px;border-radius:2px;background:var(--s3);margin:4px 0 0 25px;overflow:hidden}
+.snm-bar s{display:block;height:100%;background:var(--c,#7C6CFF);border-radius:2px;text-decoration:none}
+.snm-foot{margin-top:9px;padding-top:8px;border-top:1px solid var(--b1);font-size:11px;color:var(--t3)}
+.snm-foot b{color:var(--t2);font-weight:800}
+body.sb-min .sb2 .sn-month{display:none}
+</style>
+
+<script>
+function plubRailMonth(){ var el=document.getElementById('snMonth'); if(!el||!window.CLUB) return; try{ el.innerHTML=CLUB.railMonthHtml(); }catch(e){} }
+plubRailMonth();
+window.addEventListener('storage', plubRailMonth);
+try{ CLUB.on(plubRailMonth); }catch(e){}
+setInterval(plubRailMonth, 20000);
+</script>
+<style>
+/* inside the PLUB shell the shell draws the rail and the bar — this app renders content only */
+body.plub-embed{display:block!important;grid-template-columns:none!important}
+body.plub-embed>aside.sidebar{display:none!important}
+body.plub-embed #appTopbar{display:none!important}
+body.plub-embed .app{height:100vh!important;grid-row:auto;grid-column:auto}
 </style>
 </body>
 </html>

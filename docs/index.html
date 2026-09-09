@@ -30,14 +30,13 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',-
 .chip b{color:var(--cyan);font-weight:800}
 /* ── stage ── */
 .stage{position:fixed;inset:40px 0 0 0}
-iframe{position:absolute;inset:0;width:100%;height:100%;border:none;background:var(--bg);display:block;opacity:0;visibility:hidden;pointer-events:none;will-change:opacity;z-index:1;transition:opacity .16s cubic-bezier(.4,0,.2,1),visibility 0s linear .16s}
-iframe.show{opacity:1;visibility:visible;pointer-events:auto;z-index:3;transition:opacity .16s cubic-bezier(.4,0,.2,1),visibility 0s}
-iframe.leaving{opacity:1;visibility:visible;pointer-events:none;z-index:1;transition:none}
-@keyframes frameIn{from{opacity:0}to{opacity:1}}
-/* ── merged pipeline ── */
-#pipe{position:absolute;inset:0;display:none;overflow:auto;padding:18px 22px 40px;background:var(--bg);z-index:2;opacity:0;transition:opacity .16s cubic-bezier(.4,0,.2,1)}
-#pipe.show{opacity:1;z-index:3}
-#pipe.leaving{display:grid!important;opacity:1;z-index:1;transition:none;pointer-events:none}
+/* instant cut between apps: both frames stay painted underneath, only the z-order changes — no crossfade, no repaint, nothing to blink */
+iframe{position:absolute;inset:0;width:100%;height:100%;border:none;background:var(--bg);display:block;pointer-events:none;z-index:1}
+iframe.show{pointer-events:auto;z-index:3}
+iframe.leaving{z-index:1}
+#pipe{position:absolute;inset:0;display:none;overflow:auto;padding:18px 22px 40px;background:var(--bg);z-index:2}
+#pipe.show{z-index:3}
+#pipe.leaving{display:none}
 #pipe.show{display:block}
 .p-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
 .p-eyebrow{font-size:9.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;background:linear-gradient(135deg,var(--violet),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:3px}
@@ -184,6 +183,8 @@ body.nobar .stage{inset:0}
     <span class="chip">local · <b id="buildChip"></b></span>
   </div>
 </div>
+<aside class="sidebar sb2" id="plubRail"></aside>
+<header class="topbar" id="plubBar"></header>
 <div class="stage">
   <iframe id="f_ub" title="Unique Bundle Tracker"></iframe>
   <iframe id="f_pl" title="PL Sourcing"></iframe>
@@ -368,6 +369,40 @@ window.CLUB = (function(){
   }
   function disable(){ sb=null; try{ localStorage.setItem(MODE,'local'); }catch(e){} }
 
+  /* ── this month, both sides: read straight from the two trackers' stores (same origin) ── */
+  function monthBoth(){
+    var now=new Date(), ws=new Date(now.getFullYear(),now.getMonth(),1).getTime(), me=new Date(now.getFullYear(),now.getMonth()+1,1).getTime();
+    var inM=function(t){ t=(typeof t==='number')?t:(t?new Date(t).getTime():0); return isFinite(t)&&t>=ws&&t<me; };
+    var out={ub:null,pl:null};
+    try{ var ub=JSON.parse(localStorage.getItem('ub_tracker_v1')||'null'); if(ub){
+      var mins=(ub.sessionLog||[]).filter(function(x){return inM(x.date);}).reduce(function(a,x){return a+(x.mins||0);},0);
+      if(ub.session&&ub.session.start>=ws) mins+=Math.max(0,Math.round((Date.now()-ub.session.start)/60000));
+      var kh=((ub.settings&&ub.settings.kpis)||[]).filter(function(k){return k.id==='hours';})[0]; var ev=ub.events||[];
+      out.ub={hrs:mins/60, tgt:(kh&&kh.target)||32, active:(ub.pipeline||[]).length,
+        moved:ev.filter(function(e){return e.type==='stage'&&inM(e.at);}).length,
+        launched:ev.filter(function(e){return e.type==='launches'&&inM(e.at);}).length}; } }catch(e){}
+    try{ var pl=JSON.parse(localStorage.getItem('pl_sourcing_v1')||'null'); if(pl){
+      var B=(pl.brand_state&&pl.brand_state[0]&&pl.brand_state[0].data)||{};
+      var m2=(B.plSess||[]).filter(function(x){return inM(x.at);}).reduce(function(a,x){return a+(x.mins||0);},0);
+      if(B.plRun&&B.plRun.start>=ws) m2+=Math.max(0,Math.round((Date.now()-B.plRun.start)/60000));
+      var moved=0,launched=0,active=0;
+      (pl.ideas||[]).forEach(function(r){ var i=r.data||{}, p=i.pipeline||{}; if(p.launchedAt&&inM(p.launchedAt)) launched++;
+        if(!i.inPipeline||p.status==='rejected'||p.status==='launched') return; active++;
+        if((p.history||[]).some(function(x){return inM(x.ts)&&(x.type==='advance'||x.type==='launch');})) moved++; });
+      out.pl={hrs:m2/60, tgt:(typeof B.plMonthlyHours==='number'?B.plMonthlyHours:(typeof B.plWeeklyHours==='number'?Math.round(B.plWeeklyHours*52/12):87)), active:active, moved:moved, launched:launched}; } }catch(e){}
+    return out;
+  }
+  function railMonthHtml(){
+    var m=monthBoth(); var fh=function(h){ return h>=10?Math.round(h)+'h':(Math.round(h*10)/10)+'h'; };
+    var row=function(d,who,app,col){
+      if(!d) return '<div class="snm-row off"><i style="--av:'+col+'">'+who[0]+'</i><b>'+who+'</b><span>'+app+'</span><em>not opened</em></div>';
+      var pct=d.tgt>0?Math.min(100,Math.round(d.hrs/d.tgt*100)):0;
+      return '<div class="snm-row"><i style="--av:'+col+'">'+who[0]+'</i><b>'+who+'</b><span>'+app+'</span><em>'+fh(d.hrs)+' <u>/ '+fh(d.tgt)+'</u></em></div><div class="snm-bar" style="--c:'+col+'"><s style="width:'+pct+'%"></s></div>'; };
+    var n=function(k){ return ((m.ub&&m.ub[k])||0)+((m.pl&&m.pl[k])||0); };
+    return '<div class="snm-h">This month<span>both sides</span></div>'+row(m.ub,'Becki','UB','#00E5A0')+row(m.pl,'Jack','PL','#A78BFF')
+      +'<div class="snm-foot"><b>'+n('active')+'</b> active · <b>'+n('moved')+'</b> moved · <b>'+n('launched')+'</b> launched</div>';
+  }
+
   return { mode:mode, user:user, users:users, setWho:setWho, signOut:signOut, nameOf:nameOf, byId:byId,
     log:log, activityBetween:activityBetween, summarise:summarise,
     workTypes:workTypes, wtKey:wtKey, wtLabel:wtLabel, saveWorkTypes:saveWorkTypes,
@@ -375,14 +410,15 @@ window.CLUB = (function(){
     taskAdd:taskAdd, taskStatus:taskStatus, taskNote:taskNote, tasksFor:tasksFor, taskNotes:taskNotes,
     setting:setting, all:all, add:add, update:update, on:on, reload:function(){ load(); notify(); },
     sync:{ enable:enable, disable:disable, flush:flush, pending:function(){ return outbox.length; } },
+    monthBoth:monthBoth, railMonthHtml:railMonthHtml,
     _dump:function(){ return JSON.parse(JSON.stringify(S)); } };
 })();
 
 </script>
 <script>
 // BUILD is the version people see — moves by 0.05 a release; STAMP is what actually busts the cache. Bump STAMP every push.
-var BUILD = '0.85';
-var STAMP = '2026-09-05e';
+var BUILD = '0.90';
+var STAMP = '2026-09-09a';
 document.getElementById('buildChip').textContent = 'v' + BUILD;
 
 var FRAMES = { ub: document.getElementById('f_ub'), pl: document.getElementById('f_pl') };
@@ -391,28 +427,26 @@ var TAB_KEY = 'ubpl_shell_tab';
 
 function ensureLoaded(app){
   var f = FRAMES[app]; if(!f) return;
-  if (!f.getAttribute('src')) f.src = SRC[app] + '?v=' + encodeURIComponent(BUILD + '-' + STAMP);
+  if (!f.getAttribute('src')){ f.onload=function(){ try{ stampVersion(f.contentDocument); f.contentDocument.body.classList.add('plub-embed'); chromeSync(true); }catch(e){} }; f.src = SRC[app] + '?v=' + encodeURIComponent(BUILD + '-' + STAMP); }
 }
-var _leaveT=null, _onScreen=null;
+// the two apps carry a hard-coded version string in their own bar and rail — the shell is the only thing that knows the real build
+function stampVersion(doc){ try{ doc.querySelectorAll('[data-ver]').forEach(function(e){ e.textContent='v'+BUILD; }); }catch(e){} }
+var _onScreen=null;
 function show(app){
   if (app!=='pipe' && !FRAMES[app]) app = 'ub';
   if (app!=='pipe') ensureLoaded(app);
   var pipeEl=document.getElementById('pipe');
   var target = app==='pipe' ? pipeEl : FRAMES[app];
-  var prev = _onScreen;
-  // the new screen fades in over the old one; the old one only leaves once the fade is done
-  clearTimeout(_leaveT);
-  [FRAMES.ub, FRAMES.pl, pipeEl].forEach(function(el){ el.classList.remove('leaving'); });
-  if(prev && prev!==target) prev.classList.add('leaving');
-  Object.keys(FRAMES).forEach(function(k){ FRAMES[k].classList.toggle('show', k === app); });
-  pipeEl.classList.toggle('show', app==='pipe');
+  Object.keys(FRAMES).forEach(function(k){ FRAMES[k].classList.toggle('show', k === app); FRAMES[k].classList.remove('leaving'); });
+  pipeEl.classList.toggle('show', app==='pipe'); pipeEl.classList.remove('leaving');
   _onScreen = target;
-  _leaveT = setTimeout(function(){ [FRAMES.ub, FRAMES.pl, pipeEl].forEach(function(el){ el.classList.remove('leaving'); }); }, 240);
   document.body.classList.toggle('nobar', app!=='pipe');
+  try{ chromeSync(true); }catch(e){}
   // keep the in-app pills' active state honest
   Object.keys(FRAMES).forEach(function(k){ try{
     var xd=FRAMES[k].contentDocument, btns=xd?xd.querySelectorAll('#xtabs .xt'):[];
     if(btns.length===3){ btns[0].classList.toggle('on',app==='ub'); btns[1].classList.toggle('on',app==='pl'); btns[2].classList.toggle('on',app==='pipe'); }
+    stampVersion(xd);
   }catch(e){} });
   document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('on', t.dataset.app === app); });
   try { localStorage.setItem(TAB_KEY, app); } catch(e){}
@@ -661,7 +695,7 @@ function launchForecast(ub,pl){
       var expected=now+remaining*D;
       if(p.waiting&&p.waiting.until){ var wu=new Date(p.waiting.until).getTime(); if(wu>expected) expected=wu+(fcRemaining(UB_ORDER,age,key)-(age[key]||0))*D; }
       var wOver=!!(p.waiting&&p.waiting.until&&new Date(p.waiting.until)<new Date());
-      rows.push({app:'ub',title:p.title,stage:UB_NAMES[p.stage]||p.stage,expected:expected,stuck:inStage>stageDur||wOver,last:key==='live',waiting:!!(p.waiting&&p.waiting.until&&new Date(p.waiting.until)>new Date()),override:false});
+      rows.push({app:'ub',id:p.id,title:p.title,stage:UB_NAMES[p.stage]||p.stage,expected:expected,stuck:inStage>stageDur||wOver,over:Math.max(0,Math.round(inStage-stageDur)),wOver:wOver,last:key==='live',waiting:!!(p.waiting&&p.waiting.until&&new Date(p.waiting.until)>new Date()),override:false});
     });
     ((ub.archive&&ub.archive.launched)||[]).forEach(function(a){ if(a.date) rows.push({app:'ub',title:a.title,launched:new Date(a.date).getTime()}); });
   }
@@ -673,7 +707,7 @@ function launchForecast(ub,pl){
       var expected=p.forecastLive? new Date(p.forecastLive).getTime() : now+rem*D;
       var due=p.waitingUntil?new Date(p.waitingUntil).getTime():0;
       var wOver=!!(p.waitingFor&&due&&due<now);
-      rows.push({app:'pl',title:i.name||r.name,stage:PL_NAMES[st]||('Stage '+st),expected:expected,stuck:inStage>stageDur||wOver,last:st===7,waiting:!!(p.waitingFor&&(!due||due>=now)),override:!!p.forecastLive});
+      rows.push({app:'pl',id:(i.id||r.id),title:i.name||r.name,stage:PL_NAMES[st]||('Stage '+st),expected:expected,stuck:inStage>stageDur||wOver,over:Math.max(0,Math.round(inStage-stageDur)),wOver:wOver,last:st===7,waiting:!!(p.waitingFor&&(!due||due>=now)),override:!!p.forecastLive});
     }); }
   return rows;
 }
@@ -687,7 +721,8 @@ function fcSummary(ub,pl,m){
   var thisWeek=open.filter(function(r){return r.expected<wkEnd;}), nextWeek=open.filter(function(r){return r.expected>=wkEnd&&r.expected<nwkEnd;});
   var next30=open.filter(function(r){return r.expected<d30;}), restOfMonth=open.filter(function(r){return r.expected<mEnd;});
   var late=open.filter(function(r){return r.expected<now;});                       // the date has passed
-  var atRisk=open.filter(function(r){ return r.expected>=now && (r.stuck || (r.expected<now+7*D && !r.last)); });   // will it make it?
+  // slipping = over its stage target or past a waiting date: every extra day pushes the launch date back by a day
+  var atRisk=open.filter(function(r){ return r.expected>=now && r.stuck; }).sort(function(a,b){ return (b.over||0)-(a.over||0); });
   var tgt=m.lTgt||0, forecastMonth=launchedMonth+restOfMonth.length;
   var status = tgt===0?'m' : forecastMonth>tgt?'ahead' : forecastMonth===tgt?'on' : 'behind';
   return {open:open,done:done,launchedMonth:launchedMonth,tgt:tgt,forecastMonth:forecastMonth,status:status,
@@ -701,12 +736,12 @@ function ovLaunches(ub,pl,m){
   var mLabel=new Date().toLocaleDateString('en-GB',{month:'long'});
   var row=function(r){ var dd=Math.round((r.expected-now)/D);
     var when = r.expected<now ? '<span class="fc-late">'+Math.abs(dd)+'d late</span>' : dd===0?'today': dd+'d';
-    var why = r.stuck ? '<span class="fc-stuck">stuck in stage</span>' : '';
-    return '<div class="fc-row" onclick="show(\''+r.app+'\')">'+ovAvatar(r.title,'sm')+'<b>'+esc(r.title)+'</b>'
+    var why = r.wOver ? '<span class="fc-stuck">waiting date passed</span>' : (r.stuck && r.over>0) ? '<span class="fc-stuck">+'+r.over+'d over '+esc(r.stage||'stage')+' target</span>' : r.stuck ? '<span class="fc-stuck">at '+esc(r.stage||'stage')+' target</span>' : '';
+    return '<div class="fc-row" onclick="ovOpen(\''+r.app+'\','+JSON.stringify(String(r.id||'')).replace(/"/g,'&quot;')+')">'+ovAvatar(r.title,'sm')+'<b>'+esc(r.title)+'</b>'
       +'<span class="ov-app '+r.app+'">'+(r.app==='ub'?'UB':'PL')+'</span><span class="fc-stage">'+esc(r.stage||'')+'</span>'
       +why+(r.waiting?'<span class="fc-wait">waiting</span>':'')+(r.override?'<span class="fc-set" title="Forecast date set by hand">set</span>':'')
       +'<span class="fc-when">'+fmtD(r.expected)+' \u00b7 '+when+'</span></div>'; };
-  var list=function(title,rows,empty){ return '<div class="fc-list"><div class="fc-list-h"><span>'+title+'</span><b>'+rows.length+'</b></div>'
+  var list=function(title,rows,empty,hint){ return '<div class="fc-list"><div class="fc-list-h"><span>'+title+'</span><b>'+rows.length+'</b>'+(hint?'<i>'+hint+'</i>':'')+'</div>'
       +(rows.length?rows.slice(0,6).map(row).join('')+(rows.length>6?'<div class="ov-more">'+(rows.length-6)+' more</div>':''):'<div class="fc-empty">'+empty+'</div>')+'</div>'; };
   var cell=function(v,l,s2,c){ return '<div class="fc-cell" style="--c:'+c+'"><b>'+v+'</b><span>'+l+'</span><i>'+s2+'</i></div>'; };
   var ring=(function(){ var R=26,C=2*Math.PI*R, tgt=Math.max(1,f.tgt);
@@ -726,10 +761,10 @@ function ovLaunches(ub,pl,m){
         +cell(f.next30.length,'next 30 days','expected','#A78BFF')+cell(f.late.length,'late','past expected date',f.late.length?'#FF5470':'#787A87')
         +cell(f.v30,'last 30 days','launched','#FFC53D')+cell(f.v90,'last 90 days','launched','#FF8A3D')+'</div></div>'
     +'<div class="fc-grid">'
-      +list('This week',f.thisWeek,'Nothing expected to launch this week.')
-      +list('Next 30 days',f.next30.filter(function(r){return f.thisWeek.indexOf(r)<0;}),'Nothing else expected in the next 30 days.')
-      +list('Late',f.late,'Nothing past its expected date.')
-      +list('At risk',f.atRisk,'Nothing stuck past its stage target, and nothing due within 7 days that is not already at Launch.')
+      +list('This week',f.thisWeek,'Nothing expected to launch this week.','expected to go live')
+      +list('Next 30 days',f.next30.filter(function(r){return f.thisWeek.indexOf(r)<0;}),'Nothing else expected in the next 30 days.','expected to go live')
+      +list('Late',f.late,'Nothing past its expected date.','expected date has passed')
+      +list('Slipping',f.atRisk,'Nothing over its stage target. The dates above hold as long as that stays true.','over stage target — each extra day moves its launch back a day')
     +'</div>'
     +(f.open.length===0?'<div class="ov-blank">No products in either pipeline \u2014 there is nothing to forecast until something enters.</div>':'')
     +'</section>';
@@ -796,6 +831,132 @@ function ovOpen(app, id){
     if(tries>20) clearInterval(t);
   },120);
 }
+
+/* ═══════ ONE SIDEBAR, ONE TOP BAR — owned by the shell, mirrored from whichever app is on screen ═══════ */
+var _chromeT=null, _chromeApp=null, _chromeSig='';
+function frameDoc(app){ try{ return FRAMES[app].contentDocument; }catch(e){ return null; } }
+function frameWin(app){ try{ return FRAMES[app].contentWindow; }catch(e){ return null; } }
+function frameRun(app, code){ try{ var w=frameWin(app); if(w) new w.Function(code)(); }catch(e){ console.warn('frameRun',app,e); } chromeSync(true); }
+function currentApp(){ var p=document.getElementById('pipe'); if(p&&p.classList.contains('show')) return 'pipe'; return FRAMES.pl&&FRAMES.pl.classList.contains('show')?'pl':'ub'; }
+function railItems(app){
+  // mirror the app's own rail: same icons, labels, colours and live badges, in its order
+  var d=frameDoc(app); if(!d) return null;
+  var nav=d.querySelector('aside .sn-nav, aside nav'); if(!nav) return null;
+  var out=[];
+  Array.prototype.forEach.call(nav.children,function(el){
+    if(el.classList.contains('sn-sec')) out.push({t:'sec',label:el.textContent.trim()});
+    else if(el.classList.contains('sn-spacer')) out.push({t:'spacer'});
+    else if(el.classList.contains('nav-item')){
+      var pane=el.dataset.pane; if(!pane) return;
+      var lab=(el.querySelector('.sn-t')||{}).textContent||el.getAttribute('title')||pane;
+      out.push({t:'item',pane:pane,label:lab.trim(),icon:(el.querySelector('.sn-ic')||{}).innerHTML||'',
+        color:el.style.getPropertyValue('--c')||'#A78BFF',badge:((el.querySelector('.nav-badge')||{}).textContent||'').trim(),active:el.classList.contains('active')});
+    }
+  });
+  return out;
+}
+function appTotals(app){ try{ var cds=readStores().cards.filter(function(c){return c.app===app && c.col!=='launched';}); return cds.length; }catch(e){ return 0; } }
+function railGo(app,pane){ if(currentApp()!==app) show(app); var w=frameWin(app); try{ w.nav(pane); }catch(e){} chromeSync(true); }
+function railToggle(){ document.body.classList.toggle('rail-min'); try{ localStorage.setItem('plub_rail_min', document.body.classList.contains('rail-min')?'1':''); }catch(e){} }
+function renderRail(){
+  var app=currentApp(), u=CLUB.user(), nm=u?u.display_name:'?';
+  var APPS=[{k:'ub',name:'Unique Bundles',who:'Becki',c:'#00E5A0'},{k:'pl',name:'Private Label',who:'Jack',c:'#A78BFF'}];
+  var h='<div class="sn-brand"><div class="sn-mark" onclick="railToggle()" title="Collapse / expand"><svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="2.5" fill="#030304" opacity=".85"/><path d="M8.5 9V7a3.5 3.5 0 017 0v2" fill="none" stroke="#030304" stroke-width="2" stroke-linecap="round"/></svg></div>'
+    +'<div class="sn-brand-t"><div class="sn-name">PLUB</div><div class="sn-sub">PL + UB HQ · v'+BUILD+'</div></div>'
+    +'<button class="sn-toggle" onclick="railToggle()" title="Collapse / expand"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"/></svg></button></div>'
+    +'<nav class="sn-nav">'
+    +'<button class="nav-item'+(app==='pipe'&&ovView()!=='board'?' active':'')+'" style="--c:#7C6CFF" onclick="showOv(\'summary\')" title="Overview"><span class="sn-ic"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" fill="currentColor" opacity=".18"/><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.5l2.5-3 2 2 2.5-3.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="sn-t">Overview</span></button>'
+    +'<button class="nav-item'+(app==='pipe'&&ovView()==='board'?' active':'')+'" style="--c:#22D3EE" onclick="showOv(\'board\')" title="Joint pipeline"><span class="sn-ic"><svg viewBox="0 0 20 20"><rect x="2.5" y="4" width="4" height="12" rx="1.3" fill="currentColor" opacity=".18"/><rect x="8" y="4" width="4" height="8.5" rx="1.3" fill="currentColor" opacity=".18"/><rect x="13.5" y="4" width="4" height="5.5" rx="1.3" fill="currentColor" opacity=".18"/><rect x="2.5" y="4" width="4" height="12" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="4" width="4" height="8.5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="13.5" y="4" width="4" height="5.5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></span><span class="sn-t">Joint pipeline</span>'+(function(){ var n=appTotals('ub')+appTotals('pl'); return n?'<span class="nav-badge">'+n+'</span>':''; })()+'</button>';
+  var bottom='';
+  APPS.forEach(function(A){
+    var on = app===A.k, items = on ? railItems(A.k) : null, tot=appTotals(A.k);
+    h+='<button class="sn-app'+(on?' on':'')+'" style="--c:'+A.c+'" onclick="show(\''+A.k+'\')" title="'+(on?'':'Open '+A.name)+'"><i></i><b>'+A.name+'</b><span>'+A.who+'</span>'+(tot?'<em>'+tot+'</em>':'')+(on?'':'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>')+'</button>';
+    if(!on) return;
+    if(!items){ h+='<div class="sn-loading">loading…</div>'; return; }
+    var afterSpacer=false;
+    items.forEach(function(it){
+      if(it.t==='spacer'){ afterSpacer=true; return; }
+      var html='';
+      if(it.t==='sec') html='<div class="sn-sec"><span>'+esc(it.label)+'</span></div>';
+      else html='<button class="nav-item'+(it.active?' active':'')+'" style="--c:'+it.color+'" onclick="railGo(\''+A.k+'\',\''+it.pane+'\')" title="'+esc(it.label)+'"><span class="sn-ic"><svg viewBox="0 0 20 20">'+it.icon.replace(/^<svg[^>]*>|<\/svg>$/g,'')+'</svg></span><span class="sn-t">'+esc(it.label)+'</span>'+(it.badge&&it.badge!=='0'?'<span class="nav-badge">'+esc(it.badge)+'</span>':'')+'</button>';
+      if(afterSpacer) bottom+=html; else h+=html;
+    });
+  });
+  h+='<div class="sn-month" id="snMonth" onclick="show(\'pipe\')" title="Open the Overview">'+CLUB.railMonthHtml()+'</div>'
+    +'<div class="sn-spacer"></div>'+bottom+'</nav>'
+    +'<div class="sn-foot"><div class="sn-av">'+esc(nm[0]||'?')+'</div><div class="sn-foot-t"><div class="sn-user">'+esc(nm)+'</div>'
+    +'<div class="sn-role">'+(u&&u.role==='owner'?'Owner':'Staff')+' · '+(CLUB.mode()==='supabase'?'cloud':'local')+'</div></div>'
+    +'<button class="sn-switch" onclick="clubSignOut()" title="'+(CLUB.mode()==='supabase'?'Sign out':'Switch user')+'">⇄</button></div>';
+  document.getElementById('plubRail').innerHTML=h;
+}
+function barState(app){
+  var d=frameDoc(app), w=frameWin(app), st={title:'', saved:'', sess:null, menu:[], add:null, search:null};
+  if(!d) return st;
+  if(app==='ub'){
+    st.title=((d.getElementById('tbPage')||{}).textContent||'').trim();
+    st.saved=((d.getElementById('saveChip')||{}).textContent||'').trim();
+    var sb=d.getElementById('sessBtn'); if(sb) st.sess={html:sb.innerHTML, on:/end|stop/i.test(sb.textContent), code:'toggleSession()'};
+    Array.prototype.forEach.call(d.querySelectorAll('#tbMenu > *'),function(el){ if(el.tagName==='HR') st.menu.push({hr:true}); else st.menu.push({label:el.textContent.trim(), code:(el.getAttribute('onclick')||'').replace(/tbMoreToggle\(\);?/,'')}); });
+    st.add={label:'+ Add Idea', code:'openQuickIdea()'};
+    st.search={placeholder:'Search everything — press Enter…', run:function(q){ var i=d.getElementById('globalSearch'); if(!i) return; i.value=q; i.dispatchEvent(new Event('input')); }, go:function(q){ try{ w.globalSearchGo(q); }catch(e){} }};
+  } else if(app==='pl'){
+    var tb=d.getElementById('appTopbar'); st.title=(tb&&tb.getAttribute('data-page'))||'';
+    st.saved=((d.getElementById('lastSaved')||{}).textContent||'').trim() || ((d.getElementById('saveStatus')||{}).textContent||'').trim();
+    var run=0; try{ run=w.eval('(typeof brandState!=="undefined"&&brandState&&brandState.plRun&&brandState.plRun.start)||0'); }catch(e){}
+    st.sess= run ? {html:'■ Stop sourcing · '+Math.max(1,Math.round((Date.now()-run)/60000))+'m', on:true, code:'plSessStop()'} : {html:'▶ Start sourcing', on:false, code:'plSessStart()'};
+    Array.prototype.forEach.call(d.querySelectorAll('#navMenu > *'),function(el){ if(el.tagName==='BUTTON') st.menu.push({label:el.textContent.trim(), code:(el.getAttribute('onclick')||'').replace(/toggleNavMenu\(\);?/,'')}); else st.menu.push({hr:true}); });
+    st.add={label:'+ Add Idea', code:'openModal(null)'};
+    st.search={placeholder:'Search ideas…', run:function(q){ try{ if(!d.getElementById('pane-dash').classList.contains('active')) w.nav('dash'); var i=d.getElementById('dsearch'); if(!i) return; i.value=q; i.dispatchEvent(new Event('input')); }catch(e){} }, go:function(){} };
+  }
+  return st;
+}
+var _barSearch={ub:null,pl:null};
+function renderBar(){
+  var app=currentApp(), st=app==='pipe'?{title:(ovView()==='board'?'Joint pipeline':'Overview'),saved:'',sess:null,menu:[],add:null,search:null}:barState(app);
+  _barSearch[app]=st.search;
+  var h='<div class="xtabs" id="xtabs">'
+    +'<button class="xt xt-ub'+(app==='ub'?' on':'')+'" onclick="show(\'ub\')">Unique Bundles</button>'
+    +'<button class="xt xt-pl'+(app==='pl'?' on':'')+'" onclick="show(\'pl\')">Private Label</button>'
+    +'<button class="xt'+(app==='pipe'?' on':'')+'" onclick="show(\'pipe\')">Overview</button>'
+    +'<span class="xver">v'+BUILD+'</span></div>'
+    +'<span class="tb-page" id="tbPage">'+esc(st.title||'')+'</span>';
+  if(st.search) h+='<div class="tb-search"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>'
+    +'<input id="plubSearch" placeholder="'+st.search.placeholder+'" autocomplete="off" oninput="barSearch(this.value,false)" onkeydown="if(event.key===\'Enter\')barSearch(this.value,true)"><span class="tb-kbd">/</span></div>';
+  h+='<div class="tb-spacer"></div>';
+  if(app==='pipe') h+='<span class="tb-saved"><span class="dot" style="background:var(--green,#00E5A0)"></span>'+(CLUB.mode()==='supabase'?'cloud':'local')+' · both sides</span>';
+  else if(st.saved) h+='<span class="tb-saved" title="Saves in this browser automatically"><span class="dot" style="background:var(--green,#00E5A0)"></span>'+esc(st.saved.replace(/^\s*Saved\s*$/,'Saved'))+'</span>';
+  if(st.sess) h+='<button class="btn'+(st.sess.on?' sess-on':'')+'" id="plubSess" onclick="frameRun(\''+app+'\',\''+st.sess.code+'\')">'+st.sess.html+'</button>';
+  if(st.menu.length) h+='<div class="tb-more"><button type="button" onclick="document.getElementById(\'plubMenu\').classList.toggle(\'open\')" title="More">···</button><div class="tb-menu" id="plubMenu">'
+    +st.menu.map(function(m){ return m.hr?'<hr>':'<button onclick="document.getElementById(\'plubMenu\').classList.remove(\'open\');frameRun(\''+app+'\','+JSON.stringify(m.code).replace(/"/g,'&quot;')+')">'+esc(m.label)+'</button>'; }).join('')+'</div></div>';
+  if(st.add) h+='<button class="btn btn-pri" onclick="frameRun(\''+app+'\',\''+st.add.code+'\')">'+esc(st.add.label)+'</button>';
+  var bar=document.getElementById('plubBar');
+  var keep = document.activeElement && document.activeElement.id==='plubSearch' ? document.activeElement.value : null;
+  bar.innerHTML=h;
+  if(keep!=null){ var i=document.getElementById('plubSearch'); if(i){ i.value=keep; i.focus(); i.setSelectionRange(keep.length,keep.length); } }
+}
+function barSearch(q,go){ var app=currentApp(), s=_barSearch[app]; if(!s) return; if(go) s.go(q); else s.run(q); }
+function chromeSig(app){
+  // a cheap fingerprint of everything the chrome shows — re-render only when it changes, never on a timer alone
+  var d=frameDoc(app); if(!d) return app+':nodoc';
+  var badges=Array.prototype.map.call(d.querySelectorAll('aside .nav-item'),function(b){ return (b.classList.contains('active')?'*':'')+((b.querySelector('.nav-badge')||{}).textContent||''); }).join('|');
+  var st=barState(app);
+  return app+'|'+badges+'|'+st.title+'|'+st.saved+'|'+(st.sess?st.sess.html:'')+'|'+CLUB.railMonthHtml().length;
+}
+function chromeSync(force){
+  var app=currentApp();
+  var sig= app==='pipe' ? 'pipe|'+ovView()+'|'+CLUB.railMonthHtml().length+'|'+appTotals('ub')+'|'+appTotals('pl') : chromeSig(app);
+  if(!force && sig===_chromeSig && document.getElementById('plubRail').children.length) return;
+  _chromeSig=sig;
+  try{ renderRail(); }catch(e){ console.warn('rail',e); }
+  try{ if(!(document.getElementById('plubMenu')||{}).classList||!document.getElementById('plubMenu').classList.contains('open')) renderBar(); }catch(e){ console.warn('bar',e); }
+}
+document.addEventListener('click',function(e){ var m=document.getElementById('plubMenu'); if(m&&m.classList.contains('open')&&!e.target.closest('.tb-more')) m.classList.remove('open'); });
+document.addEventListener('keydown',function(e){ if(e.key==='/'&&!/input|textarea/i.test((e.target.tagName||''))){ var i=document.getElementById('plubSearch'); if(i){ e.preventDefault(); i.focus(); } } });
+setInterval(function(){ try{ chromeSync(false); }catch(e){} },700);
+window.addEventListener('storage',function(){ try{ chromeSync(false); }catch(e){} });
+try{ CLUB.on(function(){ try{ chromeSync(true); }catch(e){} }); }catch(e){}
+try{ if(localStorage.getItem('plub_rail_min')==='1') document.body.classList.add('rail-min'); }catch(e){}
+
 function ovQueue(cards){
   var rank={HIGH:0,MED:1,LOW:2};
   return cards.filter(function(c){return c.col!=='launched';})
@@ -822,13 +983,17 @@ function renderOverview(ub, pl, m, cards){
       +'<div class="ov-first-c" onclick="show(\'pl\')"><b>2</b><span>Add a Private Label idea</span><i>Name, where it came from, paste the research \u2014 done in a minute</i></div>'
       +'<div class="ov-first-c"><b>3</b><span>Come back here</span><i>One verdict, one queue, launches forecast from both belts</i></div>'
     +'</div></div>';
-  // a side that has never been opened is a fact, not a zero
-  var absent=[]; if(!U) absent.push({k:'ub',n:'Unique Bundles',w:'Becki'});
-  if(!L) absent.push({k:'pl',n:'Private Label',w:'Jack'});
+  // a side that has never been opened — or has nothing in it on this laptop — is a fact, not five failed stages.
+  // Until Monday's import Becki's data lives on her machine, so on Jack's the UB side is simply empty; judge the other side alone.
+  var absent=[];
+  if(!U) absent.push({k:'ub',n:'Unique Bundles',w:'Becki',empty:false});
+  else if(!U.total && L && L.total){ absent.push({k:'ub',n:'Unique Bundles',w:'Becki',empty:true}); U=null; }
+  if(!L) absent.push({k:'pl',n:'Private Label',w:'Jack',empty:false});
+  else if(!L.total && U && U.total){ absent.push({k:'pl',n:'Private Label',w:'Jack',empty:true}); L=null; }
+  sides=[U,L].filter(Boolean);
   var missHtml = absent.length ? '<div class="ov-miss">'
-    + absent.map(function(a){ return '<div class="ov-miss-r"><b>'+a.n+' has not been opened in this browser</b>'
-        +'<span>'+a.w+'\u2019s numbers are missing from everything on this page \u2014 targets, queue and belts below are '
-        +(absent.length>1?'empty':'one side only')+'.</span>'
+    + absent.map(function(a){ return '<div class="ov-miss-r"><b>'+a.n+(a.empty?' has nothing in it on this laptop':' has not been opened in this browser')+'</b>'
+        +'<span>'+(a.empty? a.w+'\u2019s ideas and pipeline live on '+(a.w==='Becki'?'her':'his')+' machine until the import \u2014 this page judges '+(a.k==='ub'?'Private Label':'Unique Bundles')+' on its own for now.' : a.w+'\u2019s numbers are missing from everything on this page \u2014 targets, queue and belts below are one side only.')+'</span>'
         +'<button class="ov-go" onclick="show(\''+a.k+'\')">Open '+a.n+' \u2192</button></div>'; }).join('')
     + '</div>' : '';
 
@@ -854,7 +1019,7 @@ function renderOverview(ub, pl, m, cards){
     sub=hot+' product'+(hot===1?'':'s')+' past target'+(cold?' and '+cold+' untouched':'')+'. '+moved+' moved forward so far.'; }
   else if(moved+launched===0){ tone='warn'; head='Nothing has moved yet this month.';
     sub=fmtH(hrs)+' sourced of '+fmtH(tgt)+' this month. Movement is the whole point — push one product forward today.'; }
-  else { tone='ok'; head='Both belts are moving.';
+  else { tone='ok'; head= sides.length>1 ? 'Both belts are moving.' : 'The belt is moving.';
     sub=moved+' moved forward, '+entered+' entered, '+ideasIn+' new idea'+(ideasIn===1?'':'s')+' this month.'; }
 
   /* four quiet stats with small icon tiles — not six glowing rainbow cards */
@@ -968,7 +1133,7 @@ function renderPipe(){
   // Empty stages collapse to slim rails so the products that DO exist get the screen.
   var HUES = {sourcing:'#22D3EE', validating:'#E879C7', samples:'#3B9EFF', ordered:'#FF8A3D', ready:'#FFC53D', launching:'#4ADE80', launched:'#00E5A0'};
   var byCol = {}; COLS.forEach(function(c){ byCol[c.key]=cards.filter(function(x){return x.col===c.key;}); });
-  var card = function(x){ return '<div class="p-card '+x.app+(x.over?' stuck':'')+'" onclick="show(\''+x.app+'\')" title="Open in '+(x.app==='ub'?'Unique Bundles':'Private Label')+'">'
+  var card = function(x){ return '<div class="p-card '+x.app+(x.over?' stuck':'')+'" onclick="ovOpen(\''+x.app+'\','+JSON.stringify(String(x.id||'')).replace(/"/g,'&quot;')+')" title="Open in '+(x.app==='ub'?'Unique Bundles':'Private Label')+'">'
       + (x.score!=null?'<span class="sc">'+x.score+'%</span>':'')
       + '<div class="t">'+esc(x.title)+'</div>'
       + '<div class="m"><span class="app-chip '+x.app+'">'+(x.app==='ub'?'UB':'PL')+'</span>'
@@ -1058,24 +1223,22 @@ function renderPipe(){
         lAct:ubLaunch+plLaunch, lTgt:tgt('launches')+MK.launches,
         mTgt:(tgt('moved')||0)+MK.pipeline, stuck:stuck}, cards); }
   catch(e){ console.error('overview',e); }
+  // the joint board: every product on both belts across the seven shared stages
+  var board = '<div class="ov-flow">'+(flowSegs||'<span style="flex:1;background:var(--s3)"></span>')+'</div><div class="ov-flow-read">'+flowRead+'</div>'
+    + '<div class="p-board" style="grid-template-columns:'+template+'">'+cols+'</div>';
+  var isBoard = ovView()==='board';
   document.getElementById('pipe').innerHTML =
-    ovRail()
-    + '<div class="ov-main">'
-      + '<div class="topbar ov-bar"><b class="ov-bar-t">Overview</b>'
-        + '<span class="ov-bar-tabs">'
-          + '<button class="xt-ub" onclick="show(\'ub\')">Unique Bundles</button>'
-          + '<button class="xt-pl" onclick="show(\'pl\')">Private Label</button>'
-          + '<button class="on">Overview</button></span>'
-        + '<span class="ov-bar-sp"></span>'
-        + '<span class="chip">local \u00b7 v' + BUILD + '</span></div>'
-      + '<div class="pane ov-pane">'
+    '<div class="ov-main">'
+      + '<div class="pane ov-pane'+(isBoard?' ov-board':'')+'">'
         + '<div class="page-hd"><div><div class="eyebrow">Unique Bundles + Private Label</div>'
-          + '<div class="page-title">Overview</div>'
-          + '<div class="page-sub">Are we scaling, is anything moving, and where should the time go this month.</div></div></div>'
-        + overview
+          + '<div class="page-title">'+(isBoard?'Joint pipeline':'Overview')+'</div>'
+          + '<div class="page-sub">'+(isBoard?'Every product on both belts, seven shared stages — the shape of the whole business. Click a card to open it.':'Are we scaling, is anything moving, and where should the time go this month.')+'</div></div></div>'
+        + (isBoard? board : overview)
       + '</div>'
     + '</div>';
 }
+function ovView(){ try{ return localStorage.getItem('plub_ov_view')==='board'?'board':'summary'; }catch(e){ return 'summary'; } }
+function showOv(v){ try{ localStorage.setItem('plub_ov_view', v); }catch(e){} show('pipe'); }
 window.addEventListener('storage', function(e){ if(e.key==='ub_tracker_v1' || e.key==='pl_sourcing_v1'){ if(document.getElementById('pipe').classList.contains('show')) renderPipe(); else paintPipeN(); } });
 
 /* ══ LOGIN GATE ══
@@ -1130,7 +1293,8 @@ setTimeout(function(){ paintPipeN(); }, 1500);
 <style>
 /* ══ OVERVIEW — uses the app chrome, not a third look ══ */
 #pipe{display:none}
-#pipe.show{display:grid!important;grid-template-columns:auto minmax(0,1fr);height:100vh;overflow:hidden;background:var(--bg)}
+#pipe.show{display:block!important;height:100%;overflow:hidden;background:var(--bg)}
+.ov-main{height:100%}
 .ov-main{min-width:0;display:flex;flex-direction:column;overflow:hidden}
 .ov-bar{flex:none}
 .ov-bar-t{font-size:13px;font-weight:850;color:var(--t1);letter-spacing:-.2px}
@@ -1245,7 +1409,8 @@ setTimeout(function(){ paintPipeN(); }, 1500);
 
 /* the shell's own bar is redundant now that Overview carries app chrome */
 .bar{display:none!important}
-.stage{position:fixed;inset:0!important}   /* .bar is hidden — never reserve space for it */
+.stage{position:fixed;inset:44px 0 0 236px!important}   /* the shell rail and bar own the chrome; the apps render inside */
+body.rail-min .stage{left:64px!important}
 </style>
 <style>
 /* the rail markup is shared with the apps, so the rail CSS has to be too */
@@ -1376,11 +1541,12 @@ setTimeout(function(){ paintPipeN(); }, 1500);
 .fc-cell b u{text-decoration:none;font-size:12px;color:var(--t4);font-weight:700}
 .fc-cell span{display:block;font:850 9px var(--sans);letter-spacing:.7px;text-transform:uppercase;color:var(--t3);margin-top:3px}
 .fc-cell i{display:block;font-style:normal;font-size:9.5px;color:var(--t4);margin-top:1px}
-.fc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px;padding:14px 16px}
+.fc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px;padding:14px 16px;align-items:start}   /* boxes take their own height — an empty list is one line, not a blank panel */
 .fc-list{border:1px solid var(--b1);border-radius:var(--r-md);background:var(--s2);padding:10px 12px}
 .fc-list-h{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
 .fc-list-h span{font:850 9.5px var(--sans);letter-spacing:1px;text-transform:uppercase;color:var(--t4)}
 .fc-list-h b{font-size:12px;font-weight:850;color:var(--t2)}
+.fc-list-h i{font-style:normal;font-size:10px;color:var(--t4);margin-left:auto;text-align:right;line-height:1.2}
 .fc-row{display:flex;flex-wrap:wrap;align-items:center;gap:3px 8px;padding:6px 0;border-top:1px solid rgba(255,255,255,.05);cursor:pointer;font-size:12px}
 .fc-row:first-of-type{border-top:0}
 /* the name keeps at least 150px and the stage / date chips wrap under it in a narrow card — it used to shrink to two letters */
@@ -1615,6 +1781,104 @@ button[disabled],.btn[disabled],input[disabled],select[disabled]{opacity:.42!imp
   list-style:none!important;cursor:pointer}
 .page-notes>summary:hover{color:var(--t2)!important}
 .page-notes[open]>summary{border-bottom:1px solid var(--b1)!important}
+</style>
+
+<style>
+/* ═══════ shell chrome: the one rail and the one bar ═══════ */
+#plubRail{position:fixed;left:0;top:0;bottom:0;width:236px!important;display:flex;flex-direction:column;background:var(--s1)!important;border-right:1px solid var(--b1);z-index:30}
+#plubRail .sn-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 10px 6px;display:flex;flex-direction:column;scrollbar-width:thin}
+#plubRail .sn-toggle{margin-left:auto;width:24px;height:24px;border-radius:7px;border:1px solid var(--b2);background:var(--s2);color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none}
+#plubRail .sn-toggle svg{width:12px;height:12px}
+#plubRail .sn-toggle:hover{color:var(--t1);border-color:var(--b3)}
+.sn-app{display:flex;align-items:center;gap:8px;width:100%;margin:8px 0 2px;padding:7px 8px;border-radius:10px;border:1px solid transparent;background:none;color:var(--t2);cursor:pointer;text-align:left;font-family:inherit}
+.sn-app i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 22%,transparent)}
+.sn-app b{font-size:11px;font-weight:850;letter-spacing:1.2px;text-transform:uppercase;color:var(--t2);white-space:nowrap}
+.sn-app span{font-size:10.5px;color:var(--t4);white-space:nowrap}
+.sn-app em{margin-left:auto;font-style:normal;font-size:10px;font-weight:800;color:var(--t3);background:var(--s3);border:1px solid var(--b2);border-radius:99px;padding:1px 7px}
+.sn-app svg{width:12px;height:12px;color:var(--t4);flex:none}
+.sn-app.on{background:color-mix(in srgb,var(--c) 9%,transparent);border-color:color-mix(in srgb,var(--c) 22%,transparent)}
+.sn-app.on b{color:var(--t1)}
+.sn-app:not(.on):hover{background:rgba(255,255,255,.045);border-color:var(--b1)} .sn-app:not(.on):hover b{color:var(--t1)}
+.sn-app.on em{margin-left:auto}
+#plubRail .nav-item{display:flex;align-items:center;gap:10px;width:100%;padding:6px 7px;border-radius:10px;margin:0 0 1px;color:#9A9AA8;font-size:13px;font-weight:650;position:relative;text-align:left;background:none;border:none;cursor:pointer;letter-spacing:-.05px;font-family:inherit}
+#plubRail .nav-badge{margin-left:auto;font-size:10px;font-weight:800;color:var(--t3);background:var(--s3);border:1px solid var(--b2);border-radius:99px;padding:1px 7px;min-width:20px;text-align:center}
+#plubRail .nav-item.active .nav-badge{color:var(--c);border-color:color-mix(in srgb,var(--c) 40%,transparent);background:color-mix(in srgb,var(--c) 14%,transparent)}
+.sn-loading{font-size:11px;color:var(--t4);padding:8px}
+#plubRail .sn-sec{padding:9px 8px 3px}
+#plubRail .sn-nav::-webkit-scrollbar{width:4px}
+#plubRail .sn-nav::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+#plubRail .sn-month{margin:8px 4px 2px;padding:8px 10px}
+#plubRail .sn-brand{min-height:54px;padding:12px 14px 8px}
+#plubRail .sn-switch{margin-left:auto;width:26px;height:26px;border-radius:7px;border:1px solid var(--b2);background:var(--s2);color:var(--t3);cursor:pointer;flex:none}
+#plubRail .sn-switch:hover{color:var(--t1);border-color:var(--b3)}
+/* collapsed rail */
+body.rail-min #plubRail{width:64px!important}
+body.rail-min #plubRail .sn-brand-t,body.rail-min #plubRail .sn-t,body.rail-min #plubRail .sn-sec,body.rail-min #plubRail .sn-month,body.rail-min #plubRail .sn-foot-t,body.rail-min #plubRail .sn-switch,body.rail-min #plubRail .sn-toggle,body.rail-min .sn-app b,body.rail-min .sn-app span,body.rail-min .sn-app em,body.rail-min .sn-app svg{display:none}
+body.rail-min #plubRail .nav-item{justify-content:center;padding:9px 0}
+body.rail-min #plubRail .nav-badge{position:absolute;top:2px;right:4px;padding:0 5px;min-width:0}
+body.rail-min .sn-app{justify-content:center;padding:8px 0}
+body.rail-min #plubRail .sn-brand{justify-content:center;padding:14px 0 10px}
+body.rail-min #plubRail .sn-foot{justify-content:center;padding:10px 0}
+body.rail-min #plubBar{left:64px}
+#plubRail .sn-brand{cursor:default}
+#plubRail .sn-mark{cursor:pointer}
+/* bar */
+#plubBar{position:fixed;left:236px;right:0;top:0;height:44px;display:flex;align-items:center;gap:8px;padding:7px 16px;background:rgba(3,3,4,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--b1);z-index:30}
+#plubBar .xtabs{display:flex;align-items:center;gap:2px;background:var(--s2);border:1px solid rgba(255,255,255,.12);border-radius:99px;padding:3px;margin-right:10px;flex:none}
+#plubBar .xt{font-size:11.5px;font-weight:800;font-family:inherit;color:var(--t3);background:none;border:none;border-radius:99px;padding:6px 13px;cursor:pointer;transition:color .13s,background .13s}
+#plubBar .xt:hover{color:var(--t1)} #plubBar .xt.on{background:#1d1d22;color:var(--t1);box-shadow:inset 0 0 0 1px var(--b2)}
+#plubBar .xt-ub.on{color:#00E5A0} #plubBar .xt-pl.on{color:#22D3EE}
+#plubBar .xver{font-size:9px;font-weight:800;color:var(--t4);padding:0 8px 0 5px}
+#plubBar .tb-page{font-size:13px;font-weight:850;color:var(--t1);letter-spacing:-.2px;white-space:nowrap;margin:0 6px 0 2px;flex-shrink:0}
+#plubBar .tb-search{display:flex;align-items:center;gap:9px;min-width:150px;flex:0 1 320px;height:30px;background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:0 12px;color:var(--t4)}
+#plubBar .tb-search:focus-within{border-color:var(--brand,#7C6CFF);color:var(--t2)}
+#plubBar .tb-search input{flex:1;min-width:0;background:none;border:none;outline:none;padding:0;font-size:12.5px;color:var(--t1);font-family:inherit}
+#plubBar .tb-search input::placeholder{color:var(--t4)}
+#plubBar .tb-kbd{font-family:var(--mono,ui-monospace,monospace);font-size:10px;color:var(--t4);border:1px solid var(--b2);border-radius:6px;padding:1px 7px;background:var(--s3)}
+#plubBar .tb-spacer{flex:1}
+#plubBar .tb-saved{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--t4);white-space:nowrap;flex-shrink:0}
+#plubBar .tb-saved .dot{width:7px;height:7px;border-radius:50%;background:var(--green,#00E5A0)}
+#plubBar .btn{height:30px;padding:0 12px;border-radius:9px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-size:12px;font-weight:750;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0}
+#plubBar .btn:hover{border-color:var(--b3);color:var(--t1)}
+#plubBar .btn.sess-on{border-color:rgba(0,229,160,.4);color:#00E5A0;background:rgba(0,229,160,.08)}
+#plubBar .btn.btn-pri{background:var(--brand,#7C6CFF);border-color:transparent;color:#fff}
+#plubBar .btn.btn-pri:hover{filter:brightness(1.08);color:#fff}
+#plubBar .btn svg{width:12px;height:12px}
+#plubBar .tb-more{position:relative;flex-shrink:0}
+#plubBar .tb-more>button{width:30px;height:30px;border-radius:9px;background:var(--s3);border:1px solid var(--b2);color:var(--t2);cursor:pointer;font-weight:900;font-family:inherit}
+#plubBar .tb-more>button:hover{border-color:var(--b3);color:var(--t1)}
+#plubBar .tb-menu{display:none;position:absolute;right:0;top:36px;min-width:230px;background:var(--s1);border:1px solid var(--b2);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.55);padding:5px;z-index:60}
+#plubBar .tb-menu.open{display:block}
+#plubBar .tb-menu button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--t2);font-size:12px;font-weight:700;font-family:inherit;padding:8px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
+#plubBar .tb-menu button:hover{background:rgba(255,255,255,.05);color:var(--t1)}
+#plubBar .tb-menu hr{border:0;border-top:1px solid var(--b1);margin:4px 0}
+@media(max-width:1360px){#plubBar .xver{display:none}}
+/* rail month card (same as inside the apps) */
+.sb2 .sn-month{margin:10px 6px 4px;padding:10px 11px;border:1px solid var(--b1);border-radius:12px;background:var(--s2);cursor:pointer;transition:border-color .12s}
+.sb2 .sn-month:hover{border-color:var(--b3)}
+.snm-h{font-size:9.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--t4);display:flex;justify-content:space-between;margin-bottom:6px}
+.snm-h span{letter-spacing:.2px;text-transform:none;font-weight:650}
+.snm-row{display:flex;align-items:center;gap:7px;font-size:12px;margin-top:7px}
+.snm-row i{width:18px;height:18px;border-radius:50%;background:var(--av,#7C6CFF);color:#08080a;font-size:10px;line-height:18px;font-weight:800;text-align:center;font-style:normal;flex-shrink:0;font-family:inherit}
+.snm-row b{font-weight:750;color:var(--t1)}
+.snm-row span{font-size:9.5px;font-weight:800;color:var(--t4);letter-spacing:.6px}
+.snm-row em{margin-left:auto;font-style:normal;font-weight:800;color:var(--t1);font-size:12px;white-space:nowrap}
+.snm-row em u{text-decoration:none;color:var(--t4);font-weight:650}
+.snm-row.off em{color:var(--t4);font-weight:600}
+.snm-bar{height:4px;border-radius:2px;background:var(--s3);margin:4px 0 0 25px;overflow:hidden}
+.snm-bar s{display:block;height:100%;background:var(--c,#7C6CFF);border-radius:2px;text-decoration:none}
+.snm-foot{margin-top:9px;padding-top:8px;border-top:1px solid var(--b1);font-size:11px;color:var(--t3)}
+.snm-foot b{color:var(--t2);font-weight:800}
+/* joint board */
+.p-board{display:grid;gap:8px;align-items:start;min-width:0}
+.p-cards{display:flex;flex-direction:column;gap:6px}
+.ov-flow{display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px;margin:2px 0 8px}
+.ov-flow-read{font-size:12.5px;color:var(--t3);margin-bottom:14px}
+.ov-flow-read b{color:var(--t1)}
+.ov-board{overflow-x:auto}
+/* the Overview no longer carries a rail or bar of its own */
+.ov-rail,.ov-bar{display:none!important}
+#pipe{padding:0!important}
 </style>
 </body>
 </html>
