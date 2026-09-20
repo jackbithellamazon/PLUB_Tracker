@@ -2514,6 +2514,56 @@ function promptModal(title, label, placeholder, cb, initial){
 const SESSION_TYPES = {};
 try{ CLUB.workTypes().forEach(w=>{ SESSION_TYPES[w.key]={label:w.label, hint:w.hint||'', kpi:w.counts_as_sourcing!==false, club:true}; }); }catch(e){}
 if(!Object.keys(SESSION_TYPES).length) SESSION_TYPES.fresh={label:'Fresh sourcing', hint:'Finding new ideas', kpi:true};
+/* Fresh sourcing and Research & validation are counted automatically — ideas, reviews, greens.
+   The other three produce things the app cannot see, so every counter sat at 0 and an honest
+   afternoon of listing work read as nothing done. These are the outputs, ticked as you go. */
+const SESSION_OUTPUTS = {
+  suppliers: [
+    {k:'suppliers', l:'suppliers found'},
+    {k:'contacted', l:'suppliers contacted'},
+    {k:'quotes',    l:'quotes received'},
+    {k:'samples',   l:'samples ordered'},
+    {k:'orders',    l:'orders placed'}],
+  listing: [
+    {k:'listings',  l:'listings created'},
+    {k:'edits',     l:'listings edited'},
+    {k:'images',    l:'image stacks'},
+    {k:'aplus',     l:'A+ / brand story'},
+    {k:'keywords',  l:'keyword research'}],
+  growth: [
+    {k:'ppc',       l:'PPC changes'},
+    {k:'optimised', l:'listings optimised'},
+    {k:'pricing',   l:'price tests'},
+    {k:'creative',  l:'images / A+ updated'},
+    {k:'analysis',  l:'performance reviews'}],
+};
+function sessOutputs(t){ return SESSION_OUTPUTS[sessTypeKey(t)] || null; }
+function outVal(o,k){ return (o&&o[k])||0; }
+function outTotal(o){ return Object.keys(o||{}).reduce((a,k)=>a+(Number(o[k])||0),0); }
+function outSummary(t,o){ const defs=sessOutputs(t); if(!defs||!o) return '';
+  return defs.filter(d=>outVal(o,d.k)>0).map(d=>outVal(o,d.k)+' '+d.l).join(' · '); }
+// bump one while the session is running
+function sessOutBump(k,by){
+  if(!session) return;
+  session.outputs = session.outputs||{};
+  session.outputs[k] = Math.max(0, (Number(session.outputs[k])||0) + by);
+  noteActivity();
+  if(currentPane()==='sessions') renderSessions();
+  renderSessionBar();
+}
+// and on a finished one, from the summary or the history row
+function logOutBump(id,k,by){
+  const e = initSessionLog().find(x=>x.id===id); if(!e) return;
+  e.outputs = e.outputs||{};
+  e.outputs[k] = Math.max(0, (Number(e.outputs[k])||0) + by);
+  saveState();
+  if(document.getElementById('ssOut')) paintSsOut(e);
+  if(currentPane()==='sessions') renderSessions();
+}
+function outStepper(k,l,v,fn){
+  return `<div class="out-cell"><div class="out-v">${v}</div><div class="out-l">${l}</div>
+    <div class="out-btns"><button onclick="${fn}('${k}',-1)" ${v?'':'disabled'}>−</button><button class="up" onclick="${fn}('${k}',1)">+</button></div></div>`;
+}
 // the five replace the old pair — an old key still resolves through CLUB.wtKey for history
 function sessTypeKey(t){ try{ return CLUB.wtKey(t||'fresh'); }catch(e){ return t||'fresh'; } }
 function sessCounts(t){ try{ return CLUB.wtCounts(t); }catch(e){ return true; } }
@@ -2602,10 +2652,12 @@ function renderSessionBar(){
     <div class="sb-live"><span class="rec-dot"></span>${sessLabel(session.type)}</div>
     <div class="sb-clock" id="sbClock">${sessionClock()}</div>
     <div class="sb-stats">
-      <span class="sb-stat"><b>${st.ideas}</b> ideas</span>
+      ${sessOutputs(session.type)
+        ? sessOutputs(session.type).map(d=>`<span class="sb-stat sb-out" onclick="sessOutBump('${d.k}',1)" title="Add one — ${d.l}"><b>${outVal(session.outputs,d.k)}</b> ${d.l}<i>+</i></span>`).join('')
+        : `<span class="sb-stat"><b>${st.ideas}</b> ideas</span>
       <span class="sb-stat"><b>${st.reviewed}</b> reviewed</span>
       <span class="sb-stat"><b>${st.greens}</b> greens</span>
-      <span class="sb-stat"><b>${st.progressed+st.moved}</b> progressed</span>
+      <span class="sb-stat"><b>${st.progressed+st.moved}</b> progressed</span>`}
     </div>
     <div class="tb-spacer"></div>
     <button class="btn btn-sm" onclick="nav('sessions')">Overview</button>
@@ -2633,10 +2685,10 @@ function endSession(opts){ saveState();
   const mins = Math.max(0, Math.round((endAt - session.start)/60000));
   clearInterval(sessionTick); sessionTick=null; clearInterval(idleTick); idleTick=null;
   const b=document.getElementById('idleBanner'); if(b) b.remove();
-  const entry = {id:session.id, date:new Date(session.start).toISOString(), mins, type:session.type,
+  const entry = {id:session.id, date:new Date(session.start).toISOString(), mins, type:session.type, outputs:Object.assign({},session.outputs||{}),
     ideas:st.ideas, reviewed:st.reviewed, rejected:st.rejected, greens:st.greens, ranked:st.ranked, moved:st.moved, progressed:st.progressed, jack:st.jack, launched:st.launched,
     note:'', autoEnded:!!opts.auto};
-  if(mins>=1 || st.ideas>0 || st.reviewed>0 || st.progressed>0) initSessionLog().unshift(entry);
+  if(mins>=1 || st.ideas>0 || st.reviewed>0 || st.progressed>0 || outTotal(entry.outputs)>0) initSessionLog().unshift(entry);
   try{ if(session.clubId) CLUB.sessionEnd(session.clubId, {mins, note:''}); }catch(e){}
   session = null;
   paintSessionButton();
@@ -2653,17 +2705,26 @@ function sessionSummary(entry){ resetJkBtn();
   document.getElementById('jkTitle').textContent = 'Session summary · '+fmtMins(entry.mins);
   document.getElementById('jkBody').innerHTML = `
     <div class="ss-type">${sessLabel(entry.type)} · ${fmtMins(entry.mins)} ${sessCounts(entry.type)?"counted towards this month's hours":'recorded — outside the sourcing hours KPI'}</div>
-    <div class="ss-grid">
-      ${cell(entry.ideas,'ideas added')}${cell(entry.reviewed,'ASINs reviewed')}${cell(entry.rejected,'rejected')}${cell(entry.greens,'greens found','var(--gt)')}
-      ${cell(entry.ranked,'ideas ranked')}${cell(entry.moved,'moved to sourcing')}${cell(entry.progressed,'stage moves')}${cell(entry.jack,'validation decisions','var(--pt)')}
-    </div>
-    <div class="fld" style="margin-top:12px"><div class="fld-l">What did you do? <span class="td-sub">optional — one line is plenty</span></div>
-      <input class="set-input" id="ssNote" style="width:100%" placeholder="e.g. swept three storefronts, priced the wax burner components"></div>`;
+    ${sessOutputs(entry.type) ? `
+      <div class="ss-outhd">What did this session produce? <span class="td-sub">tap + for each — it is what makes the session read as work</span></div>
+      <div class="ss-grid out" id="ssOut">${sessOutputs(entry.type).map(d=>outStepper(d.k,d.l,outVal(entry.outputs,d.k),'logOutBump_'+entry.id)).join('')}</div>
+    ` : `
+      <div class="ss-grid">
+        ${cell(entry.ideas,'ideas added')}${cell(entry.reviewed,'ASINs reviewed')}${cell(entry.rejected,'rejected')}${cell(entry.greens,'greens found','var(--gt)')}
+        ${cell(entry.ranked,'ideas ranked')}${cell(entry.moved,'moved to sourcing')}${cell(entry.progressed,'stage moves')}${cell(entry.jack,'validation decisions','var(--pt)')}
+      </div>`}
+    <div class="fld" style="margin-top:12px"><div class="fld-l ss-notel">Anything else? <span class="td-sub">${sessOutputs(entry.type)?'a line in your own words, optional':'optional — one line is plenty'}</span></div>
+      <input class="set-input" id="ssNote" style="width:100%" placeholder="${sessOutputs(entry.type)?'e.g. 2 listings created, 3 image stacks, A+ drafted for the shaker':'e.g. swept three storefronts, priced the wax burner components'}"></div>`;
+  window['logOutBump_'+entry.id] = (k,by)=>logOutBump(entry.id,k,by);
   document.getElementById('jkConfirm').textContent = 'Done';
   document.getElementById('jkConfirm').onclick = ()=>{ const v=(document.getElementById('ssNote')||{}).value||''; const e=initSessionLog().find(x=>x.id===entry.id); if(e) e.note=v.trim(); closeModal('mJack'); saveState(); if(currentPane()==='sessions') renderSessions(); };
   document.getElementById('jkCancel').style.display='none';
   openModal('mJack');
   setTimeout(()=>{ const n=document.getElementById('ssNote'); if(n) n.focus(); }, 80);
+}
+function paintSsOut(e){
+  const box=document.getElementById('ssOut'); if(!box) return;
+  box.innerHTML = sessOutputs(e.type).map(d=>outStepper(d.k,d.l,outVal(e.outputs,d.k),'logOutBump_'+e.id)).join('');
 }
 function sessionEditMins(id){
   const e = initSessionLog().find(x=>x.id===id); if(!e) return;
@@ -3138,6 +3199,10 @@ function renderSessions(){ saveState();
             <div class="slc-hint">${(SESSION_TYPES[sessTypeKey(session.type)]||{}).hint||''}</div></div>
           <div class="slc-clock" id="slcClock">${sessionClock()}</div>
         </div>
+        ${sessOutputs(session.type) ? `
+        <div class="slc-out">${sessOutputs(session.type).map(d=>outStepper(d.k,d.l,outVal(session.outputs,d.k),'sessOutBump')).join('')}</div>
+        <div class="slc-note">Tap + as you go — this is what the session produced. Nothing here is counted automatically, so an untouched counter really does mean none. You can also write a line at the end.</div>
+        ` : `
         <div class="slc-stats">
           <div class="slc-stat"><div class="v">${live.ideas}</div><div class="l">ideas added</div></div>
           <div class="slc-stat"><div class="v">${live.reviewed}</div><div class="l">ASINs reviewed</div></div>
@@ -3146,7 +3211,7 @@ function renderSessions(){ saveState();
           <div class="slc-stat"><div class="v" style="color:var(--acc-t)">${live.moved+live.progressed}</div><div class="l">progressed</div></div>
           <div class="slc-stat"><div class="v" style="color:var(--rt)">${live.rejected}</div><div class="l">rejected</div></div>
         </div>
-        <div class="slc-note">Counts update as you work anywhere in the app. ${idleWarnMin()} minutes of no activity and it will ask if you're still here; ${idleEndMin()} and it ends itself so idle time never counts.</div>
+        <div class="slc-note">Counts update as you work anywhere in the app. ${idleWarnMin()} minutes of no activity and it will ask if you're still here; ${idleEndMin()} and it ends itself so idle time never counts.</div>`}
       </div>
     ` : `
       <div class="sess-start-row">
@@ -3186,11 +3251,15 @@ function renderSessions(){ saveState();
             <div class="sh-dur" title="Click to correct" onclick="sessionEditMins(${x.id||0})">${fmtMins(x.mins||0)}${x.edited?' <i>edited</i>':''}${x.autoEnded?' <i>auto-ended</i>':''}</div>
             <div class="sh-bar"><div class="sh-fill" style="width:${Math.round((x.mins||0)/maxMins*100)}%;background:${wtHue(tk)}"></div></div>
             <div class="sh-chips">
-              <span><b>${x.ideas||0}</b> ideas</span>
+              ${sessOutputs(x.type)
+                ? (outTotal(x.outputs) ? sessOutputs(x.type).filter(d=>outVal(x.outputs,d.k)>0).map(d=>`<span><b>${outVal(x.outputs,d.k)}</b> ${d.l}</span>`).join('')
+                   : `<span class="sh-none">nothing logged — <button class="sh-more" onclick="sessionLogOutputs(${x.id||0})">add what you did</button></span>`)
+                : `<span><b>${x.ideas||0}</b> ideas</span>
               <span><b>${x.reviewed||0}</b> reviewed</span>
               <span style="color:var(--gt)"><b>${x.greens||0}</b> greens</span>
               <span><b>${(x.progressed||0)+(x.moved||0)}</b> progressed</span>
-              ${x.rejected?`<span style="color:var(--rt)"><b>${x.rejected}</b> rejected</span>`:''}
+              ${x.rejected?`<span style="color:var(--rt)"><b>${x.rejected}</b> rejected</span>`:''}`}
+              ${sessOutputs(x.type)&&outTotal(x.outputs)?`<button class="sh-more" onclick="sessionLogOutputs(${x.id||0})">edit</button>`:''}
               <button class="sh-more" onclick="sessionDetail(${x.id||0})">activity</button>
             </div>
             ${x.note?`<div class="sh-note">${esc(x.note)}</div>`:''}
@@ -3203,6 +3272,21 @@ function renderSessions(){ saveState();
     </div>`;
 
   if(session){ clearInterval(sessionTick); sessionTick = setInterval(tickSessionClock, 1000); }
+}
+// go back and fill in a finished session — she will not always remember at the time
+function sessionLogOutputs(id){
+  const e = initSessionLog().find(x=>x.id===id); if(!e || !sessOutputs(e.type)) return;
+  resetJkBtn();
+  window['logOutBump_'+e.id] = (k,by)=>logOutBump(e.id,k,by);
+  document.getElementById('jkTitle').textContent = sessLabel(e.type)+' · '+fmtMins(e.mins);
+  document.getElementById('jkBody').innerHTML = `
+    <div class="ss-outhd">What did this session produce?</div>
+    <div class="ss-grid out" id="ssOut">${sessOutputs(e.type).map(d=>outStepper(d.k,d.l,outVal(e.outputs,d.k),'logOutBump_'+e.id)).join('')}</div>
+    <div class="fld" style="margin-top:12px"><div class="fld-l">Note <span class="td-sub">in your own words</span></div>
+      <input class="set-input" id="ssNote" style="width:100%" value="${esc(e.note||'')}" placeholder="e.g. 2 listings created, 3 image stacks"></div>`;
+  document.getElementById('jkConfirm').textContent = 'Save';
+  document.getElementById('jkConfirm').onclick = ()=>{ e.note=((document.getElementById('ssNote')||{}).value||'').trim(); saveState(); closeModal('mJack'); renderSessions(); toast('Session updated'); };
+  openModal('mJack');
 }
 function sessionDetail(id){ resetJkBtn();
   const evs = EVENTS.filter(e=>e.sessionId===id);
@@ -8417,6 +8501,31 @@ tr:hover .comp-del{opacity:1}
 </style>
 <style>
 .sh-type{border-color:color-mix(in srgb,var(--wt,#787A87) 45%,transparent)!important;color:var(--wt,var(--t3))!important;background:color-mix(in srgb,var(--wt,#787A87) 12%,transparent)!important}
+</style>
+<style>
+/* session outputs — what the non-counted sessions actually produced */
+.slc-out{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;margin-top:4px}
+.out-cell{position:relative;background:var(--s2);border:1px solid var(--b1);border-radius:11px;padding:10px 11px 9px}
+.out-v{font-size:22px;font-weight:850;line-height:1;font-variant-numeric:tabular-nums;color:var(--t1)}
+.out-l{font-size:10.5px;color:var(--t3);margin-top:4px;line-height:1.25}
+.out-btns{position:absolute;top:7px;right:7px;display:flex;gap:3px}
+.out-btns button{width:22px;height:22px;border-radius:7px;border:1px solid var(--b2);background:var(--s3);color:var(--t3);font:800 13px/1 inherit;cursor:pointer;padding:0}
+.out-btns button:hover:not(:disabled){color:var(--t1);border-color:var(--b3)}
+.out-btns button:disabled{opacity:.3;cursor:default}
+.out-btns button.up{color:var(--acc-t);border-color:var(--b3)}
+.out-btns button.up:hover{background:var(--accent);color:#fff;border-color:transparent}
+.ss-grid.out{grid-template-columns:repeat(auto-fit,minmax(128px,1fr))}
+.ss-outhd{font-size:12.5px;font-weight:750;color:var(--t1);margin:2px 0 9px}
+.ss-outhd .td-sub{font-weight:600}
+.sb-stat.sb-out{cursor:pointer;border:1px solid transparent;border-radius:7px;padding:2px 7px;transition:border-color .12s,background .12s}
+.sb-stat.sb-out:hover{border-color:var(--b3);background:var(--s3)}
+.sb-stat.sb-out i{font-style:normal;margin-left:4px;color:var(--acc-t);font-weight:800}
+.sh-none{color:var(--t4);font-style:italic}
+.sh-none .sh-more{margin-left:4px;font-style:normal}
+</style>
+<style>
+.ss-notel{text-transform:none!important;letter-spacing:0!important;font-size:12px!important;font-weight:750!important;color:var(--t2)!important}
+.ss-notel .td-sub{font-weight:600;color:var(--t4)}
 </style>
 </body>
 </html>

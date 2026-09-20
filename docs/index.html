@@ -436,7 +436,7 @@ window.CLUB = (function(){
 <script>
 // BUILD is the version people see — moves by 0.05 a release; STAMP is what actually busts the cache. Bump STAMP every push.
 var BUILD = '0.90';
-var STAMP = '2026-09-09c';
+var STAMP = '2026-09-20a';
 document.getElementById('buildChip').textContent = 'v' + BUILD;
 
 var FRAMES = { ub: document.getElementById('f_ub'), pl: document.getElementById('f_pl') };
@@ -1151,19 +1151,31 @@ function renderPipe(){
   paintPipeN();
   // Empty stages collapse to slim rails so the products that DO exist get the screen.
   var HUES = {sourcing:'#22D3EE', validating:'#E879C7', samples:'#3B9EFF', ordered:'#FF8A3D', ready:'#FFC53D', launching:'#4ADE80', launched:'#00E5A0'};
-  var byCol = {}; COLS.forEach(function(c){ byCol[c.key]=cards.filter(function(x){return x.col===c.key;}); });
-  var card = function(x){ return '<div class="p-card '+x.app+(x.over?' stuck':'')+'" onclick="ovOpen(\''+x.app+'\','+JSON.stringify(String(x.id||'')).replace(/"/g,'&quot;')+')" title="Open in '+(x.app==='ub'?'Unique Bundles':'Private Label')+'">'
-      + (x.score!=null?'<span class="sc">'+x.score+'%</span>':'')
-      + '<div class="t">'+esc(x.title)+'</div>'
-      + '<div class="m"><span class="app-chip '+x.app+'">'+(x.app==='ub'?'UB':'PL')+'</span>'
-      + (x.days!=null ? '<span class="d'+(x.over?' over':x.wait?' wait':'')+'">'+(x.wait?'waiting · ':'')+x.days+'d'+(x.over?' · stuck':'')+'</span>' : '')
-      + '</div>'+(x.score==null?'<div class="s">'+esc(x.stage)+'</div>':'')+'</div>'; };
-  var template = COLS.map(function(c){ return byCol[c.key].length ? 'minmax(200px,1fr)' : '44px'; }).join(' ');
+  var shown = ovApplyFilter(cards);
+  var byCol = {}; COLS.forEach(function(c){ byCol[c.key]=shown.filter(function(x){return x.col===c.key;}); });
+  var OWNER={ub:'Becki', pl:'Jack'};
+  var card = function(x){
+    var next = x.over ? 'past its '+x.stage+' target'
+             : x.wait ? 'waiting on somebody else'
+             : x.days!=null && x.days>=7 ? 'untouched for '+x.days+' days'
+             : x.col==='launched' ? 'live' : 'on track in '+x.stage;
+    return '<div class="p-card '+x.app+(x.over?' stuck':'')+(x.wait?' waiting':'')+'" onclick="ovOpen(\''+x.app+'\','+JSON.stringify(String(x.id||'')).replace(/"/g,'&quot;')+')" title="'+esc(x.title)+' — open in '+(x.app==='ub'?'Unique Bundles':'Private Label')+'">'
+      + '<div class="pc-top">'+ovAvatar(x.title,'sm')+'<div class="t">'+esc(x.title)+'</div>'
+        + (x.score!=null?'<span class="sc">'+x.score+'%</span>':'')+'</div>'
+      + '<div class="pc-next'+(x.over?' bad':x.wait?' wait':'')+'">'+esc(next)+'</div>'
+      + '<div class="m"><span class="app-chip '+x.app+'" title="'+OWNER[x.app]+' owns this side">'+(x.app==='ub'?'UB':'PL')+' · '+OWNER[x.app]+'</span>'
+      + (x.days!=null ? '<span class="d'+(x.over?' over':x.wait?' wait':'')+'">'+x.days+'d</span>' : '')
+      + '</div></div>'; };
+  var oldest = function(rows){ var d=rows.map(function(r){return r.days||0;}); return d.length?Math.max.apply(null,d):0; };
+  var template = COLS.map(function(c){ return byCol[c.key].length ? 'minmax(210px,1fr)' : '46px'; }).join(' ');
   var cols = COLS.map(function(c){
     var rows = byCol[c.key];
-    if(!rows.length) return '<div class="p-col slim c-'+c.key+'" title="'+c.name+' — empty"><span class="c0">0</span><b>'+c.name+'</b></div>';
+    if(!rows.length) return '<div class="p-col slim c-'+c.key+'" title="'+c.name+' — nothing here, and an empty stage is a launch that does not arrive"><span class="c0">0</span><b>'+c.name+'</b></div>';
     rows = rows.slice().sort(function(a,b){ return (b.over?1:0)-(a.over?1:0) || (b.days||0)-(a.days||0); });
+    var st = rows.filter(function(r){return r.over;}).length, wt = rows.filter(function(r){return r.wait;}).length;
     return '<div class="p-col c-'+c.key+'"><div class="p-col-h"><b>'+c.name+'</b><span class="c">'+rows.length+'</span></div>'
+      + '<div class="p-col-sub">'+(st?'<i class="pcs-bad">'+st+' stuck</i>':'')+(wt?'<i class="pcs-wait">'+wt+' waiting</i>':'')
+        +(!st&&!wt?'<i>oldest '+oldest(rows)+'d</i>':'')+'</div>'
       + '<div class="p-cards">'+rows.map(card).join('')+'</div></div>';
   }).join('');
   // the flow bar: the shape of the whole belt in one line
@@ -1243,8 +1255,17 @@ function renderPipe(){
         mTgt:(tgt('moved')||0)+MK.pipeline, stuck:stuck}, cards); }
   catch(e){ console.error('overview',e); }
   // the joint board: every product on both belts across the seven shared stages
-  var board = '<div class="ov-flow">'+(flowSegs||'<span style="flex:1;background:var(--s3)"></span>')+'</div><div class="ov-flow-read">'+flowRead+'</div>'
-    + '<div class="p-board" style="grid-template-columns:'+template+'">'+cols+'</div>';
+  var f=ovFilter();
+  var fBtn=function(k,l,n){ return '<button class="ovf'+(f===k?' on':'')+'" onclick="setOvFilter(\''+k+'\')">'+l+(n!=null?'<i>'+n+'</i>':'')+'</button>'; };
+  var nUb=cards.filter(function(c){return c.app==='ub'&&c.col!=='launched';}).length,
+      nPl=cards.filter(function(c){return c.app==='pl'&&c.col!=='launched';}).length;
+  var filters='<div class="ov-fbar">'+fBtn('all','Everything',moving)+fBtn('ub','Unique Bundles · Becki',nUb)+fBtn('pl','Private Label · Jack',nPl)
+    +'<span class="ovf-sp"></span>'+fBtn('stuck','Needs a push',stuck)+fBtn('wait','Waiting',wait)+'</div>';
+  var board = filters
+    + '<div class="ov-flow">'+(flowSegs||'<span style="flex:1;background:var(--s3)"></span>')+'</div><div class="ov-flow-read">'+flowRead+'</div>'
+    + (moving+launched===0
+        ? '<div class="ov-blank">Nothing in either pipeline yet — promote your best ideas from each app and they appear here.</div>'
+        : '<div class="p-board" style="grid-template-columns:'+template+'">'+cols+'</div>');
   var isBoard = ovView()==='board';
   document.getElementById('pipe').innerHTML =
     '<div class="ov-main">'
@@ -1257,6 +1278,15 @@ function renderPipe(){
     + '</div>';
 }
 function ovView(){ try{ return localStorage.getItem('plub_ov_view')==='board'?'board':'summary'; }catch(e){ return 'summary'; } }
+function ovFilter(){ try{ return localStorage.getItem('plub_ov_filter')||'all'; }catch(e){ return 'all'; } }
+function setOvFilter(v){ try{ localStorage.setItem('plub_ov_filter', v); }catch(e){} renderPipe(); }
+function ovApplyFilter(cards){
+  var f=ovFilter();
+  if(f==='ub'||f==='pl') return cards.filter(function(c){ return c.app===f; });
+  if(f==='stuck') return cards.filter(function(c){ return c.over; });
+  if(f==='wait')  return cards.filter(function(c){ return c.wait; });
+  return cards;
+}
 function showOv(v){ try{ localStorage.setItem('plub_ov_view', v); }catch(e){} show('pipe'); }
 window.addEventListener('storage', function(e){ if(e.key==='ub_tracker_v1' || e.key==='pl_sourcing_v1'){ if(document.getElementById('pipe').classList.contains('show')) renderPipe(); else paintPipeN(); } });
 
@@ -1898,6 +1928,30 @@ body.rail-min #plubBar{left:64px}
 /* the Overview no longer carries a rail or bar of its own */
 .ov-rail,.ov-bar{display:none!important}
 #pipe{padding:0!important}
+</style>
+<style>
+/* joint pipeline: filter bar, richer cards, column health */
+.ov-fbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.ovf{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 13px;border-radius:99px;border:1px solid var(--b2);background:var(--s2);color:var(--t3);font:750 12px var(--sans);cursor:pointer;transition:border-color .12s,background .12s,color .12s}
+.ovf:hover{border-color:var(--b3);color:var(--t1)}
+.ovf.on{background:#1d1d22;color:var(--t1);border-color:var(--b3);box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.ovf i{font-style:normal;font-size:10.5px;font-weight:800;color:var(--t4);background:var(--s3);border-radius:99px;padding:1px 7px;min-width:18px;text-align:center}
+.ovf.on i{color:var(--t2)}
+.ovf-sp{flex:1}
+.p-col-sub{display:flex;gap:8px;margin:-4px 0 8px;font-size:10px;font-weight:700}
+.p-col-sub i{font-style:normal;color:var(--t4)}
+.p-col-sub .pcs-bad{color:#FF8FA3} .p-col-sub .pcs-wait{color:#FFDC85}
+.p-card{padding:9px 10px 9px 13px}
+.pc-top{display:flex;align-items:flex-start;gap:7px}
+.pc-top .pav{flex:none;margin-top:1px}
+.p-card .t{flex:1;min-width:0}
+.p-card .sc{float:none;flex:none;margin-left:auto;padding-left:6px}
+.pc-next{font-size:10.5px;color:var(--t4);margin-top:6px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc-next.bad{color:#FF8FA3;font-weight:700} .pc-next.wait{color:#FFDC85;font-weight:700}
+.p-card.waiting{border-style:dashed}
+.p-card .m{margin-top:7px}
+.app-chip{white-space:nowrap}
+.p-board{padding-bottom:6px}
 </style>
 </body>
 </html>

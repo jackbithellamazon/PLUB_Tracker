@@ -2492,7 +2492,19 @@ async function persistBrandState() {
   }
 }
 
-function showFlash(m){const e=document.getElementById('flash');if(!e)return;e.textContent=m;e.classList.add('show');clearTimeout(window._ft);window._ft=setTimeout(()=>e.classList.remove('show'),2200)}
+function showFlash(m){
+  // The inline chip lives in this app's own top bar, which the PLUB shell replaces and hides —
+  // every message (including "why won't it save") was being written into a hidden element.
+  // A floating toast always shows, standalone or embedded.
+  const e=document.getElementById('flash');
+  if(e){ e.textContent=m; e.classList.add('show'); clearTimeout(window._ft); window._ft=setTimeout(()=>e.classList.remove('show'),2200); }
+  let t=document.getElementById('plFlashToast');
+  if(!t){ t=document.createElement('div'); t.id='plFlashToast'; document.body.appendChild(t); }
+  t.textContent=m;
+  // a refusal needs to look like one
+  t.className = /required|before saving|minimum|first|failed|cannot|can't|select /i.test(m) ? 'show warn' : 'show';
+  clearTimeout(window._ftt); window._ftt=setTimeout(()=>{ t.className=''; }, 3200);
+}
 
 // ══════════════════
 // SCORING
@@ -3333,9 +3345,11 @@ e.g.  Chicory Coffee
   document.getElementById('tab-3').innerHTML=`
     <div class="sec-hd">Notes &amp; Thoughts <span style="color:var(--red);font-size:11px;margin-left:4px">required</span></div>
     <p style="font-size:13px;color:var(--t2);margin-bottom:12px;line-height:1.6">Your thoughts on the opportunity, concerns, improvement ideas, review findings, supplier leads — everything in one place.</p>
-    <textarea class="fta" id="f_myThoughts" style="flex:1;min-height:240px;width:100%" placeholder="Why do you like this idea? What is the opportunity? What are your concerns? What did you find in the reviews? Why do you think it can work? Dump everything here...">${esc(n.myThoughts||n.notes||'')}</textarea>
+    <textarea class="fta" id="f_myThoughts" oninput="thoughtsCount()" style="flex:1;min-height:240px;width:100%" placeholder="Why do you like this idea? What is the opportunity? What are your concerns? What did you find in the reviews? Why do you think it can work? Dump everything here...">${esc(n.myThoughts||n.notes||'')}</textarea>
+    <div class="th-count" id="thCount"></div>
     <input type="hidden" id="f_notes" value="">
   `;
+  thoughtsCount();
   renderAsinList();
   const srcWrap=document.getElementById('src_dd_wrap');
   if(srcWrap){
@@ -3474,6 +3488,14 @@ function readForm(){
 }
 
 function saveDraftIdea(){return saveIdea(true);}
+// Saving needs 20 characters here. Say so while they type, not only when Save is refused.
+function thoughtsCount(){
+  const el=document.getElementById('f_myThoughts'), out=document.getElementById('thCount');
+  if(!el||!out) return;
+  const n=el.value.trim().length, need=20;
+  out.className = 'th-count' + (n>=need ? ' ok' : n>0 ? ' part' : '');
+  out.textContent = n>=need ? '✓ enough to save' : (need-n)+' more character'+((need-n)===1?'':'s')+' needed before this can be saved';
+}
 function saveIdea(force){
   const data=readForm();
   if(!data.name.trim()){
@@ -5552,11 +5574,70 @@ function removeCustomTask(id,sid,key){const n=ideas.find(x=>x.id===id);if(!n)ret
   p.customTasks[sid]=(p.customTasks[sid]||[]).filter(t=>t.id!==key);delete p.steps[key];persist();renderProduct();}
 
 // ── SUPPLIERS ──
+/* What to capture per supplier — the same list drives the table, the bulk paste and the guide */
+const SUP_COLS=[
+  {k:'name',       l:'Supplier',            w:'Contact name — the person you are talking to',                 m:/^supplier$|contact ?name|^name$|^contact$/},
+  {k:'company',    l:'Company',             w:'Factory or trading company. TBC until they tell you',          m:/company|factory|vendor/},
+  {k:'product',    l:'Product',             w:'Their description of what they quoted',                        m:/product|item|description/},
+  {k:'size',       l:'Size',                w:'Capacity or dimensions, e.g. 24oz',                            m:/size|capacity|dimension/},
+  {k:'moq',        l:'MOQ',                 w:'Minimum order — note per colour or per capacity if it applies', m:/moq|minimum|^min/},
+  {k:'price500',   l:'Unit cost @ tier 1',  w:'Unit cost at the first quantity, as quoted (incl. currency)',   m:/(^|\D)500\D.*(cost|price)|(cost|price).*(^|\D)500(\D|$)|tier ?1|^unit ?(cost|price)$|^price$|^cost$|quote/, num:true},
+  {k:'price1000',  l:'Unit cost @ tier 2',  w:'Unit cost at the second quantity, as quoted',                  m:/1[,.]?000.*(cost|price)|(cost|price).*1[,.]?000|\b1k\b|tier ?2/, num:true},
+  {k:'incoterm',   l:'Incoterm',            w:'FOB, EXW, DDP…',                                              m:/incoterm|\bfob\b|\bexw\b|shipping terms/},
+  {k:'port',       l:'Port',                w:'Ship-from port',                                               m:/port/},
+  {k:'logo',       l:'Logo',                w:'Logo method and cost — laser included, +$0.30, TBC',           m:/logo|branding|print/},
+  {k:'colour',     l:'Custom colour',       w:'Custom colour available and its MOQ',                          m:/colou?r/},
+  {k:'box',        l:'Custom box',          w:'Custom box available, setup or per-unit cost',                 m:/box|packag/},
+  {k:'sampleCost', l:'Sample cost',         w:'Sample cost delivered, as quoted',                             m:/sample.*(cost|price|fee|£|\$|deliver)|(cost|price).*sample|^sample$/, num:true},
+  {k:'sampleType', l:'Sample type',         w:'Stock, logo sample, fully custom…',                            m:/sample.*type|type.*sample/},
+  {k:'lead',       l:'Lead time',           w:'Production lead time, or sample lead time if that is all you have', m:/lead|time/},
+  {k:'features',   l:'Key features',        w:'Material, mechanism, storage, insulation…',                    m:/feature|spec|material/},
+  {k:'notes',      l:'Status / notes',      w:'Where you are with them and what is still missing',            m:/status|note|comment|next/},
+  {k:'terms',      l:'Payment terms',       w:'e.g. 30% deposit, 70% before ship',                            m:/payment|deposit/},
+  {k:'contact',    l:'Contact / link',      w:'Email, WeChat, Alibaba store link',                            m:/email|link|wechat|url|whatsapp/},
+];
+const SUP_TBC=/^(tbc|n\/?a|na|-+|—|\?|tba|pending)$/i;
+function supIsTbc(v){ return SUP_TBC.test(String(v||'').trim()); }
+window.__supOpen = window.__supOpen || {};
+function supNum(v){ const n=parseFloat(String(v||'').replace(/[£$,\s]/g,'')); return isFinite(n)?n:null; }
+function renderSupplierTable(n){
+  const p=ensurePipe(n), rows=p.suppliers;
+  if(!rows.length) return '';
+  const prices=rows.map(s=>supNum(s.price)).filter(v=>v!=null); const cheapest=prices.length?Math.min(...prices):null;
+  const cells=rows.map((s,i)=>{
+    const pr=supNum(s.price), chosen=p.chosenSupplier===s.id, open=!!window.__supOpen[s.id];
+    const link=/^(https?:\/\/|www\.)/i.test(String(s.contact||'').trim());
+    return '<tr class="'+(chosen?'chosen ':'')+(open?'open':'')+'" onclick="supToggleOpen('+n.id+',\''+s.id+'\')">'
+      +'<td class="sup-td-name"><b>'+esc(s.name||'(unnamed)')+'</b>'+(chosen?'<i class="sup-tag chosen">chosen</i>':'')+(s.shortlist?'<i class="sup-tag star">★</i>':'')+'</td>'
+      +'<td>'+esc(s.country||'—')+'</td>'
+      +'<td class="num'+(pr!=null&&pr===cheapest&&prices.length>1?' best':'')+'">'+(pr!=null?'£'+pr.toFixed(2):'—')+'</td>'
+      +'<td class="num">'+esc(s.moq||'—')+'</td>'
+      +'<td class="num">'+(s.lead?esc(s.lead)+'d':'—')+'</td>'
+      +'<td class="num">'+(supNum(s.sampleCost)!=null?'£'+supNum(s.sampleCost).toFixed(2):'—')+'</td>'
+      +'<td>'+esc(s.custom||'—')+'</td>'
+      +'<td class="sup-td-contact">'+(link?'<a href="'+esc(s.contact)+'" target="_blank" onclick="event.stopPropagation()">open ↗</a>':esc(s.contact||'—'))+'</td>'
+      +'<td class="sup-td-act"><button class="sup-mini '+(chosen?'on':'')+'" title="Mark as the chosen supplier" onclick="event.stopPropagation();chooseSupplier('+n.id+','+i+')">'+(chosen?'✓':'choose')+'</button></td>'
+      +'</tr>';
+  }).join('');
+  return '<div class="sup-tblwrap"><table class="sup-tbl"><thead><tr>'
+    +'<th>Supplier</th><th>Country / platform</th><th class="num">Unit £</th><th class="num">MOQ</th><th class="num">Lead</th><th class="num">Sample £</th><th>Branding</th><th>Contact</th><th></th>'
+    +'</tr></thead><tbody>'+cells+'</tbody></table></div>'
+    +'<div class="sup-tbl-hint">Click a row to open the full card. Cheapest unit price is marked. ★ shortlisted.</div>';
+}
+function supToggleOpen(id,sid){ window.__supOpen[sid]=!window.__supOpen[sid]; window.renderProduct(); }
 function renderSuppliers(n){
   const p=ensurePipe(n);
   let h='';
-  if(!p.suppliers.length){h+='<div class="prod-empty-hint">No suppliers yet — add the ones you find.</div>';}
+  h+='<div class="sup-bar">'
+    +'<button class="btn sm" onclick="addSupplier('+n.id+')">+ Add supplier</button>'
+    +'<button class="btn sm primary" onclick="supBulkOpen('+n.id+')">⇩ Bulk add — paste a list</button>'
+    +'<button class="btn sm ghost" onclick="supGuideOpen()">What to capture per supplier</button>'
+    +(p.suppliers.length?'<span class="sup-bar-n">'+p.suppliers.length+' supplier'+(p.suppliers.length===1?'':'s')+'</span>':'')
+    +'</div>';
+  h+=renderSupplierTable(n);
+  if(!p.suppliers.length){h+='<div class="prod-empty-hint">No suppliers yet — paste a list from your sheet, or add one at a time.</div>';}
   p.suppliers.forEach((s,i)=>{
+    if(p.suppliers.length>1 && !window.__supOpen[s.id]) return;   // the table is the summary; cards open on demand
     const chosen=p.chosenSupplier===s.id;
     h+='<div class="sample-card '+(chosen?'chosen':'')+'">';
     h+='<div class="sample-top"><input class="supplier-name-input" value="'+esc(s.name||'')+'" placeholder="Supplier name" oninput="updateSupplier('+n.id+','+i+',\'name\',this.value)">'
@@ -5568,7 +5649,9 @@ function renderSuppliers(n){
       +supField(n,i,'lead','Lead time (days)')
       +supField(n,i,'country','Country / platform')
       +supField(n,i,'contact','Contact / link')
-      +supField(n,i,'sampleCost','Sample cost (£)')+'</div>';
+      +supField(n,i,'sampleCost','Sample cost (£)')
+      +supField(n,i,'custom','Branding / customisation')
+      +supField(n,i,'terms','Payment terms')+'</div>';
     h+='<div class="supplier-ratings">'
       +supRating(n,i,'comms','Communication')
       +supRating(n,i,'quality','Quoted quality')
@@ -5578,7 +5661,6 @@ function renderSuppliers(n){
     h+='<button class="sample-choose '+(chosen?'on':'')+'" onclick="chooseSupplier('+n.id+','+i+')">'+(chosen?'✓ Chosen supplier':'Mark as chosen supplier')+'</button>';
     h+='</div>';
   });
-  h+='<button class="supplier-add" onclick="addSupplier('+n.id+')">+ Add supplier</button>';
   return h;
 }
 function supField(n,i,key,label){const s=ensurePipe(n).suppliers[i];
@@ -5588,8 +5670,88 @@ function supRating(n,i,key,label){const s=ensurePipe(n).suppliers[i];const v=s[k
   return '<div class="supplier-rating"><span class="srate-label">'+esc(label)+'</span><div class="srate-dots">'+dots+'</div></div>';}
 function addSupplier(id){const n=ideas.find(x=>x.id===id);if(!n)return;const p=ensurePipe(n);
   try{ CLUB.log('supplier_added',{app:'pl',entity_kind:'product',entity_ref:n.id,entity_name:n.name}); }catch(e){}
-  p.suppliers.push({id:'sup'+Date.now(),name:'',price:'',moq:'',lead:'',country:'',contact:'',sampleCost:'',comms:0,quality:0,trust:0,notes:'',shortlist:false});
+  const id2='sup'+Date.now();
+  p.suppliers.push({id:id2,name:'',price:'',moq:'',lead:'',country:'',contact:'',sampleCost:'',custom:'',terms:'',comms:0,quality:0,trust:0,notes:'',shortlist:false});
+  window.__supOpen[id2]=true;
   persist();renderProduct();}
+/* ── bulk add: one supplier per line, pasted from a sheet or typed ── */
+function supBulkParse(raw){
+  const clean=v=>String(v||'').replace(/\*\*|__/g,'').replace(/^\s*\*|\*\s*$/g,'').trim();
+  let lines=String(raw||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  // a markdown table: drop the |---| rule row and the outer pipes
+  lines=lines.filter(l=>!/^\|?\s*:?-{2,}/.test(l));
+  const split=l=>{ let parts = l.indexOf('\t')>=0 ? l.split('\t') : l.indexOf('|')>=0 ? l.split('|') : l.split(','); parts=parts.map(clean);
+    if(l.indexOf('|')>=0){ if(parts.length&&parts[0]==='') parts.shift(); if(parts.length&&parts[parts.length-1]==='') parts.pop(); } return parts; };
+  if(!lines.length) return {rows:[],tiers:null};
+  let cols=SUP_COLS.map(c=>c.k), start=0, tiers=null;
+  const first=split(lines[0]).map(x=>x.toLowerCase());
+  // a heading row: several cells read as column names and none is a bare number or price
+  // ("500 Unit Cost" is a heading; "500" and "$4.89" are data)
+  // most cells read as column names, all of them short, none a bare number or price —
+  // a data row has long notes ("Need 1k quote, sample, logo cost…") and real numbers, a heading never does
+  const looksHeader=parts=> parts.length>1
+    && parts.filter(x=>SUP_COLS.some(c=>c.m.test(x))).length >= Math.max(3, Math.ceil(parts.length*0.6))
+    && parts.every(x=>x.length<=32)
+    && !parts.some(x=>/^[£$€~]?\d+([.,]\d+)?$/.test(x));
+  if(looksHeader(first)){
+    cols=first.map(x=>{ const hit=SUP_COLS.find(c=>c.m.test(x)); return hit?hit.k:null; });
+    // tier labels come from the headings: "500 Unit Cost" / "1,000 Unit Cost"
+    const t1=first.find(x=>/(cost|price)/.test(x)&&/\d/.test(x)), t2=first.filter(x=>/(cost|price)/.test(x)&&/\d/.test(x))[1];
+    if(t1) tiers=[(t1.match(/[\d,.]+k?/)||[''])[0], t2?(t2.match(/[\d,.]+k?/)||[''])[0]:''];
+    start=1;
+  }
+  const rows=lines.slice(start).map(l=>{
+    const parts=split(l); if(looksHeader(parts.map(x=>x.toLowerCase()))) return null;
+    const o={}; parts.forEach((v,ix)=>{ const k=cols[ix]; if(!k||!v) return; o[k]=v; });
+    if(!o.name && parts[0]) o.name=parts[0];
+    // "Strong shortlist." in the status column is a shortlist
+    if(o.notes && /shortlist/i.test(o.notes) && !/lower|not/i.test(o.notes.split('.')[0])) o.shortlist=true;
+    return o;
+  }).filter(o=>o&&o.name);
+  return {rows,tiers};
+}
+function supFirstNum(v){ const m=String(v||'').replace(/,/g,'').match(/\d+(?:\.\d+)?/); return m?parseFloat(m[0]):null; }
+function supTierLabels(p){ const t=p.supTiers&&p.supTiers.length?p.supTiers:['500','1,000']; return [t[0]||'500', t[1]||'1,000']; }
+function supBulkOpen(id){
+  const n=ideas.find(x=>x.id===id); if(!n) return;
+  const h=plmHost(); h.querySelector('.plm-bar').style.background='var(--brand,#7C6CFF)';
+  document.getElementById('plmTitle').textContent='Bulk add suppliers — '+cleanName(n);
+  document.getElementById('plmBody').innerHTML=
+    '<p class="plm-p">Paste your supplier sheet — straight from Sheets/Excel, a markdown table, or one supplier per line with commas or pipes. A heading row is matched by name, so your own column names work. <b>TBC</b> and <b>n/a</b> stay as written so you can see what is still to chase.</p>'
+    +'<div class="sup-order">'+SUP_COLS.map(c=>'<span>'+esc(c.l)+'</span>').join('<i>›</i>')+'</div>'
+    +'<textarea id="supBulkTA" class="sup-bulk" placeholder="Supplier | Company | Product | Size | MOQ | 500 Unit Cost | 1,000 Unit Cost | Incoterm | Port | Logo | Custom Colour | Custom Box | Sample Cost | Sample Type | Lead Time | Key Features | Status / Notes\nLora Fang | TBC | SS Protein Shaker + Storage | 24oz | 500 | $4.89 | $4.55 | FOB | Ningbo | Laser included | Yes | Yes; $100 setup | $50 | Logo sample | TBC | Tritan storage; mesh | Strong shortlist." oninput="supBulkPreview()"></textarea>'
+    +'<div class="sup-bulk-prev" id="supBulkPrev">Paste to see what will be added.</div>';
+  document.getElementById('plmFoot').innerHTML='<button class="plm-btn ghost" id="plmNo">Cancel</button><button class="plm-btn primary" id="plmYes">Add suppliers</button>';
+  document.getElementById('plmNo').onclick=function(){ plmClose(); };
+  document.getElementById('plmYes').onclick=function(){
+    const res=supBulkParse(document.getElementById('supBulkTA').value), rows=res.rows;
+    if(!rows.length){ showFlash('Nothing to add — one supplier per line'); return; }
+    const p=ensurePipe(n);
+    if(res.tiers&&res.tiers[0]) p.supTiers=res.tiers;
+    rows.forEach(o=>{ p.suppliers.push(Object.assign({id:'sup'+Date.now()+Math.random().toString(36).slice(2,6),name:'',price:'',moq:'',lead:'',country:'',contact:'',sampleCost:'',comms:0,quality:0,trust:0,notes:'',shortlist:false}, o)); });
+    try{ CLUB.log('supplier_added',{app:'pl',entity_kind:'product',entity_ref:n.id,entity_name:n.name,detail:{count:rows.length}}); }catch(e){}
+    logHistory(n,'note','Added '+rows.length+' supplier'+(rows.length===1?'':'s')+' in bulk: <b>'+esc(rows.map(r=>r.name).join(', '))+'</b>');
+    plmClose(); persist(); window.renderProduct(); showFlash(rows.length+' supplier'+(rows.length===1?'':'s')+' added');
+  };
+  h.classList.add('open'); setTimeout(()=>{ const t=document.getElementById('supBulkTA'); if(t) t.focus(); },40);
+}
+function supBulkPreview(){
+  const res=supBulkParse((document.getElementById('supBulkTA')||{}).value), rows=res.rows, el=document.getElementById('supBulkPrev'); if(!el) return;
+  if(!rows.length){ el.textContent='Paste to see what will be added.'; return; }
+  const filled=rows.reduce((a,r)=>a+Object.keys(r).filter(k=>r[k]&&k!=='shortlist').length,0);
+  el.innerHTML='<b>'+rows.length+' supplier'+(rows.length===1?'':'s')+'</b> · '+filled+' fields'+(res.tiers&&res.tiers[0]?' · tiers '+esc(res.tiers[0])+' / '+esc(res.tiers[1]||'—'):'')+': '
+    +rows.map(r=>'<span>'+esc(r.name)+(r.price500?' · '+esc(r.price500):'')+(r.moq?' · MOQ '+esc(r.moq):'')+(r.shortlist?' ★':'')+'</span>').join('');
+}
+function supGuideOpen(){
+  const h=plmHost(); h.querySelector('.plm-bar').style.background='#22D3EE';
+  document.getElementById('plmTitle').textContent='What to capture per supplier';
+  document.getElementById('plmBody').innerHTML='<p class="plm-p">Enough to compare them side by side and to pick one without going back to the emails. The comparison columns sit in the row; the rest open with ▸. Write <b>TBC</b> where they have not answered yet — it shows dim so the gaps are obvious.</p>'
+    +'<div class="sup-guide">'+SUP_COLS.map(c=>'<div><b>'+esc(c.l)+'</b><span>'+esc(c.w)+'</span></div>').join('')+'</div>'
+    +'<p class="plm-p" style="margin-top:10px">Then on the card: rate <b>communication</b>, <b>quoted quality</b> and <b>trust</b> out of five, ★ shortlist the ones worth a sample, and mark one <b>chosen</b> when you decide.</p>';
+  document.getElementById('plmFoot').innerHTML='<button class="plm-btn primary" id="plmNo">Got it</button>';
+  document.getElementById('plmNo').onclick=function(){ plmClose(); };
+  h.classList.add('open');
+}
 function updateSupplier(id,i,key,val){const n=ideas.find(x=>x.id===id);if(!n)return;ensurePipe(n).suppliers[i][key]=val;persist();}
 function setSupRating(id,i,key,v){const n=ideas.find(x=>x.id===id);if(!n)return;const s=ensurePipe(n).suppliers[i];s[key]=s[key]===v?0:v;persist();renderProduct();}
 function toggleShortlist(id,i){const n=ideas.find(x=>x.id===id);if(!n)return;const s=ensurePipe(n).suppliers[i];s.shortlist=!s.shortlist;
@@ -6293,8 +6455,39 @@ updateLastSaved();
   window.plSaveDataText=function(id,key,val){var n=ideas.find(function(x){return x.id===id;});if(!n)return;plEnsure(n).data[key]=val;plQuietPersist();};
   function plDuplicateMatches(n){var tokens=cleanName(n).toLowerCase().split(/[^a-z0-9]+/).filter(function(x){return x.length>3;});var hits=ideas.filter(function(x){return x.id!==n.id&&!x.isSample&&tokens.some(function(t){return cleanName(x).toLowerCase().indexOf(t)!==-1;});}).slice(0,3);return hits.length?'Potential overlap with: <b>'+hits.map(function(x){return plEsc(cleanName(x));}).join(', ')+'</b>. Check it is not already being researched.':'No likely duplicate products found in your current tracker.';}
 
-  function plRenderSuppliersSamples(n){var p=plEnsure(n);return '<h2 class="pl-tab-title">Suppliers & samples</h2><p class="pl-tab-sub">Compare suppliers side by side, choose one, then keep any sample rounds and outcomes here.</p><h3 class="pl-tab-title" style="font-size:14px">Supplier comparison</h3>'+plSupplierTable(n)+'<div class="pl-add-row"><button class="pl-action-btn" onclick="plAddSupplier('+n.id+')">+ Add supplier</button></div><h3 class="pl-tab-title" style="font-size:14px;margin-top:20px">Sample rounds</h3><p class="pl-tab-sub">Optional — add a second round only when a product needs another sample.</p>'+plSampleRounds(n)+'<div class="pl-add-row"><button class="pl-action-btn" onclick="plAddSampleRound('+n.id+')">+ Add sample round</button></div>';}
-  function plSupplierTable(n){var p=plEnsure(n);if(!p.suppliers.length)return '<div class="pl-tab-empty">No suppliers added yet. Add each supplier you are speaking to, then mark the strongest one as selected.</div>';return '<div class="pl-table-wrap"><table class="pl-table"><thead><tr><th>Supplier</th><th>Unit £</th><th>MOQ</th><th>Sample £</th><th>Lead days</th><th>Link / contact</th><th>Selected</th><th></th></tr></thead><tbody>'+p.suppliers.map(function(s,i){var selected=p.chosenSupplier===s.id;return '<tr><td><input value="'+plEsc(s.name||'')+'" placeholder="Supplier" oninput="plSupplierField('+n.id+','+i+',\'name\',this.value)"></td><td><input value="'+plEsc(s.price||'')+'" placeholder="0.00" oninput="plSupplierField('+n.id+','+i+',\'price\',this.value)"></td><td><input value="'+plEsc(s.moq||'')+'" placeholder="0" oninput="plSupplierField('+n.id+','+i+',\'moq\',this.value)"></td><td><input value="'+plEsc(s.sampleCost||'')+'" placeholder="0.00" oninput="plSupplierField('+n.id+','+i+',\'sampleCost\',this.value)"></td><td><input value="'+plEsc(s.lead||'')+'" placeholder="0" oninput="plSupplierField('+n.id+','+i+',\'lead\',this.value)"></td><td><input value="'+plEsc(s.contact||'')+'" placeholder="Link or contact" oninput="plSupplierField('+n.id+','+i+',\'contact\',this.value)"></td><td><button class="pl-icon-btn '+(selected?'selected':'')+'" onclick="plChooseSupplier('+n.id+','+i+')">'+(selected?'✓ Selected':'Select')+'</button></td><td><button class="pl-icon-btn delete" onclick="plDeleteSupplier('+n.id+','+i+')">×</button></td></tr>';}).join('')+'</tbody></table></div>';}
+  function plRenderSuppliersSamples(n){var p=plEnsure(n);return '<h2 class="pl-tab-title">Suppliers & samples</h2><p class="pl-tab-sub">Compare suppliers side by side, choose one, then keep any sample rounds and outcomes here.</p><h3 class="pl-tab-title" style="font-size:14px">Supplier comparison</h3>'+plSupplierTable(n)+'<div class="pl-add-row"><button class="pl-action-btn" onclick="plAddSupplier('+n.id+')">+ Add supplier</button><button class="pl-action-btn primary" onclick="supBulkOpen('+n.id+')">⇩ Bulk add — paste a list</button><button class="pl-action-btn" onclick="supGuideOpen()">What to capture per supplier</button></div><h3 class="pl-tab-title" style="font-size:14px;margin-top:20px">Sample rounds</h3><p class="pl-tab-sub">Optional — add a second round only when a product needs another sample.</p>'+plSampleRounds(n)+'<div class="pl-add-row"><button class="pl-action-btn" onclick="plAddSampleRound('+n.id+')">+ Add sample round</button></div>';}
+  function plSupplierTable(n){var p=plEnsure(n);if(!p.suppliers.length)return '<div class="pl-tab-empty">No suppliers added yet. Paste your sheet with <b>Bulk add</b>, or add them one at a time, then mark the strongest one as selected.</div>';
+    var T=supTierLabels(p);
+    var best=function(k){ var vs=p.suppliers.map(function(s){return supFirstNum(s[k]);}).filter(function(v){return v!=null;}); return vs.length>1?Math.min.apply(null,vs):null; };
+    var b1=best('price500'), b2=best('price1000');
+    var cell=function(s,i,k,ph,extra){ var v=s[k]||''; var cls=(extra||'')+(supIsTbc(v)?' tbc':''); return '<td'+(cls.trim()?' class="'+cls.trim()+'"':'')+'><input value="'+plEsc(v)+'" placeholder="'+ph+'" oninput="plSupplierField('+n.id+','+i+',\''+k+'\',this.value);plSupTbc(this)"></td>'; };
+    var area=function(s,i,k,l){ return '<label class="sup-dl"><span>'+plEsc(l)+'</span><textarea rows="2" oninput="plSupplierField('+n.id+','+i+',\''+k+'\',this.value)">'+plEsc(s[k]||'')+'</textarea></label>'; };
+    var fld=function(s,i,k,l){ return '<label class="sup-dl"><span>'+plEsc(l)+'</span><input value="'+plEsc(s[k]||'')+'" oninput="plSupplierField('+n.id+','+i+',\''+k+'\',this.value)"></label>'; };
+    return '<div class="pl-table-wrap"><table class="pl-table pl-sup-table"><thead><tr><th></th><th>Supplier</th><th>Product · size</th><th>MOQ</th><th>@ '+plEsc(T[0])+'</th><th>@ '+plEsc(T[1])+'</th><th>Incoterm · port</th><th>Logo</th><th>Custom box</th><th>Sample</th><th>Lead</th><th>Status / notes</th><th>Selected</th><th></th></tr></thead><tbody>'
+      +p.suppliers.map(function(s,i){var selected=p.chosenSupplier===s.id, open=!!window.__supOpen[s.id];
+        var v1=supFirstNum(s.price500), v2=supFirstNum(s.price1000);
+        return '<tr class="'+(selected?'sel ':'')+(open?'open':'')+'">'
+          +'<td class="sup-tg"><button class="sup-mini" title="More fields" onclick="plSupToggle(\''+s.id+'\')">'+(open?'▾':'▸')+'</button></td>'
+          +'<td class="sup-name"><input value="'+plEsc(s.name||'')+'" placeholder="Supplier" oninput="plSupplierField('+n.id+','+i+',\'name\',this.value)">'+(s.shortlist?'<i class="sup-tag star" title="Shortlisted">★</i>':'')+'<input class="sup-sub'+(supIsTbc(s.company)?' tbc':'')+'" value="'+plEsc(s.company||'')+'" placeholder="Company" oninput="plSupplierField('+n.id+','+i+',\'company\',this.value);plSupTbc(this)"></td>'
+          +'<td class="sup-name"><input value="'+plEsc(s.product||'')+'" placeholder="Product" oninput="plSupplierField('+n.id+','+i+',\'product\',this.value)"><input class="sup-sub'+(supIsTbc(s.size)?' tbc':'')+'" value="'+plEsc(s.size||'')+'" placeholder="Size" oninput="plSupplierField('+n.id+','+i+',\'size\',this.value);plSupTbc(this)"></td>'
+          +cell(s,i,'moq','0')
+          +cell(s,i,'price500','$0.00',(b1!=null&&v1===b1)?'best':'')
+          +cell(s,i,'price1000','$0.00',(b2!=null&&v2===b2)?'best':'')
+          +'<td class="sup-name"><input class="'+(supIsTbc(s.incoterm)?'tbc':'')+'" value="'+plEsc(s.incoterm||'')+'" placeholder="FOB / EXW" oninput="plSupplierField('+n.id+','+i+',\'incoterm\',this.value);plSupTbc(this)"><input class="sup-sub'+(supIsTbc(s.port)?' tbc':'')+'" value="'+plEsc(s.port||'')+'" placeholder="Port" oninput="plSupplierField('+n.id+','+i+',\'port\',this.value);plSupTbc(this)"></td>'
+          +cell(s,i,'logo','Laser incl.')
+          +cell(s,i,'box','Yes; $100 setup')
+          +cell(s,i,'sampleCost','$0')
+          +cell(s,i,'lead','TBC')
+          +cell(s,i,'notes','Status','wide')
+          +'<td><button class="pl-icon-btn '+(selected?'selected':'')+'" onclick="plChooseSupplier('+n.id+','+i+')">'+(selected?'✓ Selected':'Select')+'</button></td><td><button class="pl-icon-btn delete" onclick="plDeleteSupplier('+n.id+','+i+')">×</button></td></tr>'
+          +(open?'<tr class="sup-detail"><td colspan="14"><div class="sup-dgrid">'+fld(s,i,'colour','Custom colour')+fld(s,i,'sampleType','Sample type')+fld(s,i,'terms','Payment terms')+fld(s,i,'contact','Contact / link')+area(s,i,'features','Key features')+area(s,i,'notes','Status / notes (full)')+'</div>'
+            +'<div class="sup-drow"><button class="sup-mini '+(s.shortlist?'on':'')+'" onclick="plSupShortlist('+n.id+','+i+')">'+(s.shortlist?'★ Shortlisted':'☆ Shortlist')+'</button><span class="sup-tbl-hint" style="margin:0">Tier quantities for this product: <input class="sup-tier" value="'+plEsc(T[0])+'" oninput="plSupTier('+n.id+',0,this.value)"> and <input class="sup-tier" value="'+plEsc(T[1])+'" oninput="plSupTier('+n.id+',1,this.value)"></span></div></td></tr>':'');
+      }).join('')
+      +'</tbody></table></div><div class="sup-tbl-hint">Cheapest at each quantity is green · dim grey is TBC or n/a, still to chase · ▸ opens colour, sample type, terms, contact, features and the full notes · everything edits in place.</div>';}
+  window.plSupToggle=function(sid){ window.__supOpen[sid]=!window.__supOpen[sid]; window.renderProduct(); };
+  window.plSupTbc=function(inp){ inp.classList.toggle('tbc', supIsTbc(inp.value)); if(inp.parentElement&&inp.parentElement.tagName==='TD') inp.parentElement.classList.toggle('tbc', supIsTbc(inp.value)); };
+  window.plSupTier=function(id,ix,v){ var n=ideas.find(function(x){return x.id===id;}); if(!n) return; var p=plEnsure(n); p.supTiers=supTierLabels(p); p.supTiers[ix]=v; plQuietPersist(); };
+  window.plSupShortlist=function(id,i){ var n=ideas.find(function(x){return x.id===id;}); if(!n) return; var s=plEnsure(n).suppliers[i]; s.shortlist=!s.shortlist; logHistory(n,'note',(s.shortlist?'Shortlisted':'Un-shortlisted')+' supplier <b>'+plEsc(s.name||'(unnamed)')+'</b>'); persist(); window.renderProduct(); };
   window.plAddSupplier=function(id){var n=ideas.find(function(x){return x.id===id;});if(!n)return;plEnsure(n).suppliers.push({id:'sup'+Date.now(),name:'',price:'',moq:'',lead:'',country:'',contact:'',sampleCost:'',notes:'',shortlist:false});persist();renderProduct();};
   window.plSupplierField=function(id,i,key,val){var n=ideas.find(function(x){return x.id===id;});if(!n)return;plEnsure(n).suppliers[i][key]=val;plQuietPersist();};
   window.plChooseSupplier=function(id,i){var n=ideas.find(function(x){return x.id===id;});if(!n)return;var p=plEnsure(n),s=p.suppliers[i];p.chosenSupplier=p.chosenSupplier===s.id?null:s.id;logHistory(n,'note',p.chosenSupplier?'Selected supplier <b>'+plEsc(s.name||'(unnamed)')+'</b>':'Cleared selected supplier');persist();renderProduct();};
@@ -6500,11 +6693,30 @@ document.addEventListener('mousedown', function(e){
     uxPersist();uxRefresh();
   };
   window.plUXRemoveTask=function(id,sid,key){
-    var n=ideas.find(function(x){return x.id===id;});if(!n)return;var scope=document.getElementById('plTaskScope_'+key);var all=scope&&scope.value==='all';var p=uxEnsure(n),task=uxFindTask(n,sid,key),tmpl=uxTemplateByKey(sid,key);
-    if(all&&tmpl){ plConfirm2({title:'Remove from every product in '+stageById(sid).name+'?', body:'\u201c'+(task?task.label:'this task')+'\u201d also disappears for future products entering this stage.', ok:'Remove everywhere', hue:'#FF5470', onOk:function(){ settings.pipelineTaskTemplates[sid]=uxTemplates()[sid].filter(function(t){return t.id!==key;}); logHistory(n,'note','Removed shared stage task: <b>'+uxEsc(task?task.label:key)+'</b>',stageById(sid).name+' · all products'); openState[String(id)+'_'+sid]=null; uxPersist();uxRefresh(); }}); return; }
-    else if(all&&!tmpl){ showFlash('Product-only task \u2014 remove it from this product only'); return; }
-    else { plConfirm2({title:'Remove from '+cleanName(n)+' only?', body:'Marks it not applicable for this product. The shared stage template is untouched.', ok:'Remove', hue:'#FF5470', onOk:function(){ if(tmpl){p.hiddenTasks[key]=true;uxOverrides(p,sid).hidden[key]=true;}else{p.customTasks[sid]=(p.customTasks[sid]||[]).filter(function(t){return t.id!==key;});}delete p.steps[key];delete p.taskNotes[key];logHistory(n,'note','Marked task N/A: <b>'+uxEsc(task?task.label:key)+'</b>',stageById(sid).name); openState[String(id)+'_'+sid]=null; uxPersist();uxRefresh(); }}); return; }
-    openState[String(id)+'_'+sid]=null; uxPersist();uxRefresh();
+    // The "every product" option used to hide behind a scope dropdown inside the task editor,
+    // so from the ··· button you only ever saw "this product only". Both choices, one dialog.
+    var n=ideas.find(function(x){return x.id===id;});if(!n)return;var p=uxEnsure(n),task=uxFindTask(n,sid,key),tmpl=uxTemplateByKey(sid,key);
+    var label=task?task.label:'this task', stage=stageById(sid).name;
+    var doProduct=function(){ if(tmpl){p.hiddenTasks[key]=true;uxOverrides(p,sid).hidden[key]=true;}else{p.customTasks[sid]=(p.customTasks[sid]||[]).filter(function(t){return t.id!==key;});}
+      delete p.steps[key];delete p.taskNotes[key];logHistory(n,'note','Marked task N/A: <b>'+uxEsc(label)+'</b>',stage);
+      openState[String(id)+'_'+sid]=null; uxPersist();uxRefresh(); showFlash('Removed from '+cleanName(n)); };
+    var doAll=function(){ settings.pipelineTaskTemplates[sid]=uxTemplates()[sid].filter(function(t){return t.id!==key;});
+      logHistory(n,'note','Removed shared stage task: <b>'+uxEsc(label)+'</b>',stage+' · all products');
+      openState[String(id)+'_'+sid]=null; uxPersist();uxRefresh(); showFlash('Removed from every product in '+stage); };
+    var h=plmHost(); h.querySelector('.plm-bar').style.background='#FF5470';
+    document.getElementById('plmTitle').textContent='Remove “'+label+'”?';
+    document.getElementById('plmBody').innerHTML=
+      '<div class="plm-choices">'
+      +'<button class="plm-choice" id="plmRmOne"><b>This product only</b><span>'+uxEsc(cleanName(n))+' stops showing it. Marked not applicable, nothing else changes.</span></button>'
+      +(tmpl
+        ? '<button class="plm-choice danger" id="plmRmAll"><b>Every product in '+uxEsc(stage)+'</b><span>Comes off the shared '+uxEsc(stage)+' checklist — every product in this stage now, and every one that enters it later.</span></button>'
+        : '<div class="plm-note">This task was added to '+uxEsc(cleanName(n))+' only, so it is not on the shared checklist.</div>')
+      +'</div>';
+    document.getElementById('plmFoot').innerHTML='<button class="plm-btn ghost" id="plmNo">Cancel</button>';
+    document.getElementById('plmNo').onclick=function(){ plmClose(); };
+    document.getElementById('plmRmOne').onclick=function(){ plmClose(); doProduct(); };
+    var all=document.getElementById('plmRmAll'); if(all) all.onclick=function(){ plmClose(); doAll(); };
+    h.classList.add('open');
   };
   window.plUXDuplicateTask=function(id,sid,key){
     var n=ideas.find(function(x){return x.id===id;});if(!n)return;var p=uxEnsure(n),t=uxFindTask(n,sid,key);if(!t)return;p.customTasks[sid]=p.customTasks[sid]||[];p.customTasks[sid].push({id:'c'+Date.now(),label:t.label+' (copy)'});logHistory(n,'note','Duplicated task: <b>'+uxEsc(t.label)+'</b>',stageById(sid).name);uxPersist();uxRefresh();
@@ -10575,6 +10787,87 @@ body.plub-embed .app{height:100vh!important;grid-row:auto;grid-column:auto}
 /* a session type that is reported but outside the KPI */
 .srcbar .sb-split i.off{opacity:.72}
 .srcbar .sb-split i.off b{color:var(--t3)}
+</style>
+<style>
+/* status toast — the app's own top bar is hidden inside the PLUB shell */
+#plFlashToast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);z-index:9000;
+  max-width:min(560px,86vw);padding:10px 18px;border-radius:999px;font:750 13px var(--sans);
+  background:var(--s1);color:var(--t1);border:1px solid var(--b2);box-shadow:0 16px 44px rgba(0,0,0,.6);
+  opacity:0;pointer-events:none;transition:opacity .16s,transform .16s;text-align:center}
+#plFlashToast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#plFlashToast.warn{border-color:rgba(255,84,112,.55);color:#FFC2CC;background:linear-gradient(180deg,rgba(255,84,112,.14),var(--s1))}
+/* how far off the notes minimum is */
+.th-count{margin-top:7px;font-size:11.5px;font-weight:700;color:var(--t4)}
+.th-count.part{color:#FFC53D}
+.th-count.ok{color:#00E5A0}
+</style>
+<style>
+/* remove-task dialog: two plain choices */
+.plm-choices{display:flex;flex-direction:column;gap:8px;padding:2px 0}
+.plm-choice{display:flex;flex-direction:column;gap:3px;text-align:left;padding:11px 13px;border-radius:11px;border:1px solid var(--b2);background:var(--s2);cursor:pointer;font-family:inherit;color:var(--t1)}
+.plm-choice b{font-size:13.5px;font-weight:800}
+.plm-choice span{font-size:12px;color:var(--t3);line-height:1.45}
+.plm-choice:hover{border-color:var(--b3);background:var(--s3)}
+.plm-choice.danger{border-color:rgba(255,84,112,.35)} .plm-choice.danger b{color:#FF93A6} .plm-choice.danger:hover{background:rgba(255,84,112,.10);border-color:rgba(255,84,112,.6)}
+.plm-note{font-size:12px;color:var(--t4);padding:8px 2px}
+/* suppliers: bar, table, bulk, guide */
+.sup-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.sup-bar-n{margin-left:auto;font-size:11px;color:var(--t4);font-weight:700}
+.sup-tblwrap{overflow-x:auto;border:1px solid var(--b1);border-radius:10px;background:var(--bg);margin-bottom:6px}
+.sup-tbl{width:100%;border-collapse:collapse;min-width:820px;font-size:12.5px}
+.sup-tbl th{text-align:left;font-size:9.5px;letter-spacing:.9px;text-transform:uppercase;color:var(--t4);font-weight:800;padding:9px 10px;border-bottom:1px solid var(--b1);white-space:nowrap}
+.sup-tbl td{padding:9px 10px;border-bottom:1px solid var(--b1);color:var(--t2);vertical-align:middle;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.sup-tbl tr:last-child td{border-bottom:0}
+.sup-tbl tbody tr{cursor:pointer} .sup-tbl tbody tr:hover td{background:rgba(255,255,255,.03)}
+.sup-tbl tr.chosen td{background:rgba(0,229,160,.06)}
+.sup-tbl tr.open td{background:rgba(124,108,255,.08)}
+.sup-tbl th.num,.sup-tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
+.sup-tbl td.best{color:#00E5A0;font-weight:800}
+.sup-td-name b{color:var(--t1);font-weight:750}
+.sup-tag{display:inline-block;margin-left:6px;font-style:normal;font-size:9px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:1px 6px;border-radius:99px;border:1px solid var(--b2);color:var(--t4)}
+.sup-tag.chosen{color:#00E5A0;border-color:rgba(0,229,160,.45);background:rgba(0,229,160,.10)}
+.sup-tag.star{color:#FFC53D;border-color:rgba(255,197,61,.45);padding:1px 5px}
+.sup-td-contact a{color:#A78BFF;font-weight:700;text-decoration:none}
+.sup-td-act{text-align:right}
+.sup-mini{height:24px;padding:0 9px;border-radius:7px;border:1px solid var(--b2);background:var(--s2);color:var(--t3);font-size:11px;font-weight:800;cursor:pointer;font-family:inherit}
+.sup-mini.on{color:#00E5A0;border-color:rgba(0,229,160,.45);background:rgba(0,229,160,.10)}
+.sup-tbl-hint{font-size:11px;color:var(--t4);margin:0 0 12px}
+.sup-order{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:8px 0 10px;font-size:11px}
+.sup-order span{padding:2px 8px;border-radius:99px;background:var(--s2);border:1px solid var(--b1);color:var(--t2);font-weight:700}
+.sup-order i{color:var(--t4);font-style:normal}
+.sup-bulk{width:100%;min-height:150px;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:10px 12px;color:var(--t1);font:600 12.5px var(--mono,ui-monospace,monospace);resize:vertical}
+.sup-bulk-prev{margin-top:8px;font-size:12px;color:var(--t3);line-height:1.6}
+.sup-bulk-prev b{color:var(--t1)}
+.sup-bulk-prev span{display:inline-block;margin:2px 6px 0 0;padding:1px 8px;border-radius:99px;background:var(--s2);border:1px solid var(--b1);color:var(--t2)}
+.sup-guide{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+.sup-guide div{display:flex;flex-direction:column;gap:1px;padding:7px 9px;border:1px solid var(--b1);border-radius:9px;background:var(--s2)}
+.sup-guide b{font-size:12.5px;color:var(--t1)} .sup-guide span{font-size:11.5px;color:var(--t3);line-height:1.4}
+#plm2 .plm-card{max-width:560px}
+</style>
+<style>
+.pl-sup-table{min-width:1100px}
+.pl-sup-table td.best input{color:#00E5A0;font-weight:800}
+.pl-sup-table tr.sel td{background:rgba(0,229,160,.05)}
+.pl-sup-table td.sup-name input{font-weight:750;color:var(--t1)}
+.pl-add-row{display:flex;gap:8px;flex-wrap:wrap}
+.pl-action-btn.primary{background:var(--brand,#7C6CFF);color:#fff;border-color:transparent}
+</style>
+<style>
+.pl-sup-table{min-width:1500px}
+.pl-sup-table td.tbc input,.pl-sup-table input.tbc{color:var(--t4);font-style:italic}
+.pl-sup-table td.wide input{min-width:220px}
+.pl-sup-table td.sup-tg{width:30px;padding-right:0}
+.pl-sup-table .sup-sub{display:block;margin-top:3px;font-size:11px;color:var(--t3);background:transparent;border-color:transparent}
+.pl-sup-table .sup-sub:focus{border-color:var(--b2);background:var(--s2)}
+.pl-sup-table tr.open td{background:rgba(124,108,255,.07)}
+.pl-sup-table tr.sup-detail td{background:rgba(124,108,255,.05);padding:10px 12px 12px 42px}
+.sup-dgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 12px}
+.sup-dgrid .sup-dl:nth-last-child(-n+2){grid-column:span 2}
+.sup-dl{display:flex;flex-direction:column;gap:3px}
+.sup-dl span{font-size:9.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--t4);font-weight:800}
+.sup-dl input,.sup-dl textarea{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:6px 9px;color:var(--t1);font:600 12.5px var(--sans);resize:vertical}
+.sup-drow{display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap}
+.sup-tier{width:64px;background:var(--s2);border:1px solid var(--b2);border-radius:6px;padding:2px 6px;color:var(--t1);font:700 11px var(--sans);text-align:center;margin:0 3px}
 </style>
 </body>
 </html>
