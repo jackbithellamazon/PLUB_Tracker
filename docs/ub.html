@@ -2048,6 +2048,9 @@ body:has(#roBanner) .topbar{margin-top:30px}
       <button class="nav-item" data-pane="inbox" style="--c:#3B9EFF" onclick="nav('inbox')" title="Review Queue">
         <span class="sn-ic"><svg viewBox="0 0 20 20"><path d="M3 11l2-6h10l2 6v5H3z" fill="currentColor" opacity=".18"/><path d="M3 11l2-6h10l2 6v5H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 11h4l1.2 2h3.6l1.2-2h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><span class="sn-t">Review Queue</span><span class="nav-badge" id="nb-inbox">–</span>
       </button>
+      <button class="nav-item" data-pane="vendors" style="--c:#FFC53D" onclick="nav('vendors')" title="Suppliers">
+        <span class="sn-ic"><svg viewBox="0 0 20 20"><path d="M3 7.5h14v9H3z" fill="currentColor" opacity=".18"/><path d="M3 7.5h14v9H3zM3 7.5 4.6 4h10.8L17 7.5M7.5 7.5v9M12.5 7.5v9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></span><span class="sn-t">Suppliers</span><span class="nav-badge" data-badge="vendors"></span>
+      </button>
       <button class="nav-item" data-pane="ideas" style="--c:#A78BFF" onclick="nav('ideas')" title="Ideas & Ranking">
         <span class="sn-ic"><svg viewBox="0 0 20 20"><path d="M10 2.5a5.5 5.5 0 00-3 10.1V15h6v-2.4A5.5 5.5 0 0010 2.5z" fill="currentColor" opacity=".18"/><path d="M10 2.5a5.5 5.5 0 00-3 10.1V15h6v-2.4A5.5 5.5 0 0010 2.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 17.5h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M10 6.5v3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="sn-t">Ideas &amp; Ranking</span><span class="nav-badge" id="nb-ideas">–</span>
       </button>
@@ -2100,13 +2103,13 @@ body:has(#roBanner) .topbar{margin-top:30px}
       </button>
       <div class="tb-more"><button type="button" onclick="tbMoreToggle()" title="More">···</button>
         <div class="tb-menu" id="tbMenu">
-          <button onclick="openImport();tbMoreToggle()">\u2b06 Import ASINs</button>
-          <button onclick="pickImportFile();tbMoreToggle()">\ud83d\udcc2 Import a work list</button>
-          <button onclick="exportData();tbMoreToggle()">\ud83d\udcbe Download backup</button>
+          <button onclick="openImport();tbMoreToggle()">⬆ Import ASINs</button>
+          <button onclick="pickImportFile();tbMoreToggle()">📂 Import a work list</button>
+          <button onclick="exportData();tbMoreToggle()">💾 Download backup</button>
           <hr>
-          <button onclick="flagIt();tbMoreToggle()">\u2691 Flag something for Jack</button>
+          <button onclick="flagIt();tbMoreToggle()">⚑ Flag something for Jack</button>
           <button onclick="nav('guide');tbMoreToggle()">? How it works</button>
-          <button onclick="nav('settings');tbMoreToggle()">\u2699 Settings</button>
+          <button onclick="nav('settings');tbMoreToggle()">⚙ Settings</button>
         </div></div>
       <button class="btn btn-pri" onclick="openQuickIdea()">+ Add Idea</button>
     </header>
@@ -2117,6 +2120,7 @@ body:has(#roBanner) .topbar{margin-top:30px}
       <div class="pane" id="pane-sessions"></div>
       <div class="pane" id="pane-tasks"></div>
       <div class="pane" id="pane-inbox"></div>
+      <div class="pane" id="pane-vendors"></div>
       <div class="pane" id="pane-ideas"></div>
       <div class="pane" id="pane-seasons"></div>
       <div class="pane" id="pane-pipeline"></div>
@@ -3370,6 +3374,7 @@ let saveHealthy = true;
 function snapshotState(){
   return {schema:SCHEMA_VERSION, app:'bdl-ub', appVersion:'v'+APP_VER, savedAt:new Date().toISOString(), rev:++_rev,
     ideas, pipeline, inbox, tasks, storefronts, seasons:SEASONS, archive, events:EVENTS,
+    vendors,
     sessionLog:sessionLog||[], session, tkDraft, flags:FLAGS, archivedStageLogs:(window.__archivedStageLogs||[]),
     settings:SETTINGS, rankQs:RANK_QS, qsVersion:QS_VERSION, kpiVersion:KPI_VERSION, uid, taskQuick};
 }
@@ -3458,6 +3463,7 @@ function applyState(s){
   const nTasks = arr(s.tasks,'tasks'), nStore = arr(s.storefronts,'storefronts'), nSeasons = arr(s.seasons,'seasons');
   const nEvents = arr(s.events,'events'), nLog = arr(s.sessionLog,'sessionLog'), nQs = arr(s.rankQs,'rankQs');
   const nQuick = arr(s.taskQuick,'taskQuick');
+  const nVend = arr(s.vendors,'vendors');
   if(s.archive!==undefined && (typeof s.archive!=='object' || s.archive===null || Array.isArray(s.archive)))
     throw new Error('"archive" is not valid');
   const a = s.archive || {};
@@ -3467,7 +3473,7 @@ function applyState(s){
   // absent field = keep what's there; present field (even empty) = apply it
   const swap = (live, next)=>{ if(!next) return; live.length=0; live.push(...next); };
   swap(ideas,nIdeas); swap(pipeline,nPipe); swap(inbox,nInbox); swap(tasks,nTasks);
-  swap(storefronts,nStore); swap(SEASONS,nSeasons);
+  swap(storefronts,nStore); swap(SEASONS,nSeasons); swap(vendors,nVend);
   swap(archive.launched,nLaunched); swap(archive.dropped,nDropped);
   swap(EVENTS,nEvents);
   if(nLog) sessionLog = nLog;
@@ -3511,6 +3517,10 @@ function applyState(s){
 // render code reads unguarded (p.tasks.findIndex, p.components.reduce, …), and a single
 // missing field used to take a whole pane down. Fill the shapes in once, on load.
 function normaliseRecords(){
+  // suppliers you already have are a sourcing method — add it to settings saved before that existed
+  try{ if(SETTINGS.sourceTypes && SETTINGS.sourceTypes.indexOf('Existing supplier')<0)
+        SETTINGS.sourceTypes.splice(Math.min(2,SETTINGS.sourceTypes.length),0,'Existing supplier'); }catch(e){}
+  (vendors||[]).forEach(vendEnsure);
   // a task from an older backup or a hand-made import can arrive without a notes list — one such task used to take the whole Tasks page down
   (tasks||[]).forEach(t=>{ if(!Array.isArray(t.notes)) t.notes=[];
     // repair tasks saved with a sentence in the link box: the sentence becomes the title
@@ -4145,7 +4155,7 @@ const SETTINGS = {
     {min:50, label:'Amber · maybe',     cls:'bg-amber', chip:'var(--at)'},
     {min:0,  label:'Red · weak',        cls:'bg-red',   chip:'var(--rt)'},
   ],
-  sourceTypes: ['Competitor Storefront','Best Seller','Original Idea','Other'],
+  sourceTypes: ['Competitor Storefront','Best Seller','Existing supplier','Original Idea','Other'],
   waitingReasons: ['Supplier stock expected','Awaiting supplier reply','Awaiting delivery','Awaiting internal decision','Other'],
   workspaceName: 'Unique Bundle Tracker',
   rejectionReasons: ['Improve the offer','Better supplier needed','Margin not good enough','Brand/IP concern','Too complex','Not enough differentiation','Weak customer value','Commercially not worth it','Other'],
@@ -4610,6 +4620,7 @@ let SEASONS = [
 let seasonYear = TODAY.getFullYear();
 
 const storefronts = [];
+const vendors = [];   // wholesalers and regular suppliers — a sourcing method in their own right
 
 /* ─── Archive ─── */
 const archive = { launched: [], dropped: [] };
@@ -4694,11 +4705,12 @@ function nav(pane){
   document.querySelector('.content').scrollTop = 0;
 }
 function renderPane(pane){
-  ({action:renderAction, sessions:renderSessions, tasks:renderTasks, inbox:renderInbox, ideas:renderIdeas, seasons:renderSeasons,
+  ({action:renderAction, sessions:renderSessions, tasks:renderTasks, inbox:renderInbox, ideas:renderIdeas, seasons:renderSeasons, vendors:renderVendors,
     pipeline:renderPipeline, archive:renderArchive, guide:renderGuide, settings:renderSettings})[pane]();
   updateBadges();
 }
 function updateBadges(){
+  try{ const b=document.querySelector('[data-badge="vendors"]'); if(b){ const n=vendors.filter(vendDue).length; b.textContent=n||''; b.classList.toggle('zero',!n); } }catch(e){}
   wakeSnoozed();
   saveState();   // expired snoozes surface app-wide, not only when the Inbox page is opened
   const acts = buildActions();
@@ -5693,6 +5705,117 @@ let ideaView = 'all';   // 'all' | 'rankings'
 let rankSort = 'score';
 
 let ideaSort = 'score';
+/* ══════════ SUPPLIER DIRECTORY ══════════
+   A wholesaler you already trust is a sourcing method: instead of starting from a blank
+   search, you open one you know and ask what else they sell. Each one keeps a list of
+   opportunities spotted in their catalogue, and any of those becomes a real idea in a click. */
+const VEND_BROWSE_DAYS = 60;   // how long before a supplier is due another look through
+function vendEnsure(v){ v.opps=v.opps||[]; v.tags=v.tags||''; return v; }
+function vendDaysSince(v){ if(!v.lastBrowsed) return null; return Math.floor((Date.now()-new Date(v.lastBrowsed).getTime())/86400000); }
+function vendDue(v){ const d=vendDaysSince(v); return d===null || d>=VEND_BROWSE_DAYS; }
+function vendOpen(v){ return (v.opps||[]).filter(o=>o.status==='open').length; }
+function addVendor(){
+  const v = vendEnsure({id:nid(), name:'', url:'', contact:'', contactDetails:'', buying:'', tags:'', notes:'', lastBrowsed:null, created:TODAY.toISOString(), opps:[]});
+  vendors.unshift(v); saveState(); renderVendors(); updateBadges();
+  setTimeout(()=>{ const el=document.querySelector('.vnd-card .vnd-name'); if(el){ el.focus(); } }, 60);
+}
+function vendSet(id,f,val){ const v=vendors.find(x=>x.id===id); if(!v) return; v[f]=val; saveState(); if(f==='name') updateBadges(); }
+function vendDel(id){
+  const v=vendors.find(x=>x.id===id); if(!v) return;
+  confirmModal('Remove this supplier?', `<b>${esc(v.name||'This supplier')}</b> and its ${vendOpen(v)} open opportunit${vendOpen(v)===1?'y':'ies'} come off the list.`, 'Remove', ()=>{
+    saveState(); const i=vendors.indexOf(v); vendors.splice(i,1); renderVendors(); updateBadges();
+    undoToast('Supplier removed', ()=>{ vendors.splice(i,0,v); saveState(); renderVendors(); updateBadges(); });
+  }, true);
+}
+function vendBrowsed(id){
+  const v=vendors.find(x=>x.id===id); if(!v) return;
+  saveState(); v.lastBrowsed = new Date().toISOString();
+  logEvent('idea','Browsed supplier catalogue — '+(v.name||'supplier'));
+  renderVendors(); toast('Marked browsed — due again in '+VEND_BROWSE_DAYS+' days');
+}
+function vendAddOpp(id){
+  const v=vendors.find(x=>x.id===id); if(!v) return;
+  const inp=document.getElementById('vo'+id); const t=(inp?inp.value:'').trim();
+  if(!t){ if(inp) inp.focus(); return; }
+  saveState(); vendEnsure(v).opps.unshift({id:nid(), text:t, status:'open', created:TODAY.toISOString()});
+  if(inp) inp.value='';
+  renderVendors(); updateBadges();
+}
+function vendOppDrop(vid,oid){
+  const v=vendors.find(x=>x.id===vid); if(!v) return; const o=v.opps.find(x=>x.id===oid); if(!o) return;
+  saveState(); o.status='dropped'; renderVendors(); updateBadges();
+}
+function vendOppIdea(vid,oid){
+  const v=vendors.find(x=>x.id===vid); if(!v) return; const o=v.opps.find(x=>x.id===oid); if(!o) return;
+  saveState();
+  const id=nid();
+  ideas.unshift({id, title:o.text, source:'Existing supplier', summary:'From '+(v.name||'a supplier')+(v.url?' — '+v.url:''),
+    asin:null, status:'Draft', created:TODAY.toISOString(), answers:{}, score:null, options:[], vendorId:v.id});
+  o.status='idea'; o.ideaId=id;
+  logEvent('idea','Idea from supplier — '+o.text, id);
+  try{ bumpKpi('ideas','Idea captured — '+o.text); }catch(e){}
+  renderVendors(); updateBadges();
+  toast('Added to Ideas — score it when you are ready');
+}
+function renderVendors(){
+  const list = vendors.slice().sort((a,b)=> (vendDue(b)?1:0)-(vendDue(a)?1:0) || (vendOpen(b)-vendOpen(a)));
+  const due = vendors.filter(vendDue).length, opps = vendors.reduce((a,v)=>a+vendOpen(v),0);
+  const fromSup = ideas.filter(i=>i.source==='Existing supplier').length;
+  const card = v => { vendEnsure(v); const d=vendDaysSince(v); const open=(v.opps||[]).filter(o=>o.status==='open');
+    const done=(v.opps||[]).filter(o=>o.status==='idea');
+    return `<div class="vnd-card${vendDue(v)?' due':''}">
+      <div class="vnd-top">
+        <input class="vnd-name" value="${esc(v.name||'')}" placeholder="Wholesaler or supplier name" oninput="vendSet(${v.id},'name',this.value)">
+        ${v.url?`<a class="vnd-go" target="_blank" href="${esc(/^https?:/i.test(v.url)?v.url:'https://'+v.url)}">Open catalogue ↗</a>`:''}
+        <button class="vnd-x" title="Remove" onclick="vendDel(${v.id})">×</button>
+      </div>
+      <div class="vnd-grid">
+        <label><span>Website / catalogue</span><input value="${esc(v.url||'')}" placeholder="https://…" oninput="vendSet(${v.id},'url',this.value)"></label>
+        <label><span>Main contact</span><input value="${esc(v.contact||'')}" placeholder="Name at the company" oninput="vendSet(${v.id},'contact',this.value)"></label>
+        <label><span>Contact details</span><input value="${esc(v.contactDetails||'')}" placeholder="Email, phone, account number" oninput="vendSet(${v.id},'contactDetails',this.value)"></label>
+        <label><span>Categories they cover</span><input value="${esc(v.tags||'')}" placeholder="e.g. homeware, candles, gifting" oninput="vendSet(${v.id},'tags',this.value)"></label>
+      </div>
+      <div class="vnd-grid2">
+        <label><span>What we buy from them now</span><textarea rows="2" placeholder="e.g. Yankee jars, reed diffusers for the Cosy Night bundle" oninput="vendSet(${v.id},'buying',this.value)">${esc(v.buying||'')}</textarea></label>
+        <label><span>Notes — reliability, terms, minimums</span><textarea rows="2" placeholder="e.g. free delivery over £250, 3 day lead, good on returns" oninput="vendSet(${v.id},'notes',this.value)">${esc(v.notes||'')}</textarea></label>
+      </div>
+      <div class="vnd-opp">
+        <div class="vnd-opp-h">What else could we sell from here?
+          <span class="td-sub">${open.length} open${done.length?' · '+done.length+' became ideas':''}</span></div>
+        ${open.map(o=>`<div class="vnd-o">
+            <span>${esc(o.text)}</span>
+            <button class="btn btn-sm btn-pri" onclick="vendOppIdea(${v.id},${o.id})">→ Make it an idea</button>
+            <button class="btn btn-sm" onclick="vendOppDrop(${v.id},${o.id})">Not for us</button>
+          </div>`).join('')}
+        ${done.map(o=>`<div class="vnd-o done"><span>${esc(o.text)}</span><i>in Ideas</i></div>`).join('')}
+        <div class="vnd-add">
+          <input id="vo${v.id}" placeholder="Something of theirs worth a look — one line" onkeydown="if(event.key==='Enter')vendAddOpp(${v.id})">
+          <button class="btn btn-sm" onclick="vendAddOpp(${v.id})">Add</button>
+        </div>
+      </div>
+      <div class="vnd-foot">
+        <span class="vnd-when${vendDue(v)?' due':''}">${d===null?'never browsed':d===0?'browsed today':'browsed '+d+' days ago'}</span>
+        <button class="btn btn-sm${vendDue(v)?' btn-pri':''}" onclick="vendBrowsed(${v.id})">✓ Browsed their catalogue</button>
+      </div>
+    </div>`; };
+  document.getElementById('pane-vendors').innerHTML = `
+    <div class="page-head">
+      <div><div class="eyebrow">Find · suppliers you already have</div>
+        <h1 class="page-title">Suppliers</h1>
+        <div class="page-sub">Wholesalers and regular suppliers you trust. A known supplier is a sourcing method — open one and ask what else they sell, instead of starting from a blank search.</div></div>
+      <div class="page-head-actions"><button class="btn btn-pri" onclick="addVendor()">+ Supplier</button></div>
+    </div>
+    <div class="page-rule">Every supplier keeps a list of things of theirs worth a look. Turn one into an idea and it lands in Ideas &amp; Ranking with the source already set, so you can see how many of your ideas came from suppliers you already had.</div>
+    <div class="vnd-stats">
+      <div class="vnd-stat"><b>${vendors.length}</b><span>suppliers</span></div>
+      <div class="vnd-stat"><b style="color:${due?'var(--at)':'var(--t1)'}">${due}</b><span>due a browse</span></div>
+      <div class="vnd-stat"><b style="color:var(--gt)">${opps}</b><span>open opportunities</span></div>
+      <div class="vnd-stat"><b>${fromSup}</b><span>ideas from suppliers</span></div>
+    </div>
+    ${vendors.length ? list.map(card).join('')
+      : `<div class="empty"><div class="empty-t">No suppliers yet</div><div class="empty-s">Add the wholesalers you already buy from. Once one is in here, finding the next bundle can start with “what else do they sell?” rather than a blank search.</div>
+         <div style="margin-top:12px"><button class="btn btn-pri" onclick="addVendor()">+ Add your first supplier</button></div></div>`}`;
+}
 function renderIdeas(){ saveState();
   const live = ideas.filter(i=>!['Moved to Pipeline','Dropped','Archived'].includes(i.status));
   const ae = document.activeElement;
@@ -8526,6 +8649,56 @@ tr:hover .comp-del{opacity:1}
 <style>
 .ss-notel{text-transform:none!important;letter-spacing:0!important;font-size:12px!important;font-weight:750!important;color:var(--t2)!important}
 .ss-notel .td-sub{font-weight:600;color:var(--t4)}
+</style>
+<style>
+/* supplier directory */
+.vnd-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px}
+.vnd-stat{background:var(--s2);border:1px solid var(--b1);border-radius:11px;padding:10px 13px}
+.vnd-stat b{display:block;font-size:21px;font-weight:850;line-height:1;font-variant-numeric:tabular-nums}
+.vnd-stat span{display:block;font-size:10.5px;color:var(--t3);margin-top:4px}
+.vnd-card{border:1px solid var(--b1);border-radius:14px;background:var(--s1);padding:14px 15px;margin-bottom:10px}
+.vnd-card.due{border-color:rgba(255,197,61,.35)}
+.vnd-top{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.vnd-name{flex:1;min-width:0;background:transparent;border:none;border-bottom:1px solid transparent;padding:2px 0;font:850 16px var(--sans);color:var(--t1);letter-spacing:-.3px}
+.vnd-name:hover{border-bottom-color:var(--b2)} .vnd-name:focus{outline:none;border-bottom-color:var(--accent)}
+.vnd-go{flex:none;font-size:11px;font-weight:750;color:var(--acc-t);text-decoration:none;border:1px solid var(--b2);border-radius:99px;padding:3px 10px}
+.vnd-go:hover{border-color:var(--b3);background:var(--s3)}
+.vnd-x{flex:none;width:24px;height:24px;border-radius:7px;border:1px solid var(--b2);background:var(--s3);color:var(--t4);cursor:pointer;font-weight:800}
+.vnd-x:hover{color:#FF93A6;border-color:rgba(255,84,112,.45)}
+.vnd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px 12px;margin-bottom:9px}
+.vnd-grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-bottom:11px}
+.vnd-card label{display:flex;flex-direction:column;gap:3px}
+.vnd-card label>span{font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--t4);font-weight:800}
+.vnd-card label input,.vnd-card label textarea{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:6px 9px;color:var(--t1);font:600 12.5px var(--sans);resize:vertical}
+.vnd-opp{border-top:1px solid var(--b1);padding-top:10px}
+.vnd-opp-h{font-size:12.5px;font-weight:800;color:var(--t1);margin-bottom:8px;display:flex;gap:9px;align-items:baseline}
+.vnd-opp-h .td-sub{font-weight:600}
+.vnd-o{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--b1);font-size:12.5px;color:var(--t2)}
+.vnd-o:first-of-type{border-top:0}
+.vnd-o>span{flex:1;min-width:0}
+.vnd-o.done{color:var(--t4)} .vnd-o.done i{font-style:normal;font-size:10px;font-weight:800;color:var(--gt);border:1px solid rgba(0,229,160,.4);background:rgba(0,229,160,.1);border-radius:99px;padding:1px 8px}
+.vnd-add{display:flex;gap:6px;margin-top:9px}
+.vnd-add input{flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:7px 10px;color:var(--t1);font:600 12.5px var(--sans)}
+.vnd-foot{display:flex;align-items:center;gap:10px;margin-top:11px;padding-top:10px;border-top:1px solid var(--b1)}
+.vnd-when{font-size:11px;color:var(--t4);font-weight:700} .vnd-when.due{color:var(--at)}
+.vnd-foot .btn{margin-left:auto}
+@media(max-width:760px){.vnd-grid2{grid-template-columns:1fr}}
+</style>
+<style id="plub-readable">
+/* ═══ READABILITY PASS v1.00 — the same block in all three files, last in the page so it wins ═══
+   Grey text was #787A87 at 9–11px: ~4.2:1 on near-black, hard work to read. Lifted to ~7:1, quiet tier
+   ~8.5:1, keeping the order t1 > t2 > t3 > t4. Colours only — no sizes or layout change except the 9px rail labels. */
+:root,[data-theme="dark"],[data-theme="light"]{--t3:#AEB0BB!important;--t4:#9C9EAA!important}
+.sb2 .sn-sec{color:#9C9EAA!important;font-size:10px!important}
+.sb2 .sn-ic{color:#A6A8B4!important}
+.ov-arrow,.flow-arrow,.g-chain,.ord-btn:disabled{color:#8E909C!important}
+.pl-tile-sub,.pipe-kpi-sub{color:rgba(255,255,255,.66)!important}
+#pane-pipeline .col-zero-ic{color:rgba(255,255,255,.45)!important}
+.pl-dropped-archive-btn b{color:#FFC2CA!important}
+.prod-step-state,.prod-step-dot,.pl-stage-task-meta,.pl-metric span,.pl-task-number,.pl-task-template-hint,.pl-empty,.page-note-time,.page-notes summary:after,.rank-head,.prod-subtab,#pane-settings .set-tab,#pane-settings .set-rs,#pane-settings .kpi-rule label,.empty,.pl-tab-empty,.ac2-empty,.pl-preview-task.done .pl-preview-task-name,.page-note-delete{color:#A3A5B1!important}
+.pl-task-grip{color:#8E909C!important}
+.f-fn-gap i{color:#8E909C!important}
+.kpi-rules-hd p{color:#B4B6C1!important}
 </style>
 </body>
 </html>

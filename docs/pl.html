@@ -1600,6 +1600,9 @@ body,.app{background:var(--bg)}
       <button class="nav-item ntab active" id="ntab-dash" data-pane="dash" style="--c:#A78BFF" onclick="nav('dash')" title="Ideas">
         <span class="sn-ic"><svg viewBox="0 0 20 20"><path d="M10 2.5a5.5 5.5 0 00-3 10.1V15h6v-2.4A5.5 5.5 0 0010 2.5z" fill="currentColor" opacity=".18"/><path d="M10 2.5a5.5 5.5 0 00-3 10.1V15h6v-2.4A5.5 5.5 0 0010 2.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 17.5h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M10 6.5v3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="sn-t">Ideas</span><span class="nav-badge" id="navCntIdeas">0</span>
       </button>
+      <button class="nav-item ntab" id="ntab-vendors" data-pane="vendors" style="--c:#FFC53D" onclick="nav('vendors')" title="Suppliers">
+        <span class="sn-ic"><svg viewBox="0 0 20 20"><path d="M3 7.5h14v9H3z" fill="currentColor" opacity=".18"/><path d="M3 7.5h14v9H3zM3 7.5 4.6 4h10.8L17 7.5M7.5 7.5v9M12.5 7.5v9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></span><span class="sn-t">Suppliers</span><span class="nav-badge" id="vndBadge"></span>
+      </button>
       <button class="nav-item ntab" id="ntab-pipeline" data-pane="pipeline" style="--c:#00E5A0" onclick="nav('pipeline')" title="Pipeline">
         <span class="sn-ic"><svg viewBox="0 0 20 20"><rect x="2.5" y="4" width="4" height="12" rx="1.3" fill="currentColor" opacity=".18"/><rect x="8" y="4" width="4" height="8.5" rx="1.3" fill="currentColor" opacity=".18"/><rect x="13.5" y="4" width="4" height="5.5" rx="1.3" fill="currentColor" opacity=".18"/><rect x="2.5" y="4" width="4" height="12" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="8" y="4" width="4" height="8.5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13.5" y="4" width="4" height="5.5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span><span class="sn-t">Pipeline</span><span class="nav-badge" id="navCntPipe">0</span>
       </button>
@@ -1735,6 +1738,7 @@ try{ if(localStorage.getItem('pl_sb_min')==='1') document.body.classList.add('sb
           <option value="price">Price ↓</option><option value="edited">Last edited</option>
         </select>
         <button class="btn sm" id="exportBtn" onclick="openExport('all')" style="background:var(--bd);border-color:var(--bb);color:var(--blue)" title="Export ideas to copy into Google Docs — pick All, the good ones, Top 5/10, etc.">📤 Export</button>
+        <button class="btn sm" id="bulkAddBtn" onclick="ideaBulkOpen()" title="Paste a list of product names and ASINs — adds them as drafts to fill in">⇩ Bulk add</button>
         <button class="btn sm ghost" id="bulkToggleBtn" onclick="toggleBulkMode()">☰ Select</button>
         <div class="bulk-bar" id="bulkBar">
           <span class="bulk-count" id="bulkCount">0 selected</span>
@@ -1838,6 +1842,7 @@ try{ if(localStorage.getItem('pl_sb_min')==='1') document.body.classList.add('sb
   </div>
 
   <!-- ════════════ PORTFOLIO FORECAST ════════════ -->
+  <div class="pane" id="pane-vendors"></div>
   <div class="pane" id="pane-forecast">
     <div class="page-hd">
       <div>
@@ -2010,7 +2015,7 @@ try{ if(localStorage.getItem('pl_sb_min')==='1') document.body.classList.add('sb
 // STATE & SUPABASE DATA LAYER
 // ══════════════════════════════════════════════════════════
 const DEF={
-  sourcing:['Amazon Search','TikTok','Alibaba','Jungle Scout','Helium10','Keepa','Storefront Stalking','Retail Inspiration','Competitor Research','DHgate','1688','Trade Show','UK Wholesale','eBay / OA','Other'],
+  sourcing:['Existing supplier','Amazon Search','TikTok','Alibaba','Jungle Scout','Helium10','Keepa','Storefront Stalking','Retail Inspiration','Competitor Research','DHgate','1688','Trade Show','UK Wholesale','eBay / OA','Other'],
   statuses:['launch','good','potential','revisit','weak','holding'],
   amazonDomain:'amazon.co.uk',
   exportOpts:{header:true,found:true,market:true,asins:true,links:true,proscons:true,tocheck:true,qnotes:true,mytake:true},
@@ -2081,6 +2086,8 @@ function syncSettings(saved) {
     });
   }
   if (!saved.sourcing) saved.sourcing = DEF.sourcing.slice();
+  // suppliers you already have are a sourcing method — add it to a list saved before that existed
+  if (saved.sourcing.indexOf('Existing supplier') < 0) saved.sourcing.unshift('Existing supplier');
   if (!saved.thresholds) saved.thresholds = { ...DEF.thresholds };
   if (!saved.amazonDomain) saved.amazonDomain = DEF.amazonDomain;
   saved.exportOpts = { ...DEF.exportOpts, ...(saved.exportOpts || {}) };
@@ -2704,6 +2711,7 @@ function nav(id){
   if(id==='pipeline')renderPipeline();
   if(id==='week')renderWeek();
   if(id==='pl')renderPL();
+  if(id==='vendors')renderVendors();
 }
 
 function toggleNavMenu(){
@@ -2811,6 +2819,127 @@ function toggleSrcFilter(src){
 // ══════════════════
 // DASHBOARD
 // ══════════════════
+/* ══════════ SUPPLIER DIRECTORY ══════════
+   Once a factory has built you something good, the next product often starts with
+   "what else do they make?". Each supplier keeps their catalogue link, the contact who
+   actually replies, what they already build for us, and a running list of things of theirs
+   worth a look — any of which becomes a real idea with the source already set. */
+const VEND_BROWSE_DAYS = 60;
+function vendList(){ if(!brandState) brandState={}; if(!brandState.vendors) brandState.vendors=[]; return brandState.vendors; }
+function vendEnsure(v){ v.opps=v.opps||[]; return v; }
+function vendDaysSince(v){ if(!v.lastBrowsed) return null; return Math.floor((Date.now()-v.lastBrowsed)/86400000); }
+function vendDue(v){ const d=vendDaysSince(v); return d===null || d>=VEND_BROWSE_DAYS; }
+function vendOpenN(v){ return (v.opps||[]).filter(o=>o.status==='open').length; }
+function vEsc(t){ return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function vendProducts(v){
+  // products we already run with this supplier — matched on the supplier names saved per product
+  const n=(v.name||'').toLowerCase().trim(); if(!n) return [];
+  return ideas.filter(x=>x.inPipeline && ((x.pipeline||{}).suppliers||[]).some(s=>String(s.name||'').toLowerCase().trim()===n));
+}
+window.addVendor=function(){
+  const v={id:'v'+Date.now(), name:'', url:'', contact:'', contactDetails:'', capabilities:'', quality:'', notes:'', lastBrowsed:null, created:Date.now(), opps:[]};
+  vendList().unshift(v); persistBrandState(); renderVendors();
+  setTimeout(()=>{ const el=document.querySelector('.vnd-card .vnd-name'); if(el) el.focus(); },60);
+};
+// plQuietPersist lives in a later block — typing must not reach across scopes to save
+let _vndT=null;
+function vendSave(){ clearTimeout(_vndT); _vndT=setTimeout(function(){ try{ persistBrandState(); }catch(e){} }, 400); }
+window.vendSet=function(id,f,val){ const v=vendList().find(x=>x.id===id); if(!v) return; v[f]=val; vendSave(); };
+window.vendDel=function(id){
+  const v=vendList().find(x=>x.id===id); if(!v) return;
+  plConfirm2({title:'Remove this supplier?', body:(v.name||'This supplier')+' and its opportunities come off the list. Products already built with them are untouched.', ok:'Remove', hue:'#FF5470', onOk:function(){
+    const L=vendList(); L.splice(L.indexOf(v),1); persistBrandState(); renderVendors(); showFlash('Supplier removed'); }});
+};
+window.vendBrowsed=function(id){
+  const v=vendList().find(x=>x.id===id); if(!v) return;
+  v.lastBrowsed=Date.now(); persistBrandState(); renderVendors();
+  showFlash('Marked browsed — due again in '+VEND_BROWSE_DAYS+' days');
+};
+window.vendAddOpp=function(id){
+  const v=vendList().find(x=>x.id===id); if(!v) return;
+  const inp=document.getElementById('vo'+id), t=(inp?inp.value:'').trim(); if(!t){ if(inp) inp.focus(); return; }
+  vendEnsure(v).opps.unshift({id:'o'+Date.now(), text:t, status:'open', created:Date.now()});
+  if(inp) inp.value='';
+  persistBrandState(); renderVendors();
+};
+window.vendOppDrop=function(vid,oid){
+  const v=vendList().find(x=>x.id===vid); if(!v) return; const o=v.opps.find(x=>x.id===oid); if(!o) return;
+  o.status='dropped'; persistBrandState(); renderVendors();
+};
+window.vendOppIdea=function(vid,oid){
+  const v=vendList().find(x=>x.id===vid); if(!v) return; const o=v.opps.find(x=>x.id===oid); if(!o) return;
+  const id=(Date.now()+Math.floor(Math.random()*10000));
+  const idea={ id:id, createdAt:Date.now(), editedAt:Date.now(), name:o.text, sourcing:'Existing supplier', status:'',
+    asins:[], sv:'', price:'', tcs:'', ncomp:'', ncomp_note:'', tiktokSales:'',
+    myThoughts:'From '+(v.name||'an existing supplier')+(v.contact?', contact '+v.contact:'')+'. '+(v.url?'Catalogue: '+v.url:''),
+    notes:'', scoreHistory:[], vendorId:v.id };
+  idea._legacyId=String(id);
+  ideas.unshift(idea);
+  o.status='idea'; o.ideaId=id;
+  try{ CLUB.log('idea_added',{app:'pl',entity_kind:'idea',entity_ref:id,entity_name:idea.name,detail:{from:'supplier'}}); }catch(e){}
+  persist(); renderVendors();
+  showFlash('Added to Ideas with the supplier noted — fill it in when you are ready');
+};
+window.renderVendors=function(){
+  const L=vendList();
+  const list=L.slice().sort((a,b)=>(vendDue(b)?1:0)-(vendDue(a)?1:0) || (vendOpenN(b)-vendOpenN(a)));
+  const due=L.filter(vendDue).length, opps=L.reduce((a,v)=>a+vendOpenN(v),0);
+  const fromSup=ideas.filter(i=>i.sourcing==='Existing supplier').length;
+  const card=v=>{ vendEnsure(v); const d=vendDaysSince(v);
+    const open=(v.opps||[]).filter(o=>o.status==='open'), done=(v.opps||[]).filter(o=>o.status==='idea');
+    const prods=vendProducts(v);
+    return `<div class="vnd-card${vendDue(v)?' due':''}">
+      <div class="vnd-top">
+        <input class="vnd-name" value="${vEsc(v.name||'')}" placeholder="Factory or trading company" oninput="vendSet('${v.id}','name',this.value)">
+        ${v.url?`<a class="vnd-go" target="_blank" href="${vEsc(/^https?:/i.test(v.url)?v.url:'https://'+v.url)}">Open catalogue ↗</a>`:''}
+        <button class="vnd-x" title="Remove" onclick="vendDel('${v.id}')">×</button>
+      </div>
+      ${prods.length?`<div class="vnd-prod">Already building for us: ${prods.map(x=>`<span onclick="openProduct(${x.id})">${vEsc(cleanName(x))}</span>`).join('')}</div>`:''}
+      <div class="vnd-grid">
+        <label><span>Alibaba / catalogue link</span><input value="${vEsc(v.url||'')}" placeholder="https://supplier.alibaba.com/…" oninput="vendSet('${v.id}','url',this.value)"></label>
+        <label><span>Main contact</span><input value="${vEsc(v.contact||'')}" placeholder="The person who actually replies" oninput="vendSet('${v.id}','contact',this.value)"></label>
+        <label><span>Contact details</span><input value="${vEsc(v.contactDetails||'')}" placeholder="Email, WeChat, WhatsApp" oninput="vendSet('${v.id}','contactDetails',this.value)"></label>
+        <label><span>What they can make</span><input value="${vEsc(v.capabilities||'')}" placeholder="e.g. stainless drinkware, silicone, powder filling" oninput="vendSet('${v.id}','capabilities',this.value)"></label>
+      </div>
+      <div class="vnd-grid2">
+        <label><span>Quality &amp; reliability</span><textarea rows="2" placeholder="e.g. samples spot on first time, replies same day, held the price at reorder" oninput="vendSet('${v.id}','quality',this.value)">${vEsc(v.quality||'')}</textarea></label>
+        <label><span>General notes — terms, MOQs, freight</span><textarea rows="2" placeholder="e.g. 30/70, FOB Ningbo, 500 MOQ on custom colour" oninput="vendSet('${v.id}','notes',this.value)">${vEsc(v.notes||'')}</textarea></label>
+      </div>
+      <div class="vnd-opp">
+        <div class="vnd-opp-h">What else do they make that we could launch?
+          <span class="pl-tab-sub" style="margin:0">${open.length} open${done.length?' · '+done.length+' became ideas':''}</span></div>
+        ${open.map(o=>`<div class="vnd-o"><span>${vEsc(o.text)}</span>
+            <button class="btn sm primary" onclick="vendOppIdea('${v.id}','${o.id}')">→ Make it an idea</button>
+            <button class="btn sm" onclick="vendOppDrop('${v.id}','${o.id}')">Not for us</button></div>`).join('')}
+        ${done.map(o=>`<div class="vnd-o done"><span>${vEsc(o.text)}</span><i>in Ideas</i></div>`).join('')}
+        <div class="vnd-add">
+          <input id="vo${v.id}" placeholder="Something in their catalogue worth a look — one line" onkeydown="if(event.key==='Enter')vendAddOpp('${v.id}')">
+          <button class="btn sm" onclick="vendAddOpp('${v.id}')">Add</button>
+        </div>
+      </div>
+      <div class="vnd-foot">
+        <span class="vnd-when${vendDue(v)?' due':''}">${d===null?'never browsed':d===0?'browsed today':'browsed '+d+' days ago'}</span>
+        <button class="btn sm${vendDue(v)?' primary':''}" onclick="vendBrowsed('${v.id}')">✓ Browsed their catalogue</button>
+      </div>
+    </div>`; };
+  const el=document.getElementById('pane-vendors'); if(!el) return;
+  el.innerHTML = `
+    <div class="page-hd"><div>
+      <div class="page-title">Suppliers</div>
+      <div class="page-sub">Factories you have already built with. A good supplier is a sourcing method — when a product works, the next one often starts with what else they make.</div>
+    </div><button class="btn sm primary" onclick="addVendor()">+ Supplier</button></div>
+    <p class="pl-tab-sub" style="margin:-4px 0 14px">Keep the catalogue link and the contact who replies. Add anything of theirs worth a look, then turn it into an idea and it lands in Ideas with <b>Existing supplier</b> as the source.</p>
+    <div class="vnd-stats">
+      <div class="vnd-stat"><b>${L.length}</b><span>suppliers</span></div>
+      <div class="vnd-stat"><b style="color:${due?'#FFC53D':'var(--t1)'}">${due}</b><span>due a browse</span></div>
+      <div class="vnd-stat"><b style="color:#00E5A0">${opps}</b><span>open opportunities</span></div>
+      <div class="vnd-stat"><b>${fromSup}</b><span>ideas from suppliers</span></div>
+    </div>
+    ${L.length ? list.map(card).join('')
+      : `<div class="pl-tab-empty">No suppliers yet. Add the factories you already work with — once one is in here, the next product can start from their catalogue instead of a blank search.
+         <div style="margin-top:12px"><button class="btn sm primary" onclick="addVendor()">+ Add your first supplier</button></div></div>`}`;
+  const b=document.getElementById('vndBadge'); if(b){ b.textContent=due||''; b.classList.toggle('zero',!due); }
+};
 function renderDash(){
   const q=(document.getElementById('dsearch').value||'').toLowerCase();
   const fs=document.getElementById('dfilt').value;
@@ -3062,6 +3191,106 @@ function openBulkModal(){
       <span style="flex:1;text-align:left">${s.label}</span>
       <span style="font-family:var(--mono);font-size:10px;color:var(--t3)">${s.desc}</span>
     </button>`).join('');;
+}
+/* ── bulk add ideas ──────────────────────────────────────────────────────────
+   A list of products with their ASINs, however it is written: one per line, or
+   all on one line separated by dashes. Names become draft ideas with the ASINs
+   already in, everything else left blank to fill in. Nothing already on the
+   list is touched. */
+const ASIN_RE = /\b(B0[A-Z0-9]{8})\b/gi;
+const LABEL_RE = /^(asins?|links?|urls?|notes?|codes?)\s*$/i;
+const NOTE_RE  = /\b(com[ie]?ng|tbc|to follow|to add|more to|and more|etc|todo|wip|placeholder|soon)\b/i;
+function ibEsc(t){ return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function ideaKey(n){ return String(n||'').toLowerCase().replace(/\bpowder\b|\bshots?\b|\bflavour\b|\bflavor\b/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
+function ideaBulkParse(raw){
+  var txt = String(raw||'');
+  // split on newlines first; if it is all one line, dashes separate the products
+  var chunks = txt.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+  if(chunks.length<=1) chunks = txt.split(/\s*-{2,}\s*/).map(function(l){return l.trim();}).filter(Boolean);
+  var out=[], cur=null, ignored=[];
+  chunks.forEach(function(chunk){
+    // a chunk may still hold "name --- ASIN --- ASIN"
+    var parts = chunk.split(/\s*-{2,}\s*/).map(function(x){return x.trim();}).filter(Boolean);
+    if(!parts.length) parts=[chunk];
+    parts.forEach(function(part){
+      var asins = part.match(ASIN_RE);
+      var name = part.replace(ASIN_RE,'').replace(/^[\s\-–—•·,:]+|[\s\-–—•·,:]+$/g,'').trim();
+      if(name && LABEL_RE.test(name)) name='';      // "asins -" is a label; its codes belong to the product above
+      if(name && !asins && NOTE_RE.test(name)){     // "more coming here" is you talking to yourself, not a product
+        ignored.push(name); cur=null; return;
+      }
+      if(name){ cur = {name:name, asins:[]}; out.push(cur); }
+      if(asins && cur) asins.forEach(function(a){ a=a.toUpperCase(); if(cur.asins.indexOf(a)<0) cur.asins.push(a); });
+    });
+  });
+  // fold duplicates typed twice in the same paste
+  var seen={}, rows=[];
+  out.forEach(function(r){
+    var k=ideaKey(r.name); if(!k) return;
+    if(seen[k]){ r.asins.forEach(function(a){ if(seen[k].asins.indexOf(a)<0) seen[k].asins.push(a); }); return; }
+    seen[k]=r; rows.push(r);
+  });
+  // is it already on the list? match on name, or on any shared ASIN
+  rows.forEach(function(r){
+    var byName = ideas.filter(function(n){ return ideaKey(n.name)===ideaKey(r.name); })[0];
+    var byAsin = !byName && r.asins.length ? ideas.filter(function(n){
+      return (n.asins||[]).some(function(a){ return r.asins.indexOf(String(a.asin||'').toUpperCase())>=0; }); })[0] : null;
+    r.existing = byName || byAsin || null;
+    r.matchedOn = byName ? 'name' : byAsin ? 'ASIN' : null;
+    // the one you already have might be missing an ASIN from this paste — do not lose it
+    r.newAsins = r.existing
+      ? r.asins.filter(function(a){ return !(r.existing.asins||[]).some(function(x){ return String(x.asin||'').toUpperCase()===a; }); })
+      : [];
+  });
+  rows.ignored = ignored;
+  return rows;
+}
+function ideaBulkOpen(){
+  var h=plmHost(); h.querySelector('.plm-bar').style.background='var(--brand,#7C6CFF)';
+  document.getElementById('plmTitle').textContent='Bulk add ideas';
+  document.getElementById('plmBody').innerHTML=
+    '<p class="plm-p">Paste your list — product name and its ASINs, one per line or all run together with dashes. They arrive as drafts with the ASINs already in, ready for you to fill in and score. <b>Anything already on your list is skipped</b>, matched on name or on a shared ASIN.</p>'
+    +'<textarea id="ideaBulkTA" class="sup-bulk" placeholder="Hojicha - B0G8HP8KXD\nSlim Green Coffee --- B0H41M1TK8 --- B0H7RJG6QS\nChocolate Flavour Powder --- B0DPDKV511" oninput="ideaBulkPreview()"></textarea>'
+    +'<div class="sup-bulk-prev" id="ideaBulkPrev">Paste to see what will be added.</div>';
+  document.getElementById('plmFoot').innerHTML='<button class="plm-btn ghost" id="plmNo">Cancel</button><button class="plm-btn primary" id="plmYes">Add ideas</button>';
+  document.getElementById('plmNo').onclick=function(){ plmClose(); };
+  document.getElementById('plmYes').onclick=function(){
+    var all=ideaBulkParse(document.getElementById('ideaBulkTA').value);
+    var rows=all.filter(function(r){ return !r.existing; });
+    var merges=all.filter(function(r){ return r.existing && r.newAsins.length; });
+    if(!rows.length && !merges.length){ showFlash('Nothing new to add'); return; }
+    var added=0, merged=0;
+    merges.forEach(function(r){
+      r.existing.asins=(r.existing.asins||[]).concat(r.newAsins.map(function(a){ return {asin:a, note:''}; }));
+      r.existing.editedAt=Date.now(); merged+=r.newAsins.length;
+    });
+    rows.forEach(function(r){
+      var o={ id:(Date.now()+Math.floor(Math.random()*10000)), createdAt:Date.now(), editedAt:Date.now(),
+        name:r.name, sourcing:'', status:'',
+        asins:r.asins.map(function(a){ return {asin:a, note:''}; }),
+        sv:'', price:'', tcs:'', ncomp:'', ncomp_note:'', tiktokSales:'',
+        myThoughts:'', notes:'', scoreHistory:[] };
+      o._legacyId=String(o.id);
+      ideas.unshift(o); added++;
+      try{ CLUB.log('idea_added',{app:'pl',entity_kind:'idea',entity_ref:o.id,entity_name:o.name}); }catch(e){}
+    });
+    plmClose(); persist(); renderDash();
+    showFlash([added?added+' idea'+(added===1?'':'s')+' added as drafts':'', merged?merged+' ASIN'+(merged===1?'':'s')+' added to ideas you already had':''].filter(Boolean).join(' · '));
+  };
+  h.classList.add('open'); setTimeout(function(){ var t=document.getElementById('ideaBulkTA'); if(t) t.focus(); },40);
+}
+function ideaBulkPreview(){
+  var rows=ideaBulkParse((document.getElementById('ideaBulkTA')||{}).value), el=document.getElementById('ideaBulkPrev');
+  if(!el) return;
+  if(!rows.length && !(rows.ignored||[]).length){ el.textContent='Paste to see what will be added.'; return; }
+  var add=rows.filter(function(r){return !r.existing;}), skip=rows.filter(function(r){return r.existing;});
+  var chip=function(r,cls){ return '<span class="'+cls+'">'+ibEsc(r.name)+(r.asins.length?' <i>'+r.asins.length+' ASIN'+(r.asins.length===1?'':'s')+'</i>':' <i>no ASIN</i>')+'</span>'; };
+  var extra=rows.reduce(function(a,r){return a+(r.newAsins?r.newAsins.length:0);},0);
+  var ign=(rows.ignored||[]);
+  el.innerHTML='<b>'+add.length+' new</b>'+(skip.length?' · <b>'+skip.length+' already on your list</b>':'')+(extra?' · <b>'+extra+' extra ASIN'+(extra===1?'':'s')+'</b> to merge in':'')
+    +(ign.length?'<div class="ib-rows">'+ign.map(function(t){return '<span class="ib-ign">ignored as a note: '+ibEsc(t)+'</span>';}).join('')+'</div>':'')
+    +'<div class="ib-rows">'+add.map(function(r){return chip(r,'ib-add');}).join('')+'</div>'
+    +(skip.length?'<div class="ib-rows">'+skip.map(function(r){return '<span class="ib-skip">'+ibEsc(r.name)+' <i>'+(r.newAsins.length?'already there \u2014 '+r.newAsins.length+' new ASIN'+(r.newAsins.length===1?'':'s')+' to add':'already there, matched on '+r.matchedOn)+'</i></span>';}).join('')+'</div>':'');
 }
 function addAsin(){tempAsins.push({asin:'',note:''});renderAsinList();setTimeout(()=>{const r=document.querySelectorAll('.asin-row input');if(r.length)r[r.length-2].focus();},50);}
 function remA(i){tempAsins.splice(i,1);renderAsinList();}
@@ -5373,8 +5602,10 @@ function renderWeek(){
          : {p:'LOW', b:'Review'}; }
   var _seen={}, qrows=[];
   try{ var _me=CLUB.user(); if(_me) CLUB.tasksFor(_me.id).forEach(function(t){
-    qrows.push({it:{type:'club', clubId:t.id, title:t.title, product:t.related_name||('from '+CLUB.nameOf(t.created_by)),
-      next:(t.brief||'Sent by '+CLUB.nameOf(t.created_by))+(t.due?' \u00b7 due '+t.due:''), day:null},
+    // the task itself is the headline — it used to show only "from Jack", and Private Label has no Tasks page to read it on
+    qrows.push({it:{type:'club', clubId:t.id, title:t.title, product:t.title,
+      stage:'Task \u00b7 from '+CLUB.nameOf(t.created_by)+(t.related_name?' \u00b7 '+t.related_name:''),
+      next:(t.brief||'')+(t.due?(t.brief?' \u00b7 ':'')+'due '+t.due:'')||'No due date', day:null},
       r:{p:t.priority==='urgent'||t.priority==='high'?'HIGH':t.priority==='low'?'LOW':'MED', b:'Done'}}); }); }catch(e){}
   [['overdue',d.overdue],['stuck',d.stuck],['week',d.week]].forEach(function(pair){
     pair[1].forEach(function(it){
@@ -5382,17 +5613,18 @@ function renderWeek(){
       if(_seen[key]) return; _seen[key]=1;
       qrows.push({it:it, r:acRank(it,pair[0])}); }); });
   var qHtml=qrows.slice(0,10).map(function(x){
+    // a click on the row of a task used to complete it — only the Done button does that now
     var it=x.it, click = it.type==='product'?'acOpenProduct('+it.productId+')'
-      : it.type==='club'?'clubTaskDone(\''+it.clubId+'\')'
+      : it.type==='club'?''
       : it.type==='manual'?'acDismissManual('+it.taskId+')' : 'acOpenTarget(\''+esc(it.navTarget||'dash')+'\')';
-    return '<tr onclick="'+click+'">'
+    return '<tr'+(click?' onclick="'+click+'"':' class="pq-task"')+'>'
       +'<td><span class="ov-p '+x.r.p.toLowerCase()+'">'+x.r.p+'</span></td>'
       +'<td><span class="ov-prod">'+(it.product?plAvatar(it.product,'sm'):'')
         +'<b>'+esc(it.product||it.title||'')+'</b></span></td>'
       +'<td><span class="ov-stage">'+esc(it.stage||'')+'</span></td>'
       +'<td class="ov-na">'+esc(it.next||it.title||'')+'</td>'
       +'<td class="ov-age">'+(it.day!=null?'Day '+num(it.day):'—')+'</td>'
-      +'<td><button class="ov-go">'+x.r.b+' →</button></td></tr>'; }).join('');
+      +'<td><button class="ov-go"'+(it.type==='club'?' onclick="event.stopPropagation();clubTaskDone(\''+it.clubId+'\')"':'')+'>'+x.r.b+' →</button></td></tr>'; }).join('');
   var queue='<section class="ov-card"><div class="ov-card-h"><h3>Priority queue</h3>'
     +'<span class="ov-card-s">'+qrows.length+' open · worst first</span></div>'
     +(qHtml?'<div class="ov-tw"><table class="ov-tbl"><thead><tr><th>Priority</th><th>Product</th><th>Stage</th><th>Next action</th><th>Age</th><th></th></tr></thead><tbody>'+qHtml+'</tbody></table></div>'
@@ -10868,6 +11100,68 @@ body.plub-embed .app{height:100vh!important;grid-row:auto;grid-column:auto}
 .sup-dl input,.sup-dl textarea{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:6px 9px;color:var(--t1);font:600 12.5px var(--sans);resize:vertical}
 .sup-drow{display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap}
 .sup-tier{width:64px;background:var(--s2);border:1px solid var(--b2);border-radius:6px;padding:2px 6px;color:var(--t1);font:700 11px var(--sans);text-align:center;margin:0 3px}
+</style>
+<style>
+.ib-rows{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.ib-add,.ib-skip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;font-size:11.5px;font-weight:700;border:1px solid}
+.ib-add{background:rgba(0,229,160,.10);border-color:rgba(0,229,160,.35);color:#7FF0C6}
+.ib-skip{background:var(--s2);border-color:var(--b1);color:var(--t4);font-weight:600}
+.ib-add i,.ib-skip i{font-style:normal;font-weight:600;opacity:.75;font-size:10.5px}
+</style>
+<style>
+.ib-ign{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;border:1px dashed var(--b2);background:transparent;color:var(--t4)}
+</style>
+<style>
+.vnd-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px}
+.vnd-stat{background:var(--s2);border:1px solid var(--b1);border-radius:11px;padding:10px 13px}
+.vnd-stat b{display:block;font-size:21px;font-weight:850;line-height:1;font-variant-numeric:tabular-nums;color:var(--t1)}
+.vnd-stat span{display:block;font-size:10.5px;color:var(--t3);margin-top:4px}
+.vnd-card{border:1px solid var(--b1);border-radius:14px;background:var(--s1);padding:14px 15px;margin-bottom:10px}
+.vnd-card.due{border-color:rgba(255,197,61,.35)}
+.vnd-top{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.vnd-name{flex:1;min-width:0;background:transparent;border:none;border-bottom:1px solid transparent;padding:2px 0;font:850 16px var(--sans);color:var(--t1);letter-spacing:-.3px}
+.vnd-name:hover{border-bottom-color:var(--b2)} .vnd-name:focus{outline:none;border-bottom-color:var(--brand,#7C6CFF)}
+.vnd-go{flex:none;font-size:11px;font-weight:750;color:#A78BFF;text-decoration:none;border:1px solid var(--b2);border-radius:99px;padding:3px 10px}
+.vnd-go:hover{border-color:var(--b3);background:var(--s3)}
+.vnd-x{flex:none;width:24px;height:24px;border-radius:7px;border:1px solid var(--b2);background:var(--s3);color:var(--t4);cursor:pointer;font-weight:800}
+.vnd-x:hover{color:#FF93A6;border-color:rgba(255,84,112,.45)}
+.vnd-prod{font-size:11.5px;color:var(--t4);margin:-4px 0 10px;display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.vnd-prod span{cursor:pointer;color:#00E5A0;font-weight:750;border:1px solid rgba(0,229,160,.3);background:rgba(0,229,160,.08);border-radius:99px;padding:1px 9px}
+.vnd-prod span:hover{border-color:rgba(0,229,160,.6)}
+.vnd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px 12px;margin-bottom:9px}
+.vnd-grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-bottom:11px}
+.vnd-card label{display:flex;flex-direction:column;gap:3px}
+.vnd-card label>span{font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--t4);font-weight:800}
+.vnd-card label input,.vnd-card label textarea{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:6px 9px;color:var(--t1);font:600 12.5px var(--sans);resize:vertical}
+.vnd-opp{border-top:1px solid var(--b1);padding-top:10px}
+.vnd-opp-h{font-size:12.5px;font-weight:800;color:var(--t1);margin-bottom:8px;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.vnd-o{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--b1);font-size:12.5px;color:var(--t2)}
+.vnd-o:first-of-type{border-top:0}
+.vnd-o>span{flex:1;min-width:0}
+.vnd-o.done{color:var(--t4)} .vnd-o.done i{font-style:normal;font-size:10px;font-weight:800;color:#00E5A0;border:1px solid rgba(0,229,160,.4);background:rgba(0,229,160,.1);border-radius:99px;padding:1px 8px}
+.vnd-add{display:flex;gap:6px;margin-top:9px}
+.vnd-add input{flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:7px 10px;color:var(--t1);font:600 12.5px var(--sans)}
+.vnd-foot{display:flex;align-items:center;gap:10px;margin-top:11px;padding-top:10px;border-top:1px solid var(--b1)}
+.vnd-when{font-size:11px;color:var(--t4);font-weight:700} .vnd-when.due{color:#FFC53D}
+.vnd-foot .btn{margin-left:auto}
+@media(max-width:760px){.vnd-grid2{grid-template-columns:1fr}}
+</style>
+<style>#pane-week tr.pq-task{cursor:default}</style>
+<style id="plub-readable">
+/* ═══ READABILITY PASS v1.00 — the same block in all three files, last in the page so it wins ═══
+   Grey text was #787A87 at 9–11px: ~4.2:1 on near-black, hard work to read. Lifted to ~7:1, quiet tier
+   ~8.5:1, keeping the order t1 > t2 > t3 > t4. Colours only — no sizes or layout change except the 9px rail labels. */
+:root,[data-theme="dark"],[data-theme="light"]{--t3:#AEB0BB!important;--t4:#9C9EAA!important}
+.sb2 .sn-sec{color:#9C9EAA!important;font-size:10px!important}
+.sb2 .sn-ic{color:#A6A8B4!important}
+.ov-arrow,.flow-arrow,.g-chain,.ord-btn:disabled{color:#8E909C!important}
+.pl-tile-sub,.pipe-kpi-sub{color:rgba(255,255,255,.66)!important}
+#pane-pipeline .col-zero-ic{color:rgba(255,255,255,.45)!important}
+.pl-dropped-archive-btn b{color:#FFC2CA!important}
+.prod-step-state,.prod-step-dot,.pl-stage-task-meta,.pl-metric span,.pl-task-number,.pl-task-template-hint,.pl-empty,.page-note-time,.page-notes summary:after,.rank-head,.prod-subtab,#pane-settings .set-tab,#pane-settings .set-rs,#pane-settings .kpi-rule label,.empty,.pl-tab-empty,.ac2-empty,.pl-preview-task.done .pl-preview-task-name,.page-note-delete{color:#A3A5B1!important}
+.pl-task-grip{color:#8E909C!important}
+.f-fn-gap i{color:#8E909C!important}
+.kpi-rules-hd p{color:#B4B6C1!important}
 </style>
 </body>
 </html>

@@ -3,6 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<script>
+/* First load of v1.00: copy PLUB's saved data exactly as the previous version left it, before anything on this page
+   (the shared core, or either app as it loads) can bring it up to date. Memory only — the shared browser storage is too
+   full for a second copy — and it rides along inside "Export everything" as before_update. Same key list as PD_KEYS. */
+window.__plubPre=(function(){ try{
+  if(localStorage.getItem('plub_build_seen')==='1.00') return null;
+  var list=['plub_v1','plub_who','plub_mode','plub_outbox_v1','ubpl_shell_tab','plub_rail_min','plub_ov_view','plub_ov_filter',
+    'ub_tracker_v1','ub_sb_min','ub_last_report','ub_last_backup','pl_sourcing_v1','pls_theme','pls_draft','pl_sb_min'];
+  var o={}, n=0;
+  for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k&&(list.indexOf(k)>=0||/^(ub_tracker_v1__|pl_sourcing_v1_quarantine_)/.test(k))){ o[k]=localStorage.getItem(k); n++; } }
+  try{ localStorage.setItem('plub_build_seen','1.00'); }catch(e){}
+  return n?{captured_at:new Date().toISOString(),keys:o}:null;
+}catch(e){ return null; } })();
+</script>
 <title>PLUB · PL + UB HQ</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23A78BFF'/%3E%3Cstop offset='1' stop-color='%2322D3EE'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='url(%23g)'/%3E%3Crect x='14' y='30' width='36' height='18' rx='5' fill='%23030304' opacity='.85'/%3E%3Crect x='20' y='20' width='24' height='12' rx='4' fill='%23030304' opacity='.5'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -435,8 +449,8 @@ window.CLUB = (function(){
 </script>
 <script>
 // BUILD is the version people see — moves by 0.05 a release; STAMP is what actually busts the cache. Bump STAMP every push.
-var BUILD = '0.90';
-var STAMP = '2026-09-20a';
+var BUILD = '1.00';
+var STAMP = '2026-10-23a';
 document.getElementById('buildChip').textContent = 'v' + BUILD;
 
 var FRAMES = { ub: document.getElementById('f_ub'), pl: document.getElementById('f_pl') };
@@ -655,7 +669,7 @@ function ovPerson(d){
 function ovAvatar(name,size){
   var h=0, str=String(name||'?');
   for(var i=0;i<str.length;i++) h=(h*31+str.charCodeAt(i))>>>0;
-  var HUES=['#7C5CFF','#22D3EE','#00E5A0','#FFC53D','#FF8A3D','#FF5CC8','#3B9EFF','#A78BFF'];
+  var HUES=['#9B85FF','#22D3EE','#00E5A0','#FFC53D','#FF8A3D','#FF5CC8','#3B9EFF','#A78BFF'];
   var c=HUES[h%HUES.length];
   var ini=String(name||'?').trim().split(/\s+/).slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()||'?';
   return '<span class="pav'+(size==='sm'?' sm':'')+'" style="--av:'+c+'">'+esc(ini)+'</span>';
@@ -903,6 +917,7 @@ function renderRail(){
   });
   h+='<div class="sn-month" id="snMonth" onclick="show(\'pipe\')" title="Open the Overview">'+CLUB.railMonthHtml()+'</div>'
     +'<div class="sn-spacer"></div>'+bottom+'</nav>'
+    +pdRailHtml()
     +'<div class="sn-foot"><div class="sn-av">'+esc(nm[0]||'?')+'</div><div class="sn-foot-t"><div class="sn-user">'+esc(nm)+'</div>'
     +'<div class="sn-role">'+(u&&u.role==='owner'?'Owner':'Staff')+' · '+(CLUB.mode()==='supabase'?'cloud':'local')+'</div></div>'
     +'<button class="sn-switch" onclick="clubSignOut()" title="'+(CLUB.mode()==='supabase'?'Sign out':'Switch user')+'">⇄</button></div>';
@@ -945,8 +960,12 @@ function renderBar(){
   if(app==='pipe') h+='<span class="tb-saved"><span class="dot" style="background:var(--green,#00E5A0)"></span>'+(CLUB.mode()==='supabase'?'cloud':'local')+' · both sides</span>';
   else if(st.saved) h+='<span class="tb-saved" title="Saves in this browser automatically"><span class="dot" style="background:var(--green,#00E5A0)"></span>'+esc(st.saved.replace(/^\s*Saved\s*$/,'Saved'))+'</span>';
   if(st.sess) h+='<button class="btn'+(st.sess.on?' sess-on':'')+'" id="plubSess" onclick="frameRun(\''+app+'\',\''+st.sess.code+'\')">'+st.sess.html+'</button>';
-  if(st.menu.length) h+='<div class="tb-more"><button type="button" onclick="document.getElementById(\'plubMenu\').classList.toggle(\'open\')" title="More">···</button><div class="tb-menu" id="plubMenu">'
-    +st.menu.map(function(m){ return m.hr?'<hr>':'<button onclick="document.getElementById(\'plubMenu\').classList.remove(\'open\');frameRun(\''+app+'\','+JSON.stringify(m.code).replace(/"/g,'&quot;')+')">'+esc(m.label)+'</button>'; }).join('')+'</div></div>';
+  // both apps' own items, then the two that cover the whole of PLUB — so they're in every ··· menu, Overview included
+  var menu=st.menu.concat(st.menu.length?[{hr:true}]:[],[{label:'⬇ Export everything',shell:'pdExport()'},{label:'⬆ Import everything…',shell:'pdOpen()'}]);
+  h+='<div class="tb-more"><button type="button" onclick="document.getElementById(\'plubMenu\').classList.toggle(\'open\')" title="More">···</button><div class="tb-menu" id="plubMenu">'
+    +menu.map(function(m){ var close='document.getElementById(\'plubMenu\').classList.remove(\'open\');';
+      return m.hr?'<hr>':m.shell?'<button class="tb-plub" onclick="'+close+m.shell+'">'+esc(m.label)+'</button>'
+        :'<button onclick="'+close+'frameRun(\''+app+'\','+JSON.stringify(m.code).replace(/"/g,'&quot;')+')">'+esc(m.label)+'</button>'; }).join('')+'</div></div>';
   if(st.add) h+='<button class="btn btn-pri" onclick="frameRun(\''+app+'\',\''+st.add.code+'\')">'+esc(st.add.label)+'</button>';
   var bar=document.getElementById('plubBar');
   var keep = document.activeElement && document.activeElement.id==='plubSearch' ? document.activeElement.value : null;
@@ -1262,7 +1281,7 @@ function renderPipe(){
   var filters='<div class="ov-fbar">'+fBtn('all','Everything',moving)+fBtn('ub','Unique Bundles · Becki',nUb)+fBtn('pl','Private Label · Jack',nPl)
     +'<span class="ovf-sp"></span>'+fBtn('stuck','Needs a push',stuck)+fBtn('wait','Waiting',wait)+'</div>';
   var board = filters
-    + '<div class="ov-flow">'+(flowSegs||'<span style="flex:1;background:var(--s3)"></span>')+'</div><div class="ov-flow-read">'+flowRead+'</div>'
+    + '<div class="jb-flow">'+(flowSegs||'<span style="flex:1;background:var(--s3)"></span>')+'</div><div class="ov-flow-read">'+flowRead+'</div>'
     + (moving+launched===0
         ? '<div class="ov-blank">Nothing in either pipeline yet — promote your best ideas from each app and they appear here.</div>'
         : '<div class="p-board" style="grid-template-columns:'+template+'">'+cols+'</div>');
@@ -1339,6 +1358,462 @@ if(CLUB.user()) clubBoot(); else clubGate();
 CLUB.on(function(){ if(!CLUB.user() && document.getElementById('clubGate') && document.getElementById('clubGate').style.display==='none') clubGate(); });
 setTimeout(function(){ paintPipeN(); }, 1500);
 </script>
+<script id="plub-data">
+/* ═══════ EXPORT / IMPORT EVERYTHING ═══════
+   One file holds every PLUB key on this laptop, byte for byte: both trackers, shared tasks/sessions, settings, drafts.
+   Format 'plub-full-export' v1 — the online version imports this same file, so a key's raw value must never be
+   reshaped on the way out. Other BDL apps share this browser storage; only PLUB's own keys are ever read or written. */
+var PD_KEYS=['plub_v1','plub_who','plub_mode','plub_outbox_v1','ubpl_shell_tab','plub_rail_min','plub_ov_view','plub_ov_filter',
+  'ub_tracker_v1','ub_sb_min','ub_last_report','ub_last_backup','pl_sourcing_v1','pls_theme','pls_draft','pl_sb_min'];
+var PD_DYNAMIC=/^(ub_tracker_v1__|pl_sourcing_v1_quarantine_)/;   // UB's undo/pre-import copies, PL's quarantined stores
+var PD_KEEP=['plub_who'];                                           // who is using this laptop is not data — an import never changes it
+var PD_LAST='plub_last_full_export';
+var _pdPending=null;
+
+function pdKeys(){
+  var out=PD_KEYS.slice();
+  try{ for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k&&PD_DYNAMIC.test(k)&&out.indexOf(k)<0) out.push(k); } }catch(e){}
+  return out;
+}
+function pdOwns(k){ return PD_KEYS.indexOf(k)>=0 || PD_DYNAMIC.test(k); }
+function pdRead(){ var o={}; pdKeys().forEach(function(k){ try{ var v=localStorage.getItem(k); if(v!=null) o[k]=v; }catch(e){} }); return o; }
+function pdParse(s){ try{ return JSON.parse(s); }catch(e){ return null; } }
+var _pdLastMem=null;   // if the shared browser storage is full the note can't be written — the page must still know the export happened
+function pdLast(){ var r=null; try{ r=pdParse(localStorage.getItem(PD_LAST)||'null'); }catch(e){} return r||_pdLastMem; }
+function pdCounts(keys){
+  var ub=pdParse(keys.ub_tracker_v1||'null')||{}, pl=pdParse(keys.pl_sourcing_v1||'null')||{}, sh=pdParse(keys.plub_v1||'null')||{};
+  var bs=((pl.brand_state||[])[0]||{}).data||{};
+  function n(a){ return Array.isArray(a)?a.length:0; }
+  var pli=Array.isArray(pl.ideas)?pl.ideas:[];
+  return {
+    ub_ideas:n(ub.ideas), ub_pipeline:n(ub.pipeline), ub_tasks:n(ub.tasks), ub_inbox:n(ub.inbox), ub_vendors:n(ub.vendors),
+    ub_storefronts:n(ub.storefronts), ub_sessions:n(ub.sessionLog), ub_archive:n(ub.archive),
+    pl_ideas:pli.length, pl_pipeline:pli.filter(function(r){ return r&&r.in_pipeline; }).length, pl_vendors:n(bs.vendors),
+    pl_sessions:n(bs.plSess), pl_week_tasks:n(bs.weekTasks),
+    sh_tasks:n(sh.tasks), sh_sessions:n(sh.sessions), sh_notes:n(sh.task_notes), sh_activity:n(sh.activity)
+  };
+}
+var PD_ROWS=[
+  ['Unique Bundles',[['ub_ideas','Ideas'],['ub_pipeline','In the pipeline'],['ub_tasks','Tasks'],['ub_inbox','Review queue'],['ub_vendors','Suppliers'],['ub_storefronts','Storefronts'],['ub_sessions','Sessions'],['ub_archive','Archived']]],
+  ['Private Label',[['pl_ideas','Ideas'],['pl_pipeline','In the pipeline'],['pl_vendors','Suppliers'],['pl_sessions','Sessions'],['pl_week_tasks','Week plan tasks']]],
+  ['Shared',[['sh_tasks','Tasks'],['sh_notes','Task notes'],['sh_sessions','Sessions'],['sh_activity','Activity log']]]
+];
+function pdHash(keys){
+  var s=Object.keys(keys).sort().map(function(k){ return k+'\u0000'+keys[k]; }).join('\u0001');
+  try{ if(window.crypto&&crypto.subtle&&window.TextEncoder) return crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)).then(function(b){
+    return Array.prototype.map.call(new Uint8Array(b),function(x){ return ('0'+x.toString(16)).slice(-2); }).join(''); }); }catch(e){}
+  return Promise.resolve('');
+}
+function pdFlush(){
+  // both apps save on a short timer — push anything still waiting into storage before it is read
+  try{ var w=frameWin('ub'); if(w) new w.Function('try{flushSave()}catch(e){}')(); }catch(e){}
+  try{ var p=frameWin('pl'); if(p) new p.Function('try{_flushPendingSave()}catch(e){}')(); }catch(e){}
+}
+function pdP(n){ return (n<10?'0':'')+n; }
+function pdStamp(d){ return d.getFullYear()+'-'+pdP(d.getMonth()+1)+'-'+pdP(d.getDate())+' '+pdP(d.getHours())+'.'+pdP(d.getMinutes()); }
+function pdWhen(iso){
+  var d=new Date(iso); if(isNaN(d)) return '';
+  var t=pdP(d.getHours())+':'+pdP(d.getMinutes()), today=new Date(); today.setHours(0,0,0,0);
+  var day=new Date(d); day.setHours(0,0,0,0); var diff=Math.round((today-day)/864e5);
+  if(diff===0) return 'today '+t; if(diff===1) return 'yesterday '+t;
+  return d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+t;
+}
+function pdSize(n){ return n>1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB'; }
+function pdFileObj(keys,h,extra){
+  var u=CLUB.user();
+  var f={format:'plub-full-export',format_version:1,app:'PLUB',build:BUILD,stamp:STAMP,exported_at:new Date().toISOString(),
+    exported_by:u?u.display_name:'?',exported_by_id:u?u.id:'',key_count:Object.keys(keys).length,counts:pdCounts(keys),sha256:h,keys:keys};
+  if(extra) Object.keys(extra).forEach(function(k){ f[k]=extra[k]; });
+  // the untouched pre-update copy goes in every normal export from this page load — a fallback, never what Import restores
+  if(window.__plubPre&&!f.safety_copy) f.before_update={note:'Every PLUB key exactly as the previous version left it, captured on the first load of v'+BUILD+' before anything updated it',
+    captured_at:window.__plubPre.captured_at,counts:pdCounts(window.__plubPre.keys),keys:window.__plubPre.keys};
+  return f;
+}
+function pdDownload(text,name){
+  var b=new Blob([text],{type:'application/json'}), a=document.createElement('a');
+  a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); },8000);
+}
+
+/* ── rail button ── */
+function pdRailHtml(){
+  var r=pdLast(), old=!r||(Date.now()-new Date(r.at).getTime())>7*864e5;
+  return '<button class="sn-data'+(old?' due':'')+'" onclick="golRail()" title="One click: save everything from both apps to your Downloads">'
+    +'<span class="sn-data-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l4-4 4 4M10 4v9"/><path d="M3.5 13v2.5h13V13"/></svg></span>'
+    +'<span class="sn-data-t"><b>Export everything</b><i>'+(r?'Last: '+esc(pdWhen(r.at)):'Not done on this laptop yet')+'</i></span></button>';
+}
+
+/* ── the popup ── */
+function pdBox(){
+  var o=document.getElementById('pdMo');
+  if(!o){
+    o=document.createElement('div'); o.id='pdMo'; o.className='pd-mo';
+    o.innerHTML='<div class="pd-card" role="dialog" aria-modal="true" aria-labelledby="pdTitle"><div id="pdBody"></div></div><input type="file" id="pdFile" accept=".json,application/json" style="display:none" onchange="pdFileChosen(this)">';
+    o.addEventListener('mousedown',function(e){ if(e.target===o && !o.classList.contains('busy')) pdClose(); });
+    document.body.appendChild(o);
+  }
+  return o;
+}
+function pdClose(){ var o=document.getElementById('pdMo'); if(o) o.classList.remove('show'); _pdPending=null; }
+document.addEventListener('keydown',function(e){ var o=document.getElementById('pdMo'); if(e.key==='Escape'&&o&&o.classList.contains('show')&&!o.classList.contains('busy')) pdClose(); });
+function pdSet(html,busy){ var o=pdBox(); o.classList.add('show'); o.classList.toggle('busy',!!busy); document.getElementById('pdBody').innerHTML=html; }
+function pdHead(title,sub){ return '<div class="pd-h"><h3 id="pdTitle">'+title+'</h3><button class="pd-x" onclick="pdClose()" title="Close">×</button></div>'+(sub?'<p class="pd-sub">'+sub+'</p>':''); }
+function pdCountsHtml(c){
+  return '<div class="pd-now">'+PD_ROWS.map(function(g){
+    return '<div class="pd-g"><div class="pd-gl">'+g[0]+'</div>'+g[1].filter(function(r){ return c[r[0]]; }).map(function(r){ return '<span><b>'+c[r[0]]+'</b> '+r[1].toLowerCase()+'</span>'; }).join('')
+      +(g[1].some(function(r){ return c[r[0]]; })?'':'<span class="pd-none">nothing yet</span>')+'</div>';
+  }).join('')+'</div>';
+}
+function pdOpen(){
+  pdFlush();
+  var r=pdLast(), c=pdCounts(pdRead());
+  pdSet(pdHead('Export &amp; import everything','One file with every idea, product, task, supplier, session and setting from <b>both</b> Unique Bundles and Private Label on this laptop.')
+    +'<div class="pd-last'+(r?' ok':'')+'">'+(r?'<i></i>Last export: <b>'+esc(pdWhen(r.at))+'</b> by '+esc(r.who)+' · '+pdSize(r.bytes):'<i></i>This laptop has <b>not</b> been exported yet')+'</div>'
+    +'<div class="pd-two">'
+    +'<button class="pd-act pd-exp" onclick="pdExport()"><span class="pd-ai">⬇</span><b>Export everything</b><i>Saves one file to your Downloads. Nothing on this laptop changes.</i></button>'
+    +'<button class="pd-act pd-imp" onclick="pdPick()"><span class="pd-ai">⬆</span><b>Import everything</b><i>Puts a file back exactly as it was. Saves a safety copy of this laptop first.</i></button>'
+    +'</div>'
+    +'<div class="pd-lab">On this laptop now</div>'+pdCountsHtml(c));
+}
+function pdBusy(msg){ pdSet('<div class="pd-busy"><span class="pd-spin"></span>'+msg+'</div>',true); }
+function pdShowError(msg){
+  pdSet(pdHead('Nothing was changed')+'<div class="pd-err">'+msg+'</div><div class="pd-foot"><button class="pd-btn" onclick="pdOpen()">Back</button></div>');
+}
+
+/* ── export ── */
+function pdExport(quiet){
+  // quiet = started from the to-do page, which shows the result itself
+  pdBusy('Gathering everything from both apps…');
+  pdFlush();
+  setTimeout(function(){
+    var keys=pdRead();
+    pdHash(keys).then(function(h){
+      var file=pdFileObj(keys,h), text=JSON.stringify(file), back=pdParse(text);
+      // read it straight back before it leaves the page — it only counts if every byte comes back the same
+      return pdHash((back&&back.keys)||{}).then(function(h2){
+        if(!back||h2!==h) throw new Error('the file did not read back cleanly');
+        var name='PLUB everything - '+file.exported_by+' - '+pdStamp(new Date())+'.json';
+        pdDownload(text,name);
+        var rec={at:file.exported_at,who:file.exported_by,bytes:text.length,name:name,parts:file.key_count,counts:file.counts,pre:!!file.before_update};
+        _pdLastMem=rec; try{ localStorage.setItem(PD_LAST,JSON.stringify(rec)); }catch(e){}
+        chromeSync(true);
+        if(quiet){ pdClose(); golRender(); return; }
+        pdSet(pdHead('Exported ✓')
+          +'<div class="pd-ok"><b>'+esc(name)+'</b><span>'+pdSize(text.length)+' · in your Downloads folder</span></div>'
+          +'<ul class="pd-checks"><li>Read straight back and checked — every byte matches this laptop</li><li>'+file.key_count+' saved parts from both apps</li>'+(file.before_update?'<li>Also holds an untouched copy from before this update</li>':'')+'</ul>'
+          +'<div class="pd-lab">What is in the file</div>'+pdCountsHtml(file.counts)
+          +'<p class="pd-tip">Keep it safe: drag a copy into Google Drive, or email it to yourself. If anything ever goes wrong, <b>Import everything</b> puts it all back.</p>'
+          +'<div class="pd-foot"><button class="pd-btn pd-ghost" onclick="pdPick()">Import a file instead…</button><span style="flex:1"></span><button class="pd-btn pd-pri" onclick="pdClose()">Done</button></div>');
+      });
+    }).catch(function(e){ pdShowError('The export did not finish ('+esc(String(e&&e.message||e))+'). Nothing was changed — try again.'); });
+  },700);
+}
+
+/* ── import ── */
+function pdPick(){ pdBox(); var i=document.getElementById('pdFile'); i.value=''; i.click(); }
+function pdFileChosen(inp){
+  var f=inp.files&&inp.files[0]; if(!f) return;
+  pdBusy('Checking the file…');
+  var r=new FileReader();
+  r.onload=function(){ pdCheckFile(String(r.result||''),f.name); };
+  r.onerror=function(){ pdShowError('That file could not be opened.'); };
+  r.readAsText(f);
+}
+function pdCheckFile(text,fname){
+  var file=pdParse(text);
+  if(!file||typeof file!=='object') return pdShowError('<b>'+esc(fname)+'</b> is not a PLUB export — it could not be read.');
+  if(file.app==='bdl-ub') return pdShowError('<b>'+esc(fname)+'</b> is a Unique Bundles-only backup. Put it back from Unique Bundles → Settings → Import backup.');
+  if(file.format!=='plub-full-export'||!file.keys||typeof file.keys!=='object') return pdShowError('<b>'+esc(fname)+'</b> is not an “Export everything” file from PLUB.');
+  if((file.format_version||1)>1) return pdShowError('This file was made by a newer PLUB (v'+esc(file.build)+'). Reload this page to update it first.');
+  pdHash(file.keys).then(function(h){
+    if(file.sha256&&h&&h!==file.sha256) return pdShowError('<b>'+esc(fname)+'</b> has been changed or damaged since it was exported, so it was not used.');
+    _pdPending=file; pdCompare(file,fname);
+  });
+}
+function pdCompare(file,fname){
+  pdFlush();
+  var now=pdCounts(pdRead()), fc=pdCounts(file.keys), u=CLUB.user(), lose=0;
+  var rows=PD_ROWS.map(function(g){
+    var shown=g[1].filter(function(r){ return fc[r[0]]||now[r[0]]; });   // a row that is 0 on both sides says nothing
+    return '<tr class="pd-tg"><td colspan="3">'+g[0]+'</td></tr>'+(shown.length?shown.map(function(r){
+      var a=fc[r[0]], b=now[r[0]], cls=a<b?' class="pd-less"':'';
+      if(a<b&&r[0]!=='sh_activity') lose++;
+      return '<tr'+cls+'><td>'+r[1]+'</td><td>'+a+'</td><td>'+b+(a<b?' <em>−'+(b-a)+'</em>':a>b?' <u>+'+(a-b)+' back</u>':'')+'</td></tr>';
+    }).join(''):'<tr><td colspan="3" class="pd-nil">Nothing on either side</td></tr>');
+  }).join('');
+  var warn='', other=!!(u&&file.exported_by_id&&file.exported_by_id!==u.id);
+  if(other) warn+='<div class="pd-warn">This file is <b>'+esc(file.exported_by)+'’s</b>. Importing it <b>replaces</b> everything <b>'+esc(u.display_name)+'</b> has on this laptop — it does not add to it. To combine two people’s work, wait for the online version.</div>';
+  if(lose) warn+='<div class="pd-warn">This laptop has more in '+lose+' place'+(lose>1?'s':'')+' than the file (marked below). Those would be replaced — the safety copy keeps them.</div>';
+  pdSet(pdHead('Import everything?','<b>'+esc(fname)+'</b><br>Exported '+esc(pdWhen(file.exported_at))+' by '+esc(file.exported_by)+' · PLUB v'+esc(file.build)+' · checked, undamaged')
+    +warn
+    +'<table class="pd-tbl"><thead><tr><th></th><th>In the file</th><th>On this laptop now</th></tr></thead><tbody>'+rows+'</tbody></table>'
+    +'<ol class="pd-steps"><li>A safety copy of this laptop downloads first</li><li>Everything is replaced with the file, exactly as it was</li><li>The page reloads and every count is checked against the file</li></ol>'
+    +'<p class="pd-tip">Close PLUB in any other tab first, or that tab can save its old copy back over this.</p>'
+    +'<div class="pd-foot"><button class="pd-btn" onclick="pdOpen()">Cancel</button><button class="pd-btn pd-pri'+(other?' pd-danger':'')+'" onclick="pdReplace()">'+(other?'Replace '+esc(u.display_name)+'’s data with '+esc(file.exported_by)+'’s':'Replace everything with this file')+'</button></div>');
+}
+function pdPark(){
+  // empty both app frames first: each saves on its way out, and that save must land BEFORE the file is written, never after
+  return new Promise(function(done){
+    var n=0, fin=false; function end(){ if(!fin){ fin=true; done(); } }
+    ['ub','pl'].forEach(function(a){ var f=FRAMES[a]; if(f&&f.getAttribute('src')){ n++; f.onload=function(){ if(--n<=0) end(); }; f.src='about:blank'; } });
+    if(!n) end(); setTimeout(end,3000);
+  });
+}
+function pdWrite(keys,before){
+  var put=Object.keys(keys).filter(function(k){ return pdOwns(k)&&PD_KEEP.indexOf(k)<0; });
+  try{
+    // clear PLUB's own keys first so the space the old copies held is free for the file's
+    pdKeys().forEach(function(k){ if(PD_KEEP.indexOf(k)<0) localStorage.removeItem(k); });
+    put.forEach(function(k){ localStorage.setItem(k,keys[k]); });
+    var bad=put.filter(function(k){ return localStorage.getItem(k)!==keys[k]; });
+    if(bad.length) throw new Error('did not read back: '+bad.join(', '));
+    return {ok:true,n:put.length};
+  }catch(e){
+    // put the laptop back exactly as it was before — each key on its own, so one failure can't stop the rest
+    var stuck=[];
+    pdKeys().forEach(function(k){ if(PD_KEEP.indexOf(k)<0){ try{ localStorage.removeItem(k); }catch(_e){} } });
+    Object.keys(before).forEach(function(k){ if(PD_KEEP.indexOf(k)<0){ try{ localStorage.setItem(k,before[k]); }catch(_e){ stuck.push(k); } } });
+    return {ok:false,err:e,stuck:stuck};
+  }
+}
+function pdReplace(){
+  var file=_pdPending; if(!file) return;
+  pdBusy('Saving a safety copy of this laptop first…');
+  pdFlush();
+  setTimeout(function(){
+    var before=pdRead(), has=!!(before.ub_tracker_v1||before.pl_sourcing_v1||before.plub_v1);
+    (has?pdHash(before).then(function(h){
+      pdDownload(JSON.stringify(pdFileObj(before,h,{safety_copy:true})),'PLUB safety copy before import - '+pdStamp(new Date())+'.json');
+    }):Promise.resolve()).then(function(){
+      pdBusy('Putting everything back…');
+      return pdPark();
+    }).then(function(){
+      before=pdRead();   // re-read after the apps' last saves, so a failed write rolls back to the truth
+      var res=pdWrite(file.keys,before);
+      if(!res.ok){
+        var full=/quota/i.test(String(res.err&&res.err.name||''))||/quota/i.test(String(res.err&&res.err.message||''));
+        ensureLoaded('ub'); ensureLoaded('pl');
+        var tail=res.stuck&&res.stuck.length?' This laptop could not be put fully back — choose <b>Import everything</b> again and pick the <b>safety copy</b> that just downloaded.':' This laptop is exactly as it was.';
+        return pdShowError((full?'This browser’s storage is full (every BDL web app shares it), so the file did not fit.':'The import did not finish ('+esc(String(res.err&&res.err.message||res.err))+').')+tail);
+      }
+      try{ sessionStorage.setItem('plub_import_check',JSON.stringify({counts:pdCounts(file.keys),who:file.exported_by,at:file.exported_at,n:res.n})); }catch(e){}
+      location.reload();
+    });
+  },700);
+}
+(function pdAfterImport(){
+  var chk=null; try{ chk=pdParse(sessionStorage.getItem('plub_import_check')||'null'); sessionStorage.removeItem('plub_import_check'); }catch(e){}
+  if(!chk) return;
+  setTimeout(function(){
+    var now=pdCounts(pdRead());
+    var off=[]; PD_ROWS.forEach(function(g){ g[1].forEach(function(r){ if(r[0]!=='sh_activity'&&chk.counts[r[0]]!==now[r[0]]) off.push(g[0]+' '+r[1].toLowerCase()+': file '+chk.counts[r[0]]+', now '+now[r[0]]); }); });
+    pdSet(pdHead(off.length?'Imported — please check':'Imported ✓')
+      +(off.length?'<div class="pd-warn">These counts are different from the file:<br>'+off.map(esc).join('<br>')+'</div>'
+        :'<div class="pd-ok"><b>Everything is back</b><span>'+esc(chk.who)+'’s file from '+esc(pdWhen(chk.at))+' · '+chk.n+' saved parts · every count matches</span></div>')
+      +'<div class="pd-lab">On this laptop now</div>'+pdCountsHtml(now)
+      +'<div class="pd-foot"><button class="pd-btn pd-pri" onclick="pdClose()">Done</button></div>');
+  },2500);
+})();
+
+/* ═══════ BEFORE WE GO ONLINE — the to-do page v1.00 opens on ═══════
+   Each laptop is walked through: export everything → send it to Jack / keep it safe → carry on.
+   Its own key, never exported or imported: it describes this laptop, not the business. */
+var GOL_KEY='plub_golive_v1';
+var _golMem=null;
+function golState(){ var st=null; try{ st=pdParse(localStorage.getItem(GOL_KEY)||'null'); }catch(e){} return st||_golMem||{}; }
+function golSave(st){ _golMem=st; try{ localStorage.setItem(GOL_KEY,JSON.stringify(st)); }catch(e){} }
+function golTotal(c){ c=c||{}; return ['ub_ideas','ub_pipeline','ub_tasks','ub_inbox','ub_vendors','pl_ideas','pl_vendors','pl_week_tasks','sh_tasks'].reduce(function(a,k){ return a+(c[k]||0); },0); }
+function golIsJack(){ var u=CLUB.user(); return !!(u&&u.role==='owner'); }
+function golRail(){ pdExport(); }   // one click from anywhere — the to-do page still opens by itself until it's finished
+function golOpen(){
+  var g=document.getElementById('golive');
+  if(!g){ g=document.createElement('div'); g.id='golive'; g.className='gol'; document.body.appendChild(g); }
+  g.classList.add('show'); golRender();
+}
+function golClose(later){ var g=document.getElementById('golive'); if(g) g.classList.remove('show'); if(later){ try{ sessionStorage.setItem('plub_golive_later','1'); }catch(e){} } }
+function golSent(){ var st=golState(); st.sent=new Date().toISOString(); golSave(st); golRender(); }
+function golFinish(){ var st=golState(); st.done=new Date().toISOString(); golSave(st); golClose(); chromeSync(true); }
+function golCopy(name){
+  var ok=function(){ var b=document.getElementById('golCopyBtn'); if(b){ b.textContent='Copied ✓'; setTimeout(function(){ if(b) b.textContent='Copy the file name'; },1800); } };
+  try{ navigator.clipboard.writeText(name).then(ok,function(){}); }catch(e){}
+}
+function golRender(){
+  var g=document.getElementById('golive'); if(!g||!g.classList.contains('show')) return;
+  var u=CLUB.user(), nm=u?u.display_name:'', jack=golIsJack(), st=golState(), r=pdLast();
+  var exported=!!r, sent=!!st.sent, all=exported&&sent;
+  function step(n,state,title,body){
+    return '<div class="gol-step '+state+'"><div class="gol-n">'+(state==='done'?'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>':n)+'</div>'
+      +'<div class="gol-sb"><h4>'+title+'</h4>'+body+'</div></div>';
+  }
+  var s1 = exported
+    ? '<div class="gol-file"><b>'+esc(r.name||'PLUB everything')+'</b><span>'+pdSize(r.bytes||0)+' · saved '+esc(pdWhen(r.at))+' · in your <b>Downloads</b> folder</span></div>'
+      +'<p class="gol-ok">✓ Checked — it reads back perfectly and holds everything on this laptop'+(r.pre?'<br>✓ Also holds an untouched copy from before this update':'')+'</p>'
+      +(r.counts?(golTotal(r.counts)
+        ?'<div class="gol-in"><div class="gol-in-h">What’s in the file — does this look like your work?</div>'+pdCountsHtml(r.counts)+'</div>'
+        :'<div class="gol-empty"><b>This file is empty</b> — PLUB on this laptop has nothing saved. Tell Jack before going any further.</div>'):'')
+      +'<button class="gol-link" onclick="pdExport(true)">Export again</button>'
+    : '<p>One file with every idea, product, task, supplier and session from <b>both</b> Unique Bundles and Private Label. Nothing on this laptop changes.</p>'
+      +'<button class="gol-big" onclick="pdExport(true)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5v9M6 9l4 4 4-4"/><path d="M3.5 14v2.5h13V14"/></svg>Export everything</button>';
+  var s2 = jack
+    ? (sent?'<p class="gol-ok">✓ Done</p>'
+        :'<p>Drag the file into Google Drive, or email it to yourself, so it lives somewhere other than this laptop. Becki will send you hers — <b>keep it, don’t import it</b>: importing replaces your own data. Both files get combined when we go online.</p>'
+         +(exported?'<div class="gol-row">'+(r&&r.name?'<button class="gol-sec" id="golCopyBtn" onclick="golCopy('+esc(JSON.stringify(r.name))+')">Copy the file name</button>':'')+'<button class="gol-go" onclick="golSent()">✓ It’s saved somewhere safe</button></div>':''))
+    : (sent?'<p class="gol-ok">✓ Sent to Jack</p>'
+        :'<p>Open your <b>Downloads</b> folder, find the file above and send it to <b>Jack</b> on WhatsApp or email.</p>'
+         +(exported?'<div class="gol-row">'+(r&&r.name?'<button class="gol-sec" id="golCopyBtn" onclick="golCopy('+esc(JSON.stringify(r.name))+')">Copy the file name</button>':'')+'<button class="gol-go" onclick="golSent()">✓ I’ve sent it to Jack</button></div>':''));
+  var s3 = '<p>Keep using PLUB exactly as normal until '+(jack?'the online version is switched on':'Jack says the online version is ready')+'. Don’t import anything unless '+(jack?'you mean to':'Jack asks you to')+'.</p>'
+    +(all?'<button class="gol-big" onclick="golFinish()">All done — open PLUB</button>':'');
+  g.innerHTML='<div class="gol-wrap">'
+    +'<div class="gol-top"><div class="gol-mark">P</div><b>PLUB</b><span>v'+BUILD+'</span></div>'
+    +'<div class="gol-tag">'+(all?'All done':'One job · about 1 minute')+'</div>'
+    +(all?'<h2>Thanks'+(nm?' '+esc(nm):'')+' — all done</h2><p class="gol-lead">Everything on this laptop is saved in a file'+(jack?' and kept safe':' and Jack has it')+'. Carry on exactly as normal — nothing else to do until the online version is switched on.</p>'
+      :'<h2>'+(nm?esc(nm)+', before we':'Before we')+' go online</h2>'
+      +'<p class="gol-lead">PLUB is moving to the cloud so '+(jack?'you and Becki':'you and Jack')+' see the same pipeline, live. First, save a copy of everything on this laptop so nothing can be lost on the way.</p>')
+    +'<div class="gol-steps">'
+    +step(1,exported?'done':'now','Export everything',s1)
+    +step(2,sent?'done':(exported?'now':'wait'),jack?'Keep the file safe':'Send the file to Jack',s2)
+    +step(3,all?'now':'wait','Carry on as normal',s3)
+    +'</div>'
+    +'<div class="gol-foot">'+(all?'':'<button class="gol-later" onclick="golClose(true)">Not now — remind me next time</button>')
+    +'<button class="gol-later" onclick="golClose();pdOpen()">Need to put a file back? Import…</button></div>'
+    +'</div>';
+}
+function golMaybe(){
+  var later=null; try{ later=sessionStorage.getItem('plub_golive_later'); }catch(e){}
+  if(CLUB.user() && !golState().done && !later) golOpen();
+}
+// open on the to-do page: straight away if someone is already picked, or right after the who-are-you screen
+(function(){ var cb=clubBoot; clubBoot=function(){ cb.apply(this,arguments); setTimeout(golMaybe,300); }; if(CLUB.user()) setTimeout(golMaybe,300); })();
+</script>
+<style>
+#plubRail .sn-data{display:flex;align-items:center;gap:10px;width:calc(100% - 12px);margin:6px 6px 2px;padding:9px 10px;border-radius:11px;border:1px solid rgba(0,229,160,.28);background:rgba(0,229,160,.07);color:#E9FFF7;cursor:pointer;text-align:left;font:inherit;transition:border-color .12s,background .12s}
+#plubRail .sn-data:hover{border-color:rgba(0,229,160,.6);background:rgba(0,229,160,.12)}
+#plubRail .sn-data.due{border-color:rgba(255,197,61,.45);background:rgba(255,197,61,.09);color:#FFF6DD}
+#plubRail .sn-data.due:hover{border-color:rgba(255,197,61,.8)}
+#plubRail .sn-data-ic{width:26px;height:26px;border-radius:8px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(0,229,160,.16);color:#00E5A0}
+#plubRail .sn-data.due .sn-data-ic{background:rgba(255,197,61,.18);color:#FFC53D}
+#plubRail .sn-data-ic svg{width:15px;height:15px}
+#plubRail .sn-data-t{min-width:0;display:flex;flex-direction:column;gap:2px}
+#plubRail .sn-data-t b{font-size:12px;font-weight:700;white-space:nowrap}
+#plubRail .sn-data-t i{font-style:normal;font-size:10.5px;color:#C6C7D0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.rail-min #plubRail .sn-data{justify-content:center;padding:8px 0;width:auto;margin:6px 10px 2px}
+body.rail-min #plubRail .sn-data-t{display:none}
+
+.pd-mo{position:fixed;inset:0;z-index:10050;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(2,2,4,.72);backdrop-filter:blur(6px)}
+.pd-mo.show{display:flex}
+.pd-card{width:min(600px,100%);max-height:calc(100vh - 32px);overflow:auto;background:#121216;border:1px solid #33333C;border-radius:16px;padding:20px 22px 18px;box-shadow:0 24px 70px rgba(0,0,0,.6);color:#F5F5F8}
+.pd-h{display:flex;align-items:center;gap:10px}
+.pd-h h3{font-size:17px;font-weight:800;letter-spacing:-.3px;flex:1}
+.pd-x{width:30px;height:30px;border-radius:8px;border:1px solid #33333C;background:#1A1A20;color:#C6C7D0;font-size:18px;line-height:1;cursor:pointer}
+.pd-x:hover{color:#fff;border-color:#55555F}
+.pd-sub{margin-top:6px;font-size:13px;line-height:1.5;color:#C6C7D0}
+.pd-sub b{color:#fff}
+.pd-last{display:flex;align-items:center;gap:8px;margin-top:14px;padding:9px 12px;border-radius:10px;font-size:12.5px;color:#FFE7A8;background:rgba(255,197,61,.10);border:1px solid rgba(255,197,61,.35)}
+.pd-last i{width:8px;height:8px;border-radius:50%;background:#FFC53D;flex:none}
+.pd-last.ok{color:#C9FBE8;background:rgba(0,229,160,.08);border-color:rgba(0,229,160,.3)}
+.pd-last.ok i{background:#00E5A0}
+.pd-last b{color:#fff}
+.pd-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.pd-act{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:14px;border-radius:12px;border:1px solid #33333C;background:#18181E;color:#F5F5F8;cursor:pointer;text-align:left;font:inherit;transition:border-color .12s,transform .08s}
+.pd-act:hover{border-color:#6A6A76}
+.pd-act:active{transform:scale(.985)}
+.pd-act b{font-size:14px;font-weight:800}
+.pd-act i{font-style:normal;font-size:12px;line-height:1.45;color:#C6C7D0}
+.pd-ai{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;margin-bottom:3px}
+.pd-exp{border-color:rgba(0,229,160,.4)} .pd-exp:hover{border-color:#00E5A0} .pd-exp .pd-ai{background:rgba(0,229,160,.16);color:#00E5A0}
+.pd-imp .pd-ai{background:rgba(59,158,255,.16);color:#7DBEFF}
+.pd-lab{margin:16px 0 7px;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#A9AAB5}
+.pd-now{display:flex;flex-direction:column;gap:6px}
+.pd-g{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 12px;padding:8px 11px;border-radius:10px;background:#18181E;border:1px solid #26262E;font-size:12.5px;color:#C6C7D0}
+.pd-gl{width:108px;flex:none;font-weight:700;color:#fff}
+.pd-g b{color:#fff;font-weight:800;font-variant-numeric:tabular-nums}
+.pd-none{color:#9698A4}
+.pd-busy{display:flex;align-items:center;gap:12px;padding:26px 6px;font-size:14px;color:#F5F5F8}
+.pd-spin{width:18px;height:18px;border-radius:50%;border:2.5px solid #33333C;border-top-color:#00E5A0;animation:pdspin .8s linear infinite;flex:none}
+@keyframes pdspin{to{transform:rotate(360deg)}}
+.pd-err{margin-top:12px;padding:12px 14px;border-radius:10px;background:rgba(255,84,112,.10);border:1px solid rgba(255,84,112,.4);color:#FFD5DC;font-size:13px;line-height:1.5}
+.pd-err b{color:#fff}
+.pd-warn{margin-top:12px;padding:10px 13px;border-radius:10px;background:rgba(255,197,61,.10);border:1px solid rgba(255,197,61,.4);color:#FFE7A8;font-size:12.5px;line-height:1.5}
+.pd-warn b{color:#fff}
+.pd-ok{display:flex;flex-direction:column;gap:3px;margin-top:12px;padding:12px 14px;border-radius:10px;background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.35)}
+.pd-ok b{font-size:13.5px;color:#fff;word-break:break-word}
+.pd-ok span{font-size:12px;color:#B8F5DE}
+.pd-checks,.pd-steps{margin:10px 0 0 18px;font-size:12.5px;line-height:1.7;color:#C6C7D0}
+.pd-checks li::marker{content:'✓  ';color:#00E5A0}
+.pd-tip{margin-top:12px;font-size:12px;line-height:1.5;color:#C6C7D0}
+.pd-tip b{color:#fff}
+.pd-tbl{width:100%;border-collapse:collapse;margin-top:12px;font-size:12.5px;font-variant-numeric:tabular-nums}
+.pd-tbl th{text-align:right;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#A9AAB5;padding:4px 8px 6px}
+.pd-tbl td{padding:5px 8px;border-top:1px solid #23232B;color:#E4E4EA;text-align:right}
+.pd-tbl td:first-child{text-align:left;color:#C6C7D0}
+.pd-tbl .pd-tg td{text-align:left;font-weight:800;color:#fff;padding-top:10px;border-top:none}
+.pd-tbl .pd-less td{color:#FFE7A8;background:rgba(255,197,61,.06)}
+.pd-tbl em{font-style:normal;font-weight:800;color:#FFC53D}
+.pd-tbl u{text-decoration:none;font-weight:800;color:#00E5A0}
+.pd-tbl td.pd-nil{text-align:left;color:#9698A4}
+.pd-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.pd-btn{height:36px;padding:0 16px;border-radius:9px;border:1px solid #3A3A44;background:#1D1D24;color:#F5F5F8;font:700 13px 'Inter',sans-serif;cursor:pointer}
+.pd-btn:hover{border-color:#6A6A76}
+.pd-pri{border:none;background:#00E5A0;color:#04130D}
+.pd-pri:hover{background:#2EF0B5}
+#plubBar .tb-menu button.tb-plub{color:#7CF5C8}
+#plubBar .tb-menu button.tb-plub:hover{color:#B8FBE2;background:rgba(0,229,160,.08)}
+.pd-ghost{background:none;border-color:transparent;color:#AEB0BB;padding:0 4px}
+.pd-ghost:hover{color:#fff;border-color:transparent}
+.pd-pri.pd-danger{background:#FF5470;color:#fff}
+.pd-pri.pd-danger:hover{background:#FF6F86}
+@media(max-width:560px){.pd-two{grid-template-columns:1fr}.pd-gl{width:100%}}
+
+.gol{position:fixed;inset:0;z-index:10040;display:none;overflow:auto;background:radial-gradient(900px 500px at 50% -10%,rgba(0,229,160,.12),transparent 60%),radial-gradient(700px 400px at 85% 110%,rgba(124,92,255,.12),transparent 60%),#030304;color:#F5F5F8}
+.gol.show{display:block}
+.gol-wrap{max-width:680px;margin:0 auto;padding:40px 24px 48px}
+.gol-top{display:flex;align-items:center;gap:9px;font-size:14px}
+.gol-top b{font-weight:800;letter-spacing:-.3px}
+.gol-top span{font-size:11.5px;color:#AEB0BB;border:1px solid #33333C;border-radius:999px;padding:2px 8px}
+.gol-mark{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#04130D;background:linear-gradient(135deg,#00E5A0,#22D3EE)}
+.gol-tag{display:inline-block;margin-top:34px;padding:4px 10px;border-radius:999px;background:rgba(0,229,160,.12);border:1px solid rgba(0,229,160,.35);color:#7CF5C8;font-size:11.5px;font-weight:700}
+.gol h2{margin-top:12px;font-size:30px;line-height:1.15;font-weight:800;letter-spacing:-.8px}
+.gol-lead{margin-top:10px;font-size:15px;line-height:1.55;color:#C6C7D0;max-width:600px}
+.gol-steps{margin-top:26px;display:flex;flex-direction:column;gap:12px}
+.gol-step{display:flex;gap:16px;padding:18px 20px;border-radius:16px;background:#101014;border:1px solid #2A2A33}
+.gol-step.now{border-color:rgba(0,229,160,.55);background:linear-gradient(180deg,rgba(0,229,160,.06),rgba(0,229,160,.02)),#101014;box-shadow:0 0 0 4px rgba(0,229,160,.06)}
+.gol-step.wait{opacity:.6}
+.gol-step.done{border-color:#2A2A33}
+.gol-n{width:32px;height:32px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;background:#1E1E25;color:#C6C7D0;border:1px solid #3A3A44}
+.gol-step.now .gol-n{background:#00E5A0;color:#04130D;border-color:#00E5A0}
+.gol-step.done .gol-n{background:rgba(0,229,160,.16);color:#00E5A0;border-color:rgba(0,229,160,.45)}
+.gol-n svg{width:16px;height:16px}
+.gol-sb{flex:1;min-width:0}
+.gol-sb h4{font-size:16px;font-weight:800;letter-spacing:-.2px;margin-top:5px}
+.gol-sb p{margin-top:6px;font-size:13.5px;line-height:1.55;color:#C6C7D0}
+.gol-sb p b{color:#fff}
+.gol-sb .gol-ok{color:#7CF5C8;font-weight:600}
+.gol-big{display:inline-flex;align-items:center;gap:10px;margin-top:14px;height:48px;padding:0 24px;border:none;border-radius:12px;background:#00E5A0;color:#04130D;font:800 15.5px 'Inter',sans-serif;cursor:pointer;box-shadow:0 8px 24px rgba(0,229,160,.25);transition:transform .08s,background .12s}
+.gol-big:hover{background:#2EF0B5}
+.gol-big:active{transform:scale(.98)}
+.gol-big svg{width:19px;height:19px}
+.gol-file{margin-top:10px;padding:11px 13px;border-radius:10px;background:#16161C;border:1px solid #2E2E37;display:flex;flex-direction:column;gap:3px}
+.gol-file b{font-size:13.5px;color:#fff;word-break:break-word}
+.gol-file span{font-size:12px;color:#AEB0BB}
+.gol-file span b{font-size:12px;color:#fff}
+.gol-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.gol-go{height:40px;padding:0 18px;border:none;border-radius:10px;background:#00E5A0;color:#04130D;font:800 13.5px 'Inter',sans-serif;cursor:pointer}
+.gol-go:hover{background:#2EF0B5}
+.gol-sec{height:40px;padding:0 16px;border-radius:10px;border:1px solid #3A3A44;background:#1A1A21;color:#F5F5F8;font:700 13px 'Inter',sans-serif;cursor:pointer}
+.gol-sec:hover{border-color:#6A6A76}
+.gol-in{margin-top:12px}
+.gol-in-h{font-size:12.5px;font-weight:700;color:#E4E4EA;margin-bottom:7px}
+.gol-in .pd-g{background:#16161C}
+.gol-empty{margin-top:12px;padding:11px 13px;border-radius:10px;background:rgba(255,84,112,.10);border:1px solid rgba(255,84,112,.45);color:#FFD5DC;font-size:13px;line-height:1.5}
+.gol-empty b{color:#fff}
+.gol-sb .gol-note{font-size:12.5px;color:#AEB0BB}
+.gol-link{margin-top:8px;padding:0;border:none;background:none;color:#AEB0BB;font:600 12.5px 'Inter',sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.gol-link:hover{color:#fff}
+.gol-foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;margin-top:22px}
+.gol-later{padding:8px 0;border:none;background:none;color:#AEB0BB;font:600 13px 'Inter',sans-serif;cursor:pointer}
+.gol-later:hover{color:#fff}
+@media(max-width:560px){.gol-wrap{padding:24px 16px 36px}.gol h2{font-size:24px}.gol-step{padding:15px 14px;gap:12px}}
+</style>
 <style>
 /* ══ OVERVIEW — uses the app chrome, not a third look ══ */
 #pipe{display:none}
@@ -1921,7 +2396,8 @@ body.rail-min #plubBar{left:64px}
 /* joint board */
 .p-board{display:grid;gap:8px;align-items:start;min-width:0}
 .p-cards{display:flex;flex-direction:column;gap:6px}
-.ov-flow{display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px;margin:2px 0 8px}
+/* joint board flow bar — its own class: reusing .ov-flow squashed 'The two belts' to 8px (20 Sept regression) */
+.jb-flow{display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px;margin:2px 0 8px}
 .ov-flow-read{font-size:12.5px;color:var(--t3);margin-bottom:14px}
 .ov-flow-read b{color:var(--t1)}
 .ov-board{overflow-x:auto}
@@ -1952,6 +2428,22 @@ body.rail-min #plubBar{left:64px}
 .p-card .m{margin-top:7px}
 .app-chip{white-space:nowrap}
 .p-board{padding-bottom:6px}
+</style>
+<style id="plub-readable">
+/* ═══ READABILITY PASS v1.00 — the same block in all three files, last in the page so it wins ═══
+   Grey text was #787A87 at 9–11px: ~4.2:1 on near-black, hard work to read. Lifted to ~7:1, quiet tier
+   ~8.5:1, keeping the order t1 > t2 > t3 > t4. Colours only — no sizes or layout change except the 9px rail labels. */
+:root,[data-theme="dark"],[data-theme="light"]{--t3:#AEB0BB!important;--t4:#9C9EAA!important}
+.sb2 .sn-sec{color:#9C9EAA!important;font-size:10px!important}
+.sb2 .sn-ic{color:#A6A8B4!important}
+.ov-arrow,.flow-arrow,.g-chain,.ord-btn:disabled{color:#8E909C!important}
+.pl-tile-sub,.pipe-kpi-sub{color:rgba(255,255,255,.66)!important}
+#pane-pipeline .col-zero-ic{color:rgba(255,255,255,.45)!important}
+.pl-dropped-archive-btn b{color:#FFC2CA!important}
+.prod-step-state,.prod-step-dot,.pl-stage-task-meta,.pl-metric span,.pl-task-number,.pl-task-template-hint,.pl-empty,.page-note-time,.page-notes summary:after,.rank-head,.prod-subtab,#pane-settings .set-tab,#pane-settings .set-rs,#pane-settings .kpi-rule label,.empty,.pl-tab-empty,.ac2-empty,.pl-preview-task.done .pl-preview-task-name,.page-note-delete{color:#A3A5B1!important}
+.pl-task-grip{color:#8E909C!important}
+.f-fn-gap i{color:#8E909C!important}
+.kpi-rules-hd p{color:#B4B6C1!important}
 </style>
 </body>
 </html>
