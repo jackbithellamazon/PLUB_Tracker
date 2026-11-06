@@ -1,6 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+/* PLUB ONLINE storage shim — runs before anything else on the page. The local version and the online one live on the
+   same web address, so they'd share browser storage. Every PLUB key is quietly stored under a plubc_ name instead,
+   so the online copy can never touch the local copy (kept 30 days as the fallback). The apps don't notice. */
+(function(){
+  var MAP={plub_v1:1,plub_who:1,plub_mode:1,plub_outbox_v1:1,ubpl_shell_tab:1,plub_rail_min:1,plub_ov_view:1,plub_ov_filter:1,
+    ub_tracker_v1:1,ub_tracker_lock:1,ub_sb_min:1,ub_last_report:1,ub_last_backup:1,pl_sourcing_v1:1,pls_theme:1,pls_draft:1,pl_sb_min:1,
+    plub_last_full_export:1,plub_golive_v1:1,plub_build_seen:1};
+  var DYN=/^(ub_tracker_v1__|pl_sourcing_v1_quarantine_)/;
+  function to(k){ k=String(k); return (MAP[k]||DYN.test(k))?'plubc_'+k:k; }
+  function from(k){ return (k&&k.indexOf('plubc_')===0&&(MAP[k.slice(6)]||DYN.test(k.slice(6))))?k.slice(6):k; }
+  var P=Storage.prototype, g=P.getItem, s=P.setItem, r=P.removeItem, kf=P.key;
+  P.getItem=function(k){ return g.call(this,to(k)); };
+  P.setItem=function(k,v){ return s.call(this,to(k),v); };
+  P.removeItem=function(k){ return r.call(this,to(k)); };
+  P.key=function(i){ return from(kf.call(this,i)); };
+  var add=window.addEventListener;
+  window.addEventListener=function(type,fn,opt){
+    if(type!=='storage'||typeof fn!=='function') return add.call(this,type,fn,opt);
+    return add.call(this,type,function(e){ fn({key:from(e.key),newValue:e.newValue,oldValue:e.oldValue,storageArea:e.storageArea,url:e.url}); },opt);
+  };
+  window.PLUB_ONLINE=true;
+})();
+</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <script>
@@ -204,7 +228,7 @@ body.nobar .stage{inset:0}
   <iframe id="f_pl" title="PL Sourcing"></iframe>
   <section id="pipe"></section>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.46.1/dist/umd/supabase.min.js"></script>
 <!-- plub-core --><script>
 /* ══════════════════════════════════════════════════════════════════════
    PLUB CORE — identity, activity, sessions, tasks, work types, settings.
@@ -447,10 +471,744 @@ window.CLUB = (function(){
 })();
 
 </script>
+<script>window.PLUB_CONFIG={"backend": "supabase", "url": "https://ojyygzswedcwbfocimhk.supabase.co", "key": "sb_publishable_sbU32R7ifQE-KWkAku6wyg_y0o14gjQ", "test": true};</script>
+<script id="plub-online-libs">
+/* ═══════ PLUB records — split each app's saved blob into rows the cloud can merge one by one ═══════
+   A row is {app, coll, id, data}. Lists of things with an id become one row per thing, so Jack editing an idea and
+   Becki editing a task never touch the same row. Everything else is one row per field. Per-person / per-laptop state
+   (a running session timer, a half-typed draft, sidebar collapsed, which tab was open) never leaves the laptop.
+   compose(rows, local) rebuilds the exact blob the app expects; the local copy supplies anything that stays local. */
+(function(root){
+  var SPEC = {
+    ub: { key:'ub_tracker_v1',
+      lists:  {ideas:'id', pipeline:'id', inbox:'id', tasks:'id', storefronts:'id', seasons:'id', vendors:'id', rankQs:'id'},
+      logs:   ['events','flags','archivedStageLogs','sessionLog','archive.launched','archive.dropped'],
+      local:  ['savedAt','rev','session','tkDraft','uid','appVersion'] },
+    pl: { key:'pl_sourcing_v1',
+      lists:  {ideas:'id', brands:'id'},
+      nested: 'brand_state',                     // brand_state[0].data is split field by field
+      nestedLists: {vendors:'id', plSess:'id', weekTasks:'id'},
+      local:  [],
+      localNested: ['plRun','theme'] },          // the running sourcing timer and theme are this person's
+    club: { key:'plub_v1',
+      lists:  {users:'id', activity:'id', sessions:'id', tasks:'id', task_notes:'id', work_types:'key'},
+      logs:   [],
+      local:  [] }
+  };
+  var ORDER='_order', DOC='_doc', LOG='_log';
+
+  function stable(v){   // key-sorted JSON, so the same content always gives the same string
+    if(Array.isArray(v)) return '['+v.map(stable).join(',')+']';
+    if(v && typeof v==='object') return '{'+Object.keys(v).sort().map(function(k){ return JSON.stringify(k)+':'+stable(v[k]); }).join(',')+'}';
+    return JSON.stringify(v===undefined?null:v);
+  }
+  function hash(s){ var h1=0x811c9dc5, h2=0x01000193; for(var i=0;i<s.length;i++){ var c=s.charCodeAt(i); h1=Math.imul(h1^c,16777619)>>>0; h2=Math.imul(h2^c,2246822519)>>>0; } return ('0000000'+h1.toString(16)).slice(-8)+('0000000'+h2.toString(16)).slice(-8); }
+  function getPath(o,p){ return p.split('.').reduce(function(a,k){ return a==null?undefined:a[k]; },o); }
+  function setPath(o,p,v){ var ks=p.split('.'), last=ks.pop(); var t=ks.reduce(function(a,k){ if(!a[k]||typeof a[k]!=='object') a[k]={}; return a[k]; },o); t[last]=v; }
+
+  // one list → rows + an order row (the order row keeps the list in the app's own order)
+  function listRows(app,coll,arr,idKey,out){
+    var ids=[];
+    (arr||[]).forEach(function(item){
+      var id = item && item[idKey]!=null ? String(item[idKey]) : 'h'+hash(stable(item));
+      if(ids.indexOf(id)>=0) id=id+'~'+hash(stable(item));   // a duplicate id inside one list must not swallow a row
+      ids.push(id); out.push({app:app,coll:coll,id:id,data:item});
+    });
+    out.push({app:app,coll:ORDER,id:coll,data:ids});
+  }
+  function logRows(app,coll,arr,out){
+    var ids=[];
+    (arr||[]).forEach(function(item){ var id='h'+hash(stable(item)); if(ids.indexOf(id)>=0) id=id+'~'+ids.length; ids.push(id); out.push({app:app,coll:coll,id:id,data:item}); });
+    out.push({app:app,coll:ORDER,id:coll,data:ids});
+  }
+
+  function decompose(app, blob){
+    var s=SPEC[app], out=[], taken={};
+    if(!blob||typeof blob!=='object') return out;
+    s.local.forEach(function(k){ taken[k]=1; });
+    Object.keys(s.lists).forEach(function(k){ taken[k]=1; if(blob[k]!==undefined) listRows(app,k,blob[k],s.lists[k],out); });
+    (s.logs||[]).forEach(function(p){ taken[p.split('.')[0]]=1; var v=getPath(blob,p); if(v!==undefined) logRows(app,p,v,out); });
+    // archive itself may carry more than the two logs — anything else in it is kept as a field
+    if(app==='ub' && blob.archive && typeof blob.archive==='object'){
+      Object.keys(blob.archive).forEach(function(k){ if(k!=='launched'&&k!=='dropped') out.push({app:app,coll:DOC,id:'archive.'+k,data:blob.archive[k]}); });
+    }
+    if(s.nested){
+      taken[s.nested]=1;
+      var rows=blob[s.nested]||[], first=rows[0]||null;
+      if(first){
+        var shell={}; Object.keys(first).forEach(function(k){ if(k!=='data') shell[k]=first[k]; });
+        out.push({app:app,coll:DOC,id:s.nested+'.row',data:shell});
+        var d=first.data||{};
+        Object.keys(d).forEach(function(k){
+          if((s.localNested||[]).indexOf(k)>=0) return;
+          if(s.nestedLists[k]) listRows(app,'data.'+k,d[k],s.nestedLists[k],out);
+          else out.push({app:app,coll:DOC,id:'data.'+k,data:d[k]});
+        });
+      }
+      if(rows.length>1) out.push({app:app,coll:DOC,id:s.nested+'.extra',data:rows.slice(1)});
+    }
+    Object.keys(blob).forEach(function(k){ if(!taken[k]) out.push({app:app,coll:DOC,id:k,data:blob[k]}); });
+    return out;
+  }
+
+  // rows (the merged truth) + the local blob (for the fields that stay on this laptop) → the blob the app reads
+  function compose(app, rows, local){
+    var s=SPEC[app], out={}, by={};
+    local=local||{};
+    rows.forEach(function(r){ if(r.deleted) return; (by[r.coll]=by[r.coll]||{})[r.id]=r; });
+    function ordered(coll){
+      var map=by[coll]||{}, order=((by[ORDER]||{})[coll]||{}).data||[], seen={}, list=[];
+      order.forEach(function(id){ if(map[id]&&!seen[id]){ seen[id]=1; list.push(map[id].data); } });
+      Object.keys(map).forEach(function(id){ if(!seen[id]) list.push(map[id].data); });   // someone else's new rows the order hasn't caught up with
+      return list;
+    }
+    function has(coll){ return !!(by[coll] || ((by[ORDER]||{})[coll])); }
+    // fields first, in the order they were seen, so the blob reads like the original
+    Object.keys(by[DOC]||{}).forEach(function(id){
+      if(id.indexOf('archive.')===0 || id.indexOf('data.')===0 || id.indexOf(s.nested+'.')===0) return;
+      out[id]=by[DOC][id].data;
+    });
+    Object.keys(s.lists).forEach(function(k){ if(has(k)) out[k]=ordered(k); });
+    (s.logs||[]).forEach(function(p){ if(has(p)) setPath(out,p,ordered(p)); });
+    if(app==='ub'){ Object.keys(by[DOC]||{}).forEach(function(id){ if(id.indexOf('archive.')===0) setPath(out,id,by[DOC][id].data); }); }
+    if(s.nested){
+      var sh=(by[DOC]||{})[s.nested+'.row'];
+      if(sh){
+        var row=JSON.parse(JSON.stringify(sh.data)), d={};
+        Object.keys(by[DOC]).forEach(function(id){ if(id.indexOf('data.')===0) d[id.slice(5)]=by[DOC][id].data; });
+        Object.keys(s.nestedLists).forEach(function(k){ if(has('data.'+k)) d[k]=ordered('data.'+k); });
+        var ld=((local[s.nested]||[])[0]||{}).data||{};
+        (s.localNested||[]).forEach(function(k){ if(ld[k]!==undefined) d[k]=ld[k]; });
+        row.data=d;
+        out[s.nested]=[row].concat(((by[DOC]||{})[s.nested+'.extra']||{}).data||[]);
+      }
+    }
+    s.local.forEach(function(k){ if(local[k]!==undefined) out[k]=local[k]; });
+    return out;
+  }
+
+  // what changed between two row sets → the rows to send (deleted rows come back with deleted:true)
+  function diff(before, after){
+    var b={}, a={}, send=[];
+    before.forEach(function(r){ b[r.coll+'\u0000'+r.id]=r; });
+    after.forEach(function(r){ var k=r.coll+'\u0000'+r.id; a[k]=1; if(!b[k] || stable(b[k].data)!==stable(r.data)) send.push(r); });
+    before.forEach(function(r){ var k=r.coll+'\u0000'+r.id; if(!a[k]) send.push({app:r.app,coll:r.coll,id:r.id,data:null,deleted:true}); });
+    return send;
+  }
+
+  root.PLUBRecords={SPEC:SPEC, decompose:decompose, compose:compose, diff:diff, stable:stable, hash:hash};
+})(typeof window!=='undefined'?window:globalThis);
+
+/* ═══════ PLUB SYNC — keeps this laptop's three app stores in step with the cloud, one row at a time ═══════
+   The apps keep reading and writing their own browser store exactly as they always have. This engine sits beside them:
+     · boot: pull every row → merge with anything this laptop changed while offline → write the stores → THEN load the apps
+     · push: every 1.5s, any store that changed is split into rows and only the rows that differ go up
+     · pull: live updates (plus a 20s safety poll) bring the other person's rows down; they are written into the store and
+             the app reloads its data — but only when that app is idle (no popup open, nobody typing), so nothing half-typed is lost
+   Guards: nothing is pushed before the first pull has landed; a push that would delete more than 10 rows at once is held
+   for a yes; offline changes queue up and go when the connection returns; when both people changed the same row, this
+   laptop's unsent change wins and the other version stays in the cloud's history. */
+(function(root){
+  var R = root.PLUBRecords;
+  var APPS = ['ub','pl','club'];
+  var DELETE_BRAKE = 10;
+
+  function Engine(cfg, backend, hooks){
+    this.cfg=cfg; this.be=backend; this.hooks=hooks||{};
+    this.keys=cfg.keys;                 // {ub:'plubc_ub', pl:'plubc_pl', club:'plubc_v1'}
+    this.SYNCED=cfg.syncedKey||'plubc_synced';
+    this.synced={};                     // 'app|coll|id' → hash of the version both this laptop and the cloud agree on
+    this.lastSeen={};                   // app → the store string last pushed or written by us
+    this.remote={};                     // app → {rowKey: row} waiting to be applied when the app is idle
+    this.ls=cfg.storage||root.localStorage;   // tests hand in a separate store per pretend laptop
+    this.state='off'; this.waiting=0; this.lastPull=null; this.held=null; this.notes=[];
+    this.busy=false; this.timers=[];
+  }
+  var P=Engine.prototype;
+  function rk(r){ return r.app+'|'+r.coll+'|'+r.id; }
+  // a store only counts as this laptop's real data if it has the shape its app always writes — a wiped, half-written
+  // or damaged store is rebuilt from the cloud and NEVER read as "everything else was deleted"
+  function valid(app,b){
+    if(!b||typeof b!=='object') return false;
+    if(app==='ub') return b.app==='bdl-ub' && Array.isArray(b.ideas) && Array.isArray(b.tasks) && Array.isArray(b.pipeline);
+    if(app==='pl') return Array.isArray(b.ideas) && Array.isArray(b.brand_state) && b.brand_state.length>0;
+    if(app==='club') return Array.isArray(b.users) && b.users.length>0;
+    return false;
+  }
+  function hashOf(r){ return r.deleted ? 'DEL' : R.hash(R.stable(r.data===undefined?null:r.data)); }
+  P.read=function(app){ try{ return this.ls.getItem(this.keys[app]); }catch(e){ return null; } };
+  P.parse=function(s){ try{ return s?JSON.parse(s):null; }catch(e){ return null; } };
+  P.write=function(app,str){ this.ls.setItem(this.keys[app],str); this.lastSeen[app]=str; };
+  P.loadSynced=function(){ try{ this.synced=JSON.parse(this.ls.getItem(this.SYNCED)||'{}')||{}; }catch(e){ this.synced={}; } };
+  P.saveSynced=function(){ try{ this.ls.setItem(this.SYNCED,JSON.stringify(this.synced)); }catch(e){} };
+  P.status=function(st,extra){ this.state=st; if(this.hooks.status) try{ this.hooks.status(st,Object.assign({waiting:this.waiting,held:this.held,notes:this.notes},extra||{})); }catch(e){} };
+  P.note=function(msg){ this.notes.push({at:Date.now(),msg:msg}); if(this.notes.length>20) this.notes.shift(); if(this.hooks.note) try{ this.hooks.note(msg); }catch(e){} };
+
+  /* ── boot: cloud first ── */
+  P.boot=function(){
+    var self=this; self.loadSynced(); self.status('loading');
+    return self.be.pullAll().then(function(rows){
+      if(!rows.length) return {empty:true};
+      var byApp={ub:[],pl:[],club:[]}, toPush=[];
+      rows.forEach(function(r){ if(byApp[r.app]) byApp[r.app].push(r); });
+      APPS.forEach(function(app){
+        var localStr=self.read(app), local=self.parse(localStr)||{};
+        if(!valid(app,local)){ localStr=null; local={}; }               // damaged or half-written: the cloud copy is the truth
+        var mine={}; if(localStr) R.decompose(app,local).forEach(function(r){ mine[r.coll+'|'+r.id]=r; });
+        var merged={};
+        byApp[app].forEach(function(r){ merged[r.coll+'|'+r.id]=r; });
+        if(localStr){
+          // anything this laptop changed while it was offline (differs from what we last agreed) goes up, and wins
+          Object.keys(mine).forEach(function(k){
+            var m=mine[k], key=app+'|'+k, h=hashOf(m), agreed=self.synced[key], cloud=merged[k];
+            if(agreed!==undefined && h!==agreed){
+              if(cloud && hashOf(cloud)!==agreed) self.note('You and the other person both changed the same '+(m.coll==='_doc'?'setting':m.coll.replace(/^data\./,''))+' while apart — yours was kept, theirs is in history');
+              merged[k]=m; toPush.push(m);
+            }
+          });
+          // deliberately NOT inferring "deleted while offline" from a missing row: a missing row can just as easily mean a
+          // damaged store, and bringing an item back is harmless where deleting it is not. Deletes are sent as they happen.
+        }
+        var list=Object.keys(merged).map(function(k){ return merged[k]; });
+        var blob=R.compose(app,list,local);
+        self.write(app,JSON.stringify(blob));
+        Object.keys(self.synced).forEach(function(k){ if(k.indexOf(app+'|')===0) delete self.synced[k]; });   // start this app's agreed list afresh from what was just written
+        list.forEach(function(r){ if(toPush.indexOf(r)<0) self.synced[rk({app:app,coll:r.coll,id:r.id})]=hashOf(r); });
+      });
+      rows.forEach(function(r){ if(!self.lastPull||r.updated_at>self.lastPull) self.lastPull=r.updated_at; });
+      self.saveSynced();
+      return (toPush.length ? self.send(toPush) : Promise.resolve()).then(function(){ return {empty:false,count:rows.length,pushed:toPush.length-(self.held?self.held.deletes:0),held:!!self.held}; });
+    });
+  };
+
+  /* ── first-ever load: put a combined set of rows into an empty cloud ── */
+  P.seed=function(rows){
+    var self=this, i=0, size=200;
+    function next(){ if(i>=rows.length) return Promise.resolve(); var part=rows.slice(i,i+size); i+=size;
+      return self.be.upsert(part).then(function(res){ if(res&&res.error) throw res.error; if(self.hooks.progress) self.hooks.progress(Math.min(i,rows.length),rows.length); return next(); }); }
+    return next();
+  };
+
+  /* ── push ── */
+  P.send=function(rows,force){
+    var self=this;
+    var dels=rows.filter(function(r){ return r.deleted; });
+    if(!force && dels.length>DELETE_BRAKE && !self.allowBigDelete){
+      // hold just the deletes for a yes/no — every other change still goes up now
+      self.held={rows:dels,deletes:dels.length,keys:{}}; dels.forEach(function(r){ self.held.keys[rk(r)]=1; });
+      self.status('held');
+      rows=rows.filter(function(r){ return !r.deleted; });
+    }
+    self.allowBigDelete=false;
+    var i=0, size=200;
+    function next(){
+      if(i>=rows.length) return Promise.resolve(true);
+      var part=rows.slice(i,i+size); i+=size;
+      return self.be.upsert(part).then(function(res){
+        if(res&&res.error) throw res.error;
+        part.forEach(function(r){ self.synced[rk(r)]=hashOf(r); });
+        self.saveSynced(); return next();
+      });
+    }
+    return next();
+  };
+  P.releaseHeld=function(yes){
+    var self=this, h=self.held; self.held=null; if(!h) return Promise.resolve();
+    if(yes){ return self.send(h.rows,true).then(function(){ self.status('ok'); }); }
+    // "no": put just those items back on this laptop from the cloud — nothing else on this laptop changes
+    return self.restoreRows(Object.keys(h.keys)).then(function(n){ self.note('Kept '+n+' items that were about to be deleted — nothing was removed'); self.status('ok'); });
+  };
+  P.restoreRows=function(keys){
+    var self=this, want={}; keys.forEach(function(k){ want[k]=1; });
+    return self.be.pullAll().then(function(rows){
+      var back=rows.filter(function(r){ return want[rk(r)] && !r.deleted; }), byApp={};
+      back.forEach(function(r){ (byApp[r.app]=byApp[r.app]||[]).push(r); });
+      Object.keys(byApp).forEach(function(app){
+        if(self.hooks.flush) try{ self.hooks.flush(app); }catch(e){}
+        var local=self.parse(self.read(app))||{}, cur={};
+        R.decompose(app,local).forEach(function(r){ cur[r.coll+'|'+r.id]=r; });
+        byApp[app].forEach(function(r){ cur[r.coll+'|'+r.id]={app:app,coll:r.coll,id:r.id,data:r.data}; });
+        self.write(app,JSON.stringify(R.compose(app,Object.keys(cur).map(function(k){ return cur[k]; }),local)));
+        if(self.hooks.reload) try{ self.hooks.reload(app,byApp[app].length); }catch(e){}
+      });
+      return back.length;
+    });
+  };
+  P.repair=function(app){
+    var self=this; if(self._repairing&&self._repairing[app]) return; (self._repairing=self._repairing||{})[app]=1;
+    self.note('This laptop’s copy of '+({ub:'Unique Bundles',pl:'Private Label',club:'the shared tasks'}[app])+' looked damaged — rebuilt it from the cloud');
+    self.resetFromCloud([app]).then(function(){ delete self._repairing[app]; },function(){ delete self._repairing[app]; });
+  };
+  P.resetFromCloud=function(apps){
+    var self=this;
+    return self.be.pullAll().then(function(rows){
+      apps.forEach(function(app){
+        var local=self.parse(self.read(app))||{}, list=rows.filter(function(r){ return r.app===app; });
+        Object.keys(self.synced).forEach(function(k){ if(k.indexOf(app+'|')===0) delete self.synced[k]; });
+        list.forEach(function(r){ self.synced[rk(r)]=hashOf(r); });
+        self.write(app,JSON.stringify(R.compose(app,list,local)));
+        if(self.hooks.reload) try{ self.hooks.reload(app,list.length); }catch(e){}
+      });
+      self.saveSynced();
+    });
+  };
+  P.changes=function(app){
+    var self=this, str=self.read(app);
+    if(str==null || str===self.lastSeen[app]) return null;
+    var blob=self.parse(str);
+    if(!valid(app,blob)){ self.repair(app); return null; }
+    var rows=R.decompose(app,blob), seen={}, out=[];
+    rows.forEach(function(r){ var k=rk(r); seen[k]=1; if(self.synced[k]!==hashOf(r)) out.push(r); });
+    Object.keys(self.synced).forEach(function(k){
+      if(k.indexOf(app+'|')!==0 || seen[k] || self.synced[k]==='DEL' || (self.held&&self.held.keys[k])) return;
+      var p=k.split('|'); out.push({app:p[0],coll:p[1],id:p.slice(2).join('|'),data:null,deleted:true});
+    });
+    return {str:str,rows:out};
+  };
+  P.tick=function(){
+    var self=this; if(self.busy || self.state==='off' || self.state==='loading') return;
+    var all=[], strs={};
+    APPS.forEach(function(app){ var c=self.changes(app); if(c){ strs[app]=c.str; all=all.concat(c.rows); } });
+    if(!all.length){ APPS.forEach(function(a){ if(strs[a]!=null) self.lastSeen[a]=strs[a]; }); self.applyRemote(); return; }
+    self.busy=true; self.waiting=all.length; self.status('saving');
+    self.send(all).then(function(){
+      self.busy=false;
+      APPS.forEach(function(a){ if(strs[a]!=null) self.lastSeen[a]=strs[a]; });
+      self.waiting=0; self.status(self.held?'held':'ok'); self.applyRemote();
+    }).catch(function(e){
+      self.busy=false; self.status('offline',{error:String(e&&e.message||e)});
+    });
+  };
+
+  /* ── pull ── */
+  P.incoming=function(rows){
+    var self=this;
+    rows.forEach(function(r){
+      if(!r||APPS.indexOf(r.app)<0) return;
+      if(!self.lastPull||r.updated_at>self.lastPull) self.lastPull=r.updated_at;
+      if(self.synced[rk(r)]===hashOf(r)) return;                 // already have it (often our own write coming back)
+      (self.remote[r.app]=self.remote[r.app]||{})[r.coll+'|'+r.id]=r;
+    });
+    // live updates arrive one row at a time — wait for the rest of that save (the new item, its list order…) first
+    clearTimeout(self._applyT); self._applyT=setTimeout(function(){ self.applyRemote(); },350);
+  };
+  P.poll=function(){
+    var self=this; if(self.state==='off'||self.state==='loading') return;
+    var since=self.lastPull ? new Date(new Date(self.lastPull).getTime()-10000).toISOString() : new Date(0).toISOString();
+    self.be.pullSince(since).then(function(rows){ if(self.state==='offline') self.status('ok'); self.incoming(rows); }).catch(function(){ self.status('offline'); });
+  };
+  P.applyRemote=function(){
+    var self=this;
+    APPS.forEach(function(app){
+      var waiting=self.remote[app]; if(!waiting||!Object.keys(waiting).length) return;
+      if(self.hooks.idle && !self.hooks.idle(app)) return;        // someone is typing or has a popup open — try again shortly
+      if(self.hooks.flush) try{ self.hooks.flush(app); }catch(e){}
+      // anything still unsent in this app goes first, so the merge sees it
+      var c=self.changes(app); var mineChanged={};
+      if(c) c.rows.forEach(function(r){ mineChanged[r.coll+'|'+r.id]=1; });
+      var str=self.read(app), local=self.parse(str)||{};
+      if(!valid(app,local)){ self.remote[app]={}; self.repair(app); return; }
+      var rows={}; R.decompose(app,local).forEach(function(r){ rows[r.coll+'|'+r.id]=r; });
+      var applied=0;
+      Object.keys(waiting).forEach(function(k){
+        var r=waiting[k];
+        if(mineChanged[k] && r.coll==='_order' && !r.deleted && rows[k]){
+          // both sides' lists changed: theirs, plus anything only this laptop has — then this laptop sends the merged order
+          var theirs=(r.data||[]).slice(), mineIds=rows[k].data||[];
+          mineIds.forEach(function(id){ if(theirs.indexOf(id)<0) theirs.push(id); });
+          rows[k]={app:app,coll:'_order',id:r.id,data:theirs}; applied++; return;
+        }
+        if(mineChanged[k]){ self.note('You and '+(self.hooks.nameOf?self.hooks.nameOf(r.updated_by):'the other person')+' both changed the same item — yours was kept, theirs is in history'); return; }
+        if(r.deleted) delete rows[k]; else rows[k]={app:app,coll:r.coll,id:r.id,data:r.data};
+        self.synced[rk(r)]=hashOf(r); applied++;
+      });
+      self.remote[app]={};
+      if(!applied) return;
+      var blob=R.compose(app,Object.keys(rows).map(function(k){ return rows[k]; }),local);
+      var out=JSON.stringify(blob);
+      self.write(app,out); self.saveSynced();
+      if(c) self.lastSeen[app]=null;                               // our own unsent change is still in there — let the next tick send it
+      if(self.hooks.reload) try{ self.hooks.reload(app,applied); }catch(e){ console.warn('reload',app,e); }
+    });
+  };
+
+  P.start=function(){
+    var self=this; self.status('ok');
+    self.timers.push(setInterval(function(){ self.tick(); },1500));
+    self.timers.push(setInterval(function(){ self.poll(); },20000));
+    try{ self.be.subscribe(function(row){ self.incoming([row]); }); }catch(e){}
+    try{ root.addEventListener('online',function(){ self.tick(); self.poll(); }); }catch(e){}
+  };
+  P.stop=function(){ this.timers.forEach(clearInterval); this.timers=[]; this.status('off'); };
+
+  root.PLUBSync={Engine:Engine};
+})(typeof window!=='undefined'?window:globalThis);
+
+/* ═══════ PLUB COMBINE — turn Jack's and Becki's "Export everything" files into one set of cloud rows ═══════
+   Agreed rules (23 Oct 2026):
+     · Unique Bundles: Becki's laptop is the owner — her settings win, her copy wins a tie
+     · Private Label and the shared tasks/sessions: Jack's laptop is the owner
+     · the same thing on both laptops (same id, same content) is kept once
+     · the same id holding DIFFERENT things (UB numbers are per laptop) → the other laptop's one gets a new number,
+       and every link to it (ideaId, pipeId, vendorId, sessionId, entityId) is updated
+     · the same task imported on both laptops under different numbers → kept once, the copy with more progress
+     · nothing is dropped without appearing in the report */
+(function(root){
+  var R=root.PLUBRecords;
+  var OWNER={ub:'becki',pl:'jack',club:'jack'};
+  var KEY={ub:'ub_tracker_v1',pl:'pl_sourcing_v1',club:'plub_v1'};
+  var REFS={ideaId:'ideas',pipeId:'pipeline',vendorId:'vendors',sessionId:'sessionLog'};
+  var DONE_RANK={done:3,complete:3,completed:3,in_process:2,in_progress:2,waiting:1,not_started:0};
+
+  function clone(v){ return v==null?v:JSON.parse(JSON.stringify(v)); }
+  function who(f){ var id=String(f.exported_by_id||f.exported_by||'').toLowerCase(); return id.indexOf('becki')>=0?'becki':id.indexOf('jack')>=0?'jack':id; }
+  function stamp(d){
+    if(!d||typeof d!=='object') return '';
+    var own=String(d.updatedAt||d.updated_at||d.doneAt||d.modified||d.created_at||d.created||d.createdAt||'');
+    var inner=d.data&&typeof d.data==='object'?stamp(d.data):'';      // a PL row keeps its edit time inside .data
+    return inner>own?inner:own;
+  }
+  function Name(p){ return p?p.charAt(0).toUpperCase()+p.slice(1):p; }
+  function progress(t){ return (t&&DONE_RANK[t.status])||0; }
+  // what makes two UB records "the same thing" even when their numbers differ (or match by accident)
+  var SIG={
+    tasks:      function(t){ return [t.title||'',t.brief||'',t.created||'',t.type||''].join('\u0001'); },
+    ideas:      function(i){ return [i.title||'',i.created||'',i.asin||''].join('\u0001'); },
+    pipeline:   function(p){ return [p.title||'',p.createdAt||p.entered||'',p.ideaId||''].join('\u0001'); },
+    inbox:      function(c){ return [c.asin||'',c.searchUrl||'',c.created||c.at||''].join('\u0001'); },
+    storefronts:function(f){ return [f.url||'',f.name||''].join('\u0001'); },
+    vendors:    function(v){ return [String(v.name||'').toLowerCase(),String(v.company||'').toLowerCase()].join('\u0001'); }
+  };
+  var SEEDED=['seasons','rankQs'];   // come pre-filled on every laptop with the same numbers — same number IS the same thing
+  function better(a,b,coll){ if(coll==='tasks'){ var pa=progress(a), pb=progress(b); if(pa!==pb) return pa>pb?a:b; } return stamp(a)>=stamp(b)?a:b; }
+
+  function rowsOf(file,app){
+    var raw=file.keys&&file.keys[KEY[app]]; if(!raw) return [];
+    var blob; try{ blob=JSON.parse(raw); }catch(e){ return []; }
+    return R.decompose(app,blob);
+  }
+  function nextUbId(used,digit){ var b=Math.max(Date.now(),0); var id; do{ id=String(b*10+digit); b++; }while(used[id]); used[id]=1; return id; }
+
+  function combine(files, owners){
+    var OWN=Object.assign({},OWNER,owners||{});   // the online Import passes {ub:'cloud',…} so what's already online leads
+    var people={}; files.forEach(function(f){ people[who(f)]=f; });
+    var report={people:Object.keys(people),apps:{},notes:[]};
+    var out=[];
+    ['ub','pl','club'].forEach(function(app){
+      var ownerName=OWN[app], owner=people[ownerName], others=Object.keys(people).filter(function(p){ return p!==ownerName; }).map(function(p){ return {name:p,file:people[p]}; });
+      if(!owner){ owner=people[Object.keys(people)[0]]; ownerName=Object.keys(people)[0]; others=others.filter(function(o){ return o.name!==ownerName; }); }
+      var rep={owner:ownerName,counts:{},renumbered:0,duplicates:0,conflicts:0};
+      var merged={}, order={};                 // 'coll|id' → row ; coll → [ids]
+      var lists=R.SPEC[app].lists||{}, nestedLists=R.SPEC[app].nestedLists||{};
+      function isList(c){ return lists[c]!==undefined || (c.indexOf('data.')===0 && nestedLists[c.slice(5)]!==undefined); }
+      function isLog(c){ return (R.SPEC[app].logs||[]).indexOf(c)>=0; }
+      // the owner's rows go in as they are
+      rowsOf(owner,app).forEach(function(r){
+        if(r.coll==='_order'){ order[r.id]=r.data.slice(); return; }
+        merged[r.coll+'|'+r.id]=r; (rep.counts[r.coll]=rep.counts[r.coll]||{})[ownerName]=((rep.counts[r.coll]||{})[ownerName]||0)+1;
+      });
+      var usedIds={}; Object.keys(merged).forEach(function(k){ usedIds[k.split('|').slice(1).join('|')]=1; });
+      others.forEach(function(o){
+        var rows=rowsOf(o.file,app), remap={};      // coll → {old:new}
+        var theirOrder={};
+        // pass 1: decide what each of their rows becomes
+        var keep=[];
+        rows.forEach(function(r){
+          if(r.coll==='_order'){ theirOrder[r.id]=r.data; return; }
+          (rep.counts[r.coll]=rep.counts[r.coll]||{})[o.name]=((rep.counts[r.coll]||{})[o.name]||0)+1;
+          var k=r.coll+'|'+r.id, mine=merged[k];
+          if(r.coll==='_doc'){ if(!mine) merged[k]=r; return; }                       // fields: the owner's version wins
+          if(isLog(r.coll)){ if(!mine) merged[k]=r; return; }                          // logs: everything from both
+          if(!isList(r.coll)){ if(!mine) merged[k]=r; return; }
+          if(mine && R.stable(mine.data)===R.stable(r.data)){ if(!(app==='ub'&&SEEDED.indexOf(r.coll)>=0)) rep.duplicates++; return; }   // identical on both laptops (the pre-filled seasons don't count)
+          if(app==='ub' && SEEDED.indexOf(r.coll)>=0){ if(!mine) merged[k]=r; else rep.conflicts++; return; }   // the owner's (Becki's) wins
+          if(app==='ub' && SIG[r.coll]){
+            // the same thing on both laptops — same number or not (a work list imported twice, an idea edited on one side)
+            var sig=SIG[r.coll](r.data||{}), twin=mine && SIG[r.coll](mine.data||{})===sig ? k
+              : Object.keys(merged).filter(function(mk){ return mk.indexOf(r.coll+'|')===0 && SIG[r.coll](merged[mk].data||{})===sig; })[0];
+            if(twin){
+              rep.duplicates++;
+              var tw=merged[twin], pick=better(tw.data,r.data,r.coll);
+              if(pick===r.data) merged[twin]={app:app,coll:r.coll,id:tw.id,data:Object.assign({},r.data,{id:tw.data.id})};
+              if(twin!==k) (remap[r.coll]=remap[r.coll]||{})[r.id]=tw.id;
+              return;
+            }
+          }
+          if(!mine){ keep.push(r); return; }
+          if(app==='ub'){
+            // UB numbers are per laptop — same number, different thing: give theirs a new one
+            var nid=nextUbId(usedIds,o.name==='becki'?2:1);
+            (remap[r.coll]=remap[r.coll]||{})[r.id]=nid; rep.renumbered++;
+            var d=clone(r.data); if(d&&typeof d==='object') d.id=typeof r.data.id==='number'?Number(nid):nid;
+            keep.push({app:app,coll:r.coll,id:nid,data:d}); return;
+          }
+          // PL / shared: one real thing edited on both laptops → the newer edit wins, the other is reported
+          rep.conflicts++;
+          if(stamp(r.data)>stamp(mine.data)) merged[k]=r;
+          report.notes.push((app==='pl'?'Private Label ':'Shared ')+r.coll+' '+((r.data&&(r.data.name||r.data.title))||r.id)+': different on each laptop — kept '+(stamp(r.data)>stamp(mine.data)?Name(o.name)+'’s (newer)':Name(ownerName)+'’s')+' version');
+        });
+        // pass 2: fix links inside their rows, then add them
+        function fix(v){
+          if(Array.isArray(v)) return v.map(fix);
+          if(v&&typeof v==='object'){ var c={}; Object.keys(v).forEach(function(key){
+            var val=v[key], coll=REFS[key];
+            if(coll && val!=null && remap[coll] && remap[coll][String(val)]!=null){ var n=remap[coll][String(val)]; c[key]=typeof val==='number'?Number(n):n; }
+            else if(key==='entityId' && val!=null && ((remap.ideas||{})[String(val)]||(remap.pipeline||{})[String(val)])){ var m=(remap.ideas||{})[String(val)]||(remap.pipeline||{})[String(val)]; c[key]=typeof val==='number'?Number(m):m; }
+            else c[key]=fix(val); }); return c; }
+          return v;
+        }
+        keep.forEach(function(r){ var row={app:app,coll:r.coll,id:r.id,data:fix(r.data)}; merged[row.coll+'|'+row.id]=row; usedIds[row.id]=1; });
+        // their list order: anything new from them goes after the owner's
+        Object.keys(theirOrder).forEach(function(coll){
+          var mine=order[coll]=order[coll]||[];
+          theirOrder[coll].forEach(function(id){ var m=(remap[coll]||{})[id]||id; if(mine.indexOf(m)<0 && merged[coll+'|'+m]) mine.push(m); });
+        });
+      });
+      Object.keys(merged).forEach(function(k){ out.push(merged[k]); });
+      Object.keys(order).forEach(function(coll){ out.push({app:app,coll:'_order',id:coll,data:order[coll].filter(function(id){ return merged[coll+'|'+id]; })}); });
+      var total={}; Object.keys(merged).forEach(function(k){ var c=k.split('|')[0]; total[c]=(total[c]||0)+1; });
+      Object.keys(rep.counts).forEach(function(c){ rep.counts[c].combined=total[c]||0; });
+      report.apps[app]=rep;
+    });
+    return {rows:out,report:report};
+  }
+
+  root.PLUBCombine={combine:combine, who:who};
+})(typeof window!=='undefined'?window:globalThis);
+
+/* ═══════ PLUB ONLINE — sign-in, first-time load, the sync engine's hooks, and the cloud status ═══════
+   Runs in the shell. The two apps don't know they're online: they keep using their own stores (kept apart from the
+   local version by the storage shim at the top of each page) and this file keeps those stores in step with the cloud. */
+(function(){
+  var CFG=window.PLUB_CONFIG||{};
+  var KEYS={ub:'ub_tracker_v1',pl:'pl_sourcing_v1',club:'plub_v1'};   // the shim stores these under plubc_ names
+  var engine=null, backend=null, member=null, members={}, cloudState='off', cloudInfo={};
+
+  /* ── backends: the real one, and a stand-in for testing on this Mac ── */
+  function SupabaseBackend(){
+    var sb=window.supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:true,autoRefreshToken:true,storageKey:'plubc_auth'}});
+    function page(q,from){ return q.range(from,from+999).then(function(r){ if(r.error) throw r.error; return r.data||[]; }); }
+    return {
+      session:function(){ return sb.auth.getSession().then(function(r){ return r.data&&r.data.session?{uid:r.data.session.user.id,email:r.data.session.user.email}:null; }); },
+      signIn:function(email,pw){ return sb.auth.signInWithPassword({email:email,password:pw}).then(function(r){ if(r.error) throw r.error; return {uid:r.data.user.id,email:r.data.user.email}; }); },
+      signOut:function(){ return sb.auth.signOut(); },
+      members:function(){ return sb.from('plub_members').select('*').then(function(r){ if(r.error) throw r.error; return r.data||[]; }); },
+      pullAll:function(){
+        var all=[]; function next(from){ return page(sb.from('plub_rows').select('*').order('updated_at'),from).then(function(rows){ all=all.concat(rows); return rows.length===1000?next(from+1000):all; }); }
+        return next(0);
+      },
+      pullSince:function(iso){ return sb.from('plub_rows').select('*').gt('updated_at',iso).order('updated_at').then(function(r){ if(r.error) throw r.error; return r.data||[]; }); },
+      upsert:function(rows){ return sb.from('plub_rows').upsert(rows.map(function(r){ return {app:r.app,coll:r.coll,id:r.id,data:r.data===undefined?null:r.data,deleted:!!r.deleted}; }),{onConflict:'app,coll,id'}).then(function(r){ if(r.error) throw r.error; return {data:r.data,error:null}; }); },
+      subscribe:function(cb){ sb.channel('plub_rows').on('postgres_changes',{event:'*',schema:'public',table:'plub_rows'},function(p){ if(p&&p.new) cb(p.new); }).subscribe(); },
+      history:function(sinceIso){ var all=[]; function next(from){ return page(sb.from('plub_history').select('*').gte('at',sinceIso).order('at'),from).then(function(rows){ all=all.concat(rows); return rows.length===1000?next(from+1000):all; }); } return next(0); }
+    };
+  }
+  function MockBackend(){   // talks to plub-online/mock-server.py — never used on the real site
+    var base=CFG.mockUrl, tok=null; try{ tok=localStorage.getItem('plubc_mock_token'); }catch(e){}
+    function j(path,opt){ return fetch(base+path+(path.indexOf('?')<0?'?':'&')+'token='+encodeURIComponent(tok||''),opt).then(function(r){ if(!r.ok) throw new Error('mock '+r.status); return r.json(); }); }
+    return {
+      session:function(){ return tok?j('/me').then(function(m){ return {uid:m.user_id,email:m.name.toLowerCase()+'@test'}; }).catch(function(){ return null; }):Promise.resolve(null); },
+      signIn:function(email){ return fetch(base+'/signin',{method:'POST',body:JSON.stringify({email:email})}).then(function(r){ if(!r.ok) throw new Error('Invalid login credentials'); return r.json(); }).then(function(d){ tok=d.token; localStorage.setItem('plubc_mock_token',tok); return {uid:d.user_id,email:email}; }); },
+      signOut:function(){ tok=null; localStorage.removeItem('plubc_mock_token'); return Promise.resolve(); },
+      members:function(){ return j('/members'); },
+      pullAll:function(){ return j('/rows'); },
+      pullSince:function(iso){ return j('/rows?since='+encodeURIComponent(iso)); },
+      upsert:function(rows){ return j('/rows',{method:'POST',body:JSON.stringify(rows)}).then(function(d){ return {data:d,error:null}; }); },
+      subscribe:function(cb){ var since=new Date().toISOString(); (function wait(){ j('/wait?since='+encodeURIComponent(since)).then(function(rows){ rows.forEach(function(r){ if(r.updated_at>since) since=r.updated_at; cb(r); }); wait(); }).catch(function(){ setTimeout(wait,3000); }); })(); },
+      history:function(sinceIso){ return j('/history?since='+encodeURIComponent(sinceIso)); }
+    };
+  }
+
+  /* ── the sync engine's view of the two apps ── */
+  function frameW(app){ try{ var f=FRAMES[app]; return f&&f.getAttribute('src')?f.contentWindow:null; }catch(e){ return null; } }
+  function idle(app){
+    if(app==='club') return true;
+    var w=frameW(app); if(!w||!w.document||!w.document.body) return true;
+    var d=w.document, a=d.activeElement;
+    if(a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return false;      // someone is typing
+    var vw=w.innerWidth, vh=w.innerHeight, open=false;
+    Array.prototype.some.call(d.querySelectorAll('.open,.show,[open]'),function(el){            // a popup or drawer is up
+      var cs=w.getComputedStyle(el); if(cs.display==='none'||cs.visibility==='hidden') return false;
+      if(cs.position!=='fixed') return false;
+      var r=el.getBoundingClientRect(); if(r.width*r.height>vw*vh*0.2){ open=true; return true; } return false;
+    });
+    return !open;
+  }
+  function flush(app){ var w=frameW(app); if(!w) return; try{ new w.Function(app==='ub'?'try{flushSave()}catch(e){}':'try{_flushPendingSave()}catch(e){}')(); }catch(e){} }
+  function reload(app){
+    if(app==='club'){ try{ CLUB.reload(); }catch(e){} }
+    else { var w=frameW(app); if(w&&w.plubReload) try{ w.plubReload(); }catch(e){ console.warn('reload',app,e); } }
+    try{ chromeSync(true); }catch(e){}
+    try{ if(document.getElementById('pipe').classList.contains('show')) renderPipe(); }catch(e){}
+  }
+  function nameOf(uid){ return (members[uid]&&members[uid].name)||'the other person'; }
+
+  /* ── status: the line under your name in the sidebar ── */
+  window.plubCloudText=function(){
+    if(cloudState==='ok') return '<span class="pc-dot ok"></span>saved';
+    if(cloudState==='saving') return '<span class="pc-dot busy"></span>saving…';
+    if(cloudState==='loading') return '<span class="pc-dot busy"></span>loading…';
+    if(cloudState==='offline') return '<span class="pc-dot warn"></span>offline · '+(cloudInfo.waiting?cloudInfo.waiting+' waiting':'will catch up');
+    if(cloudState==='held') return '<span class="pc-dot bad"></span>paused — check';
+    return 'cloud';
+  };
+  var _lastPaint='', _shownHeld=null;
+  function onStatus(st,info){
+    cloudState=st; cloudInfo=info||{};
+    var t=window.plubCloudText(); if(t!==_lastPaint){ _lastPaint=t; var el=document.getElementById('plubCloud'); if(el) el.innerHTML=t; }
+    if(st==='held' && info.held && info.held!==_shownHeld){ _shownHeld=info.held; heldPopup(info.held); }
+  }
+  function onNote(msg){ toastCloud(msg); }
+  function toastCloud(msg){
+    var t=document.getElementById('plubCloudToast'); if(!t){ t=document.createElement('div'); t.id='plubCloudToast'; document.body.appendChild(t); }
+    t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(function(){ t.classList.remove('show'); },6000);
+  }
+  function heldPopup(h){
+    if(!h) return;
+    pdSet(pdHead('Delete '+h.deletes+' items?')
+      +'<div class="pd-warn">PLUB was about to delete <b>'+h.deletes+' items</b> from the cloud in one go. That’s unusual, so it stopped to check. Nothing has been removed yet.</div>'
+      +'<p class="pd-tip">If you meant it (for example clearing out finished tasks), say yes. If not, say no and this laptop goes back to what the cloud has.</p>'
+      +'<div class="pd-foot"><button class="pd-btn" onclick="plubHeld(false)">No — put them back</button><button class="pd-btn pd-pri pd-danger" onclick="plubHeld(true)">Yes, delete them</button></div>',true);
+  }
+  window.plubHeld=function(yes){ pdClose(); if(engine) engine.releaseHeld(yes); };
+
+  /* ── sign-in ── */
+  function gate(html){
+    var g=document.getElementById('clubGate'); if(!g){ g=document.createElement('div'); g.id='clubGate'; document.body.appendChild(g); }
+    g.innerHTML='<div class="cg-box">'+html+'</div>'; g.style.display='flex'; return g;
+  }
+  function gateHead(sub){ return '<div class="cg-mark"><svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="2.5" fill="#030304" opacity=".85"/><path d="M8.5 9V7a3.5 3.5 0 017 0v2" fill="none" stroke="#030304" stroke-width="2" stroke-linecap="round"/></svg></div><div class="cg-t">PLUB</div><div class="cg-s">'+(sub||'Private Label + Unique Bundles HQ')+'</div>'; }
+  function showSignIn(msg){
+    gate(gateHead()+'<form class="cg-form" onsubmit="return plubSignIn(event)"><input id="cgEmail" type="email" placeholder="Email" autocomplete="username" required>'
+      +'<input id="cgPw" type="password" placeholder="Password" autocomplete="current-password"'+(CFG.backend==='mock'?'':' required')+'>'
+      +'<button class="btn primary" type="submit">Sign in</button><div class="cg-err" id="cgErr">'+(msg?esc(msg):'')+'</div></form>'
+      +'<div class="cg-note">You stay signed in on this laptop. Only Jack and Becki can sign in.</div>');
+    setTimeout(function(){ var e=document.getElementById('cgEmail'); if(e) e.focus(); },50);
+  }
+  window.plubSignIn=function(ev){
+    ev.preventDefault();
+    var em=document.getElementById('cgEmail').value.trim(), pw=document.getElementById('cgPw').value, err=document.getElementById('cgErr');
+    err.textContent='Signing in…';
+    backend.signIn(em,pw).then(function(s){ return afterSignIn(s); })
+      .catch(function(e){ var m=String(e&&e.message||e); err.textContent=/invalid/i.test(m)?'That email and password don’t match.':m; });
+    return false;
+  };
+  function afterSignIn(sess){
+    return backend.members().then(function(list){
+      members={}; list.forEach(function(m){ members[m.user_id]=m; });
+      member=members[sess.uid];
+      if(!member){ gate(gateHead()+'<div class="cg-err" style="margin-top:14px">This login isn’t on the PLUB list.</div><button class="btn" style="margin-top:10px" onclick="plubSignOut()">Sign out</button>'); return; }
+      window.PLUB_DIGIT=member.digit; window.PLUB_MEMBER=member;
+      CLUB.setWho(member.name.toLowerCase());
+      return startEngine();
+    });
+  }
+  window.plubSignOut=function(){
+    var done=function(){ backend.signOut().then(function(){ try{ CLUB.signOut(); }catch(e){} location.reload(); }); };
+    if(engine){ engine.tick(); setTimeout(done,1200); } else done();
+  };
+
+  /* ── engine start, and the first-ever load ── */
+  function startEngine(){
+    gate(gateHead('Loading from the cloud…')+'<div class="cg-note"><span class="pd-spin" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>Getting the latest from both of you</div>');
+    engine=new PLUBSync.Engine({keys:KEYS},backend,{idle:idle,flush:flush,reload:reload,status:onStatus,note:onNote,nameOf:nameOf});
+    return engine.boot().then(function(res){
+      if(res.empty){ showFirstLoad(); return; }
+      try{ CLUB.reload(); }catch(e){}            // this page's own copy of the shared store was read before the cloud arrived
+      engine.start(); document.getElementById('clubGate').style.display='none';
+      if(res.held) heldPopup(engine.held);
+      if(res.pushed) toastCloud(res.pushed+' change'+(res.pushed>1?'s':'')+' made on this laptop while offline went up to the cloud');
+      clubBoot();
+    }).catch(function(e){
+      gate(gateHead()+'<div class="cg-err" style="margin-top:14px">Couldn’t reach the cloud: '+esc(String(e&&e.message||e))+'</div><button class="btn primary" style="margin-top:10px" onclick="location.reload()">Try again</button>');
+    });
+  }
+  var _files=[];
+  function showFirstLoad(){
+    if(member.role!=='owner'){
+      gate(gateHead('Nearly there')+'<div class="cg-note" style="margin-top:14px">Jack hasn’t loaded everyone’s data into the cloud yet. Try again in a few minutes.</div><button class="btn primary" style="margin-top:12px" onclick="location.reload()">Try again</button>');
+      return;
+    }
+    _files=[];
+    gate(gateHead('One-time setup')+'<div class="fl"><h3>Load everyone’s data into the cloud</h3>'
+      +'<p>Pick both “PLUB everything” files — yours and Becki’s. They’re combined into one, checked, and shown to you before anything is saved.</p>'
+      +'<input type="file" id="flFiles" accept=".json,application/json" multiple onchange="plubFirstFiles(this)" style="display:none">'
+      +'<button class="btn primary" onclick="document.getElementById(\'flFiles\').click()">Choose the two files…</button><div id="flOut"></div></div>');
+  }
+  window.plubFirstFiles=function(inp){
+    var fs=Array.prototype.slice.call(inp.files||[]), out=document.getElementById('flOut');
+    out.innerHTML='<div class="cg-note">Checking…</div>';
+    Promise.all(fs.map(function(f){ return f.text().then(function(t){ var o=null; try{ o=JSON.parse(t); }catch(e){} return {name:f.name,file:o}; }); })).then(function(list){
+      var bad=list.filter(function(x){ return !x.file||x.file.format!=='plub-full-export'; });
+      if(bad.length){ out.innerHTML='<div class="cg-err">'+esc(bad.map(function(b){ return b.name; }).join(', '))+' — not a “PLUB everything” file.</div>'; return; }
+      return Promise.all(list.map(function(x){ return pdHash(x.file.keys).then(function(h){ x.ok=!x.file.sha256||h===x.file.sha256; return x; }); })).then(function(list){
+        var dam=list.filter(function(x){ return !x.ok; });
+        if(dam.length){ out.innerHTML='<div class="cg-err">'+esc(dam[0].name)+' has been changed or damaged since it was exported.</div>'; return; }
+        _files=list.map(function(x){ return x.file; });
+        var res=PLUBCombine.combine(_files); window.__plubCombined=res;
+        out.innerHTML=combineReport(list,res)+'<div class="fl-go"><button class="btn primary" id="flGo" onclick="plubFirstLoad()">Load this into the cloud</button></div>';
+      });
+    });
+  };
+  function combineReport(list,res){
+    var LAB={ub:'Unique Bundles',pl:'Private Label',club:'Shared'}, SHOW={ideas:'Ideas',pipeline:'In the pipeline',tasks:'Tasks',inbox:'Review queue',vendors:'Suppliers',storefronts:'Storefronts',sessions:'Sessions',activity:'Activity',sessionLog:'Sessions','data.vendors':'Suppliers','data.plSess':'Sessions','data.weekTasks':'Week plan tasks'};
+    var ppl=res.report.people.map(function(p){ return p.charAt(0).toUpperCase()+p.slice(1); });
+    var h='<div class="fl-files">'+list.map(function(x){ return '<div><b>'+esc(x.file.exported_by)+'</b> · exported '+esc(pdWhen(x.file.exported_at))+' · ✓ undamaged</div>'; }).join('')+'</div>';
+    h+='<table class="pd-tbl"><thead><tr><th></th>'+ppl.map(function(p){ return '<th>'+esc(p)+'</th>'; }).join('')+'<th>Combined</th></tr></thead><tbody>';
+    ['ub','pl','club'].forEach(function(app){
+      var a=res.report.apps[app]; if(!a) return;
+      var rows=Object.keys(a.counts).filter(function(c){ return SHOW[c]; });
+      if(!rows.length) return;
+      h+='<tr class="pd-tg"><td colspan="'+(ppl.length+2)+'">'+LAB[app]+'</td></tr>';
+      rows.forEach(function(c){ h+='<tr><td>'+SHOW[c]+'</td>'+res.report.people.map(function(p){ return '<td>'+(a.counts[c][p]||0)+'</td>'; }).join('')+'<td><b>'+a.counts[c].combined+'</b></td></tr>'; });
+    });
+    h+='</tbody></table>';
+    var ub=res.report.apps.ub||{};
+    var lines=[];
+    if(ub.duplicates) lines.push(ub.duplicates+' Unique Bundles items were on both laptops — kept once (the copy with more progress)');
+    if(ub.renumbered) lines.push(ub.renumbered+' Unique Bundles items had the same number on both laptops but were different things — both kept, one renumbered, links updated');
+    res.report.notes.forEach(function(n){ lines.push(n); });
+    if(lines.length) h+='<ul class="pd-checks">'+lines.map(function(l){ return '<li>'+esc(l)+'</li>'; }).join('')+'</ul>';
+    return h;
+  }
+  window.plubFirstLoad=function(){
+    var res=window.__plubCombined; if(!res) return;
+    var b=document.getElementById('flGo'); b.disabled=true; b.textContent='Saving to the cloud…';
+    engine.hooks.progress=function(n,t){ b.textContent='Saving to the cloud… '+n+' / '+t; };
+    engine.seed(res.rows).then(function(){ return engine.boot(); }).then(function(){
+      try{ CLUB.reload(); }catch(e){}
+      engine.start(); document.getElementById('clubGate').style.display='none'; clubBoot();
+      toastCloud('Everything is in the cloud — '+res.rows.length+' items. Becki can sign in now.');
+    }).catch(function(e){ b.disabled=false; b.textContent='Try again'; var o=document.getElementById('flOut'); if(o) o.insertAdjacentHTML('beforeend','<div class="cg-err">Didn’t finish: '+esc(String(e&&e.message||e))+' — nothing is lost, press Try again.</div>'); });
+  };
+
+  /* ── online "Import everything": combine a file with what's already in the cloud (never deletes) ── */
+  window.plubImportFile=function(file){
+    if(!engine) return;
+    var cloudFile={format:'plub-full-export',exported_by:'cloud',exported_by_id:'cloud',keys:{}};
+    ['ub','pl','club'].forEach(function(app){ var s=localStorage.getItem(KEYS[app]); if(s) cloudFile.keys[KEYS[app]]=s; });
+    var res=PLUBCombine.combine([cloudFile,file],{ub:'cloud',pl:'cloud',club:'cloud'});
+    var current={}; ['ub','pl','club'].forEach(function(app){ var s=localStorage.getItem(KEYS[app]); if(s) PLUBRecords.decompose(app,JSON.parse(s)).forEach(function(r){ current[r.app+'|'+r.coll+'|'+r.id]=PLUBRecords.stable(r.data); }); });
+    var changed=res.rows.filter(function(r){ return current[r.app+'|'+r.coll+'|'+r.id]!==PLUBRecords.stable(r.data); });
+    return engine.seed(changed).then(function(){ return engine.boot(); }).then(function(){ ['ub','pl','club'].forEach(reload); return changed.length; });   // reload() includes CLUB.reload()
+  };
+
+  /* ── start ── */
+  window.plubOnlineBoot=function(){
+    if(!window.PLUBSync||!window.PLUBRecords||!window.PLUBCombine){ gate(gateHead()+'<div class="cg-err">PLUB didn’t load properly — reload the page.</div>'); return; }
+    if(CFG.backend!=='mock' && !window.supabase){ gate(gateHead()+'<div class="cg-err">Couldn’t load the sign-in library — check the internet connection and reload.</div>'); return; }
+    backend = CFG.backend==='mock' ? MockBackend() : SupabaseBackend();
+    backend.session().then(function(s){ if(s) return afterSignIn(s); showSignIn(); }).catch(function(){ showSignIn(); });
+  };
+  window.plubBackend=function(){ return backend; };
+  window.plubMembers=function(){ return members; };
+})();
+
+</script>
 <script>
 // BUILD is the version people see — moves by 0.05 a release; STAMP is what actually busts the cache. Bump STAMP every push.
-var BUILD = '1.00';
-var STAMP = '2026-10-23a';
+var BUILD = '1.05';
+var STAMP = '2026-10-24a';
 document.getElementById('buildChip').textContent = 'v' + BUILD;
 
 var FRAMES = { ub: document.getElementById('f_ub'), pl: document.getElementById('f_pl') };
@@ -889,6 +1647,13 @@ function railItems(app){
   return out;
 }
 function appTotals(app){ try{ var cds=readStores().cards.filter(function(c){return c.app===app && c.col!=='launched';}); return cds.length; }catch(e){ return 0; } }
+// The sidebar badge only counts what needs you now. The apps' own counters (80 tasks, 15 actions, 7 ideas…) only ever
+// grew, so they turned into wallpaper. Kept: overdue/today tasks, and the review queue (ideas waiting to be reviewed).
+function railBadge(app,pane,raw){
+  if(app==='ub'&&pane==='inbox') return raw;
+  if(app==='ub'&&pane==='tasks'){ var u=CLUB.user(); if(!u) return ''; try{ var n=fyTasks(u).filter(function(t){ return t.src==='ub'&&(t.d.k==='over'||t.d.k==='today'); }).length; return n?String(n):''; }catch(e){ return ''; } }
+  return '';
+}
 function railGo(app,pane){ if(currentApp()!==app) show(app); var w=frameWin(app); try{ w.nav(pane); }catch(e){} chromeSync(true); }
 function railToggle(){ document.body.classList.toggle('rail-min'); try{ localStorage.setItem('plub_rail_min', document.body.classList.contains('rail-min')?'1':''); }catch(e){} }
 function renderRail(){
@@ -898,8 +1663,10 @@ function renderRail(){
     +'<div class="sn-brand-t"><div class="sn-name">PLUB</div><div class="sn-sub">PL + UB HQ · v'+BUILD+'</div></div>'
     +'<button class="sn-toggle" onclick="railToggle()" title="Collapse / expand"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"/></svg></button></div>'
     +'<nav class="sn-nav">'
-    +'<button class="nav-item'+(app==='pipe'&&ovView()!=='board'?' active':'')+'" style="--c:#7C6CFF" onclick="showOv(\'summary\')" title="Overview"><span class="sn-ic"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" fill="currentColor" opacity=".18"/><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.5l2.5-3 2 2 2.5-3.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="sn-t">Overview</span></button>'
-    +'<button class="nav-item'+(app==='pipe'&&ovView()==='board'?' active':'')+'" style="--c:#22D3EE" onclick="showOv(\'board\')" title="Joint pipeline"><span class="sn-ic"><svg viewBox="0 0 20 20"><rect x="2.5" y="4" width="4" height="12" rx="1.3" fill="currentColor" opacity=".18"/><rect x="8" y="4" width="4" height="8.5" rx="1.3" fill="currentColor" opacity=".18"/><rect x="13.5" y="4" width="4" height="5.5" rx="1.3" fill="currentColor" opacity=".18"/><rect x="2.5" y="4" width="4" height="12" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="4" width="4" height="8.5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="13.5" y="4" width="4" height="5.5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></span><span class="sn-t">Joint pipeline</span>'+(function(){ var n=appTotals('ub')+appTotals('pl'); return n?'<span class="nav-badge">'+n+'</span>':''; })()+'</button>';
+    +(function(){ var n=fyBadge(); return '<button class="nav-item'+(app==='pipe'&&ovView()==='foryou'?' active':'')+'" style="--c:#FFC53D" onclick="showOv(\'foryou\')" title="For you"><span class="sn-ic"><svg viewBox="0 0 20 20"><circle cx="10" cy="7" r="3.2" fill="currentColor" opacity=".18"/><circle cx="10" cy="7" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 16.5c.8-3 3.2-4.5 6-4.5s5.2 1.5 6 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="sn-t">For you</span>'+(n?'<span class="nav-badge">'+n+'</span>':'')+'</button>'; })()
+    +'<button class="nav-item'+(app==='pipe'&&ovView()==='summary'?' active':'')+'" style="--c:#7C6CFF" onclick="showOv(\'summary\')" title="Overview"><span class="sn-ic"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" fill="currentColor" opacity=".18"/><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11.5l2.5-3 2 2 2.5-3.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="sn-t">Overview</span></button>'
+    +'<button class="nav-item'+(app==='pipe'&&ovView()==='board'?' active':'')+'" style="--c:#22D3EE" onclick="showOv(\'board\')" title="Joint pipeline"><span class="sn-ic"><svg viewBox="0 0 20 20"><rect x="2.5" y="4" width="4" height="12" rx="1.3" fill="currentColor" opacity=".18"/><rect x="8" y="4" width="4" height="8.5" rx="1.3" fill="currentColor" opacity=".18"/><rect x="13.5" y="4" width="4" height="5.5" rx="1.3" fill="currentColor" opacity=".18"/><rect x="2.5" y="4" width="4" height="12" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="4" width="4" height="8.5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="13.5" y="4" width="4" height="5.5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></span><span class="sn-t">Joint pipeline</span>'+(function(){ var n=0; try{ n=readStores().cards.filter(function(c){ return c.over; }).length; }catch(e){} return n?'<span class="nav-badge" title="'+n+' past their stage target">'+n+'</span>':''; })()+'</button>'
+    +'<button class="nav-item'+(app==='pipe'&&ovView()==='audit'?' active':'')+'" style="--c:#3B9EFF" onclick="showOv(\'audit\')" title="'+(u&&u.role==='owner'?'Weekly audit':'My week')+'"><span class="sn-ic"><svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="13" rx="2.5" fill="currentColor" opacity=".18"/><rect x="3" y="4" width="14" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3 8h14M7 2.5v3M13 2.5v3M6.5 11.5l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="sn-t">'+(u&&u.role==='owner'?'Weekly audit':'My week')+'</span></button>';
   var bottom='';
   APPS.forEach(function(A){
     var on = app===A.k, items = on ? railItems(A.k) : null, tot=appTotals(A.k);
@@ -911,7 +1678,7 @@ function renderRail(){
       if(it.t==='spacer'){ afterSpacer=true; return; }
       var html='';
       if(it.t==='sec') html='<div class="sn-sec"><span>'+esc(it.label)+'</span></div>';
-      else html='<button class="nav-item'+(it.active?' active':'')+'" style="--c:'+it.color+'" onclick="railGo(\''+A.k+'\',\''+it.pane+'\')" title="'+esc(it.label)+'"><span class="sn-ic"><svg viewBox="0 0 20 20">'+it.icon.replace(/^<svg[^>]*>|<\/svg>$/g,'')+'</svg></span><span class="sn-t">'+esc(it.label)+'</span>'+(it.badge&&it.badge!=='0'?'<span class="nav-badge">'+esc(it.badge)+'</span>':'')+'</button>';
+      else html='<button class="nav-item'+(it.active?' active':'')+'" style="--c:'+it.color+'" onclick="railGo(\''+A.k+'\',\''+it.pane+'\')" title="'+esc(it.label)+'"><span class="sn-ic"><svg viewBox="0 0 20 20">'+it.icon.replace(/^<svg[^>]*>|<\/svg>$/g,'')+'</svg></span><span class="sn-t">'+esc(it.label)+'</span>'+(railBadge(A.k,it.pane,it.badge)&&railBadge(A.k,it.pane,it.badge)!=='0'?'<span class="nav-badge">'+esc(railBadge(A.k,it.pane,it.badge))+'</span>':'')+'</button>';
       if(afterSpacer) bottom+=html; else h+=html;
     });
   });
@@ -919,8 +1686,8 @@ function renderRail(){
     +'<div class="sn-spacer"></div>'+bottom+'</nav>'
     +pdRailHtml()
     +'<div class="sn-foot"><div class="sn-av">'+esc(nm[0]||'?')+'</div><div class="sn-foot-t"><div class="sn-user">'+esc(nm)+'</div>'
-    +'<div class="sn-role">'+(u&&u.role==='owner'?'Owner':'Staff')+' · '+(CLUB.mode()==='supabase'?'cloud':'local')+'</div></div>'
-    +'<button class="sn-switch" onclick="clubSignOut()" title="'+(CLUB.mode()==='supabase'?'Sign out':'Switch user')+'">⇄</button></div>';
+    +'<div class="sn-role">'+(u&&u.role==='owner'?'Owner':'Staff')+' · <span id="plubCloud">'+plubCloudText()+'</span></div></div>'
+    +'<button class="sn-switch" onclick="plubSignOut()" title="Sign out">⇥</button></div>';
   document.getElementById('plubRail').innerHTML=h;
 }
 function barState(app){
@@ -946,22 +1713,22 @@ function barState(app){
 }
 var _barSearch={ub:null,pl:null};
 function renderBar(){
-  var app=currentApp(), st=app==='pipe'?{title:(ovView()==='board'?'Joint pipeline':'Overview'),saved:'',sess:null,menu:[],add:null,search:null}:barState(app);
+  var app=currentApp(), st=app==='pipe'?{title:({board:'Joint pipeline',foryou:'For you',audit:(CLUB.user()&&CLUB.user().role==='owner'?'Weekly audit':'My week')})[ovView()]||'Overview',saved:'',sess:null,menu:[],add:null,search:null}:barState(app);
   _barSearch[app]=st.search;
   var h='<div class="xtabs" id="xtabs">'
     +'<button class="xt xt-ub'+(app==='ub'?' on':'')+'" onclick="show(\'ub\')">Unique Bundles</button>'
     +'<button class="xt xt-pl'+(app==='pl'?' on':'')+'" onclick="show(\'pl\')">Private Label</button>'
-    +'<button class="xt'+(app==='pipe'?' on':'')+'" onclick="show(\'pipe\')">Overview</button>'
-    +'<span class="xver">v'+BUILD+'</span></div>'
+    +'<button class="xt'+(app==='pipe'?' on':'')+'" onclick="show(\'pipe\')">Home</button>'
+    +'<span class="xver">v'+BUILD+'</span><span class="plub-testchip">ONLINE TEST</span></div>'
     +'<span class="tb-page" id="tbPage">'+esc(st.title||'')+'</span>';
   if(st.search) h+='<div class="tb-search"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>'
     +'<input id="plubSearch" placeholder="'+st.search.placeholder+'" autocomplete="off" oninput="barSearch(this.value,false)" onkeydown="if(event.key===\'Enter\')barSearch(this.value,true)"><span class="tb-kbd">/</span></div>';
   h+='<div class="tb-spacer"></div>';
-  if(app==='pipe') h+='<span class="tb-saved"><span class="dot" style="background:var(--green,#00E5A0)"></span>'+(CLUB.mode()==='supabase'?'cloud':'local')+' · both sides</span>';
+  if(app==='pipe') h+='<span class="tb-saved"><span class="dot" style="background:var(--green,#00E5A0)"></span>'+'cloud · both of you</span>';
   else if(st.saved) h+='<span class="tb-saved" title="Saves in this browser automatically"><span class="dot" style="background:var(--green,#00E5A0)"></span>'+esc(st.saved.replace(/^\s*Saved\s*$/,'Saved'))+'</span>';
   if(st.sess) h+='<button class="btn'+(st.sess.on?' sess-on':'')+'" id="plubSess" onclick="frameRun(\''+app+'\',\''+st.sess.code+'\')">'+st.sess.html+'</button>';
   // both apps' own items, then the two that cover the whole of PLUB — so they're in every ··· menu, Overview included
-  var menu=st.menu.concat(st.menu.length?[{hr:true}]:[],[{label:'⬇ Export everything',shell:'pdExport()'},{label:'⬆ Import everything…',shell:'pdOpen()'}]);
+  var menu=st.menu.concat(st.menu.length?[{hr:true}]:[],[{label:'＋ Storefront link',shell:'sfOpen()'},{label:'⬇ Export everything',shell:'pdExport()'},{label:'⬆ Import everything…',shell:'pdOpen()'}]);
   h+='<div class="tb-more"><button type="button" onclick="document.getElementById(\'plubMenu\').classList.toggle(\'open\')" title="More">···</button><div class="tb-menu" id="plubMenu">'
     +menu.map(function(m){ var close='document.getElementById(\'plubMenu\').classList.remove(\'open\');';
       return m.hr?'<hr>':m.shell?'<button class="tb-plub" onclick="'+close+m.shell+'">'+esc(m.label)+'</button>'
@@ -982,7 +1749,7 @@ function chromeSig(app){
 }
 function chromeSync(force){
   var app=currentApp();
-  var sig= app==='pipe' ? 'pipe|'+ovView()+'|'+CLUB.railMonthHtml().length+'|'+appTotals('ub')+'|'+appTotals('pl') : chromeSig(app);
+  var sig= (app==='pipe' ? 'pipe|'+ovView()+'|'+CLUB.railMonthHtml().length+'|'+appTotals('ub')+'|'+appTotals('pl') : chromeSig(app))+'|fy'+fyBadge();
   if(!force && sig===_chromeSig && document.getElementById('plubRail').children.length) return;
   _chromeSig=sig;
   try{ renderRail(); }catch(e){ console.warn('rail',e); }
@@ -1153,16 +1920,21 @@ function renderOverview(ub, pl, m, cards){
       +'<button class="ov-go" onclick="show(\'pl\')">Start a session →</button></div>';
   }
 
-  return missHtml+'<div class="ov-hero '+tone+'"><div><div class="eyebrow">'+(sides.length>1?'Both belts':esc(sides[0].label))+' · this month</div>'
+  // what matters first — launches, the month's targets, this week, what to work on — then the detail (24 Oct)
+  return missHtml+'<div class="ov-hero compact '+tone+'"><div><div class="eyebrow">'+(sides.length>1?'Both belts':esc(sides[0].label))+' · this month</div>'
       +'<h2 class="ov-head">'+head+'</h2><p class="ov-sub">'+sub+'</p></div></div>'
-    + stats + nudge + (function(){ try{ return ovLaunches(ub,pl,m); }catch(e){ console.error('launches',e); return ''; } })()
-    + (function(){ try{ return ovThisWeek(); }catch(e){ console.error('this week',e); return ''; } })() + targets + queue + lanes;
+    + (function(){ try{ return ovLaunches(ub,pl,m); }catch(e){ console.error('launches',e); return ''; } })()
+    + targets
+    + (function(){ try{ return ovThisWeek(); }catch(e){ console.error('this week',e); return ''; } })() + queue
+    + '<div class="ov-detail-h">The detail</div>' + stats + nudge + lanes;
 }
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function activeCount(){ try{ return readStores().cards.filter(function(c){return c.col!=='launched';}).length; }catch(e){ return 0; } }
 function paintPipeN(){ var n=document.getElementById('pipeN'); if(!n) return; var a=activeCount(); n.textContent=a; n.classList.toggle('show',a>0); }
 function renderPipe(){
+  if(ovView()==='foryou') return renderForYou();
+  if(ovView()==='audit') return renderAudit();
   var st = readStores(), cards = st.cards;
   cards.forEach(function(c){ c.cold = c.days!=null && c.days>=7 && !c.wait; });
   var ubN = cards.filter(function(c){return c.app==='ub' && c.col!=='launched';}).length, plN = cards.filter(function(c){return c.app==='pl' && c.col!=='launched';}).length;
@@ -1296,7 +2068,7 @@ function renderPipe(){
       + '</div>'
     + '</div>';
 }
-function ovView(){ try{ return localStorage.getItem('plub_ov_view')==='board'?'board':'summary'; }catch(e){ return 'summary'; } }
+function ovView(){ try{ var v=localStorage.getItem('plub_ov_view'); return (v==='board'||v==='foryou'||v==='audit')?v:'summary'; }catch(e){ return 'summary'; } }
 function ovFilter(){ try{ return localStorage.getItem('plub_ov_filter')||'all'; }catch(e){ return 'all'; } }
 function setOvFilter(v){ try{ localStorage.setItem('plub_ov_filter', v); }catch(e){} renderPipe(); }
 function ovApplyFilter(cards){
@@ -1350,12 +2122,14 @@ function clubSignIn(ev){ ev.preventDefault();
   return false;
 }
 function clubBoot(){
-  var last='ub'; try{ last=localStorage.getItem(TAB_KEY)||'ub'; }catch(e){}
-  show(last);
+  // where you land: Jack on the Overview, Becki on her For you list (agreed 23 Oct)
+  var u=CLUB.user();
+  if(u) showOv(u.role==='owner'?'summary':'foryou');
+  else { var last='ub'; try{ last=localStorage.getItem(TAB_KEY)||'ub'; }catch(e){} show(last); }
   ensureLoaded('ub'); ensureLoaded('pl');   // warm the other frame now, not after a delay
 }
-if(CLUB.user()) clubBoot(); else clubGate();
-CLUB.on(function(){ if(!CLUB.user() && document.getElementById('clubGate') && document.getElementById('clubGate').style.display==='none') clubGate(); });
+plubOnlineBoot();
+/* online: who you are comes from your login, so there is no pick-your-name screen */
 setTimeout(function(){ paintPipeN(); }, 1500);
 </script>
 <script id="plub-data">
@@ -1440,7 +2214,7 @@ function pdRailHtml(){
   var r=pdLast(), old=!r||(Date.now()-new Date(r.at).getTime())>7*864e5;
   return '<button class="sn-data'+(old?' due':'')+'" onclick="golRail()" title="One click: save everything from both apps to your Downloads">'
     +'<span class="sn-data-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l4-4 4 4M10 4v9"/><path d="M3.5 13v2.5h13V13"/></svg></span>'
-    +'<span class="sn-data-t"><b>Export everything</b><i>'+(r?'Last: '+esc(pdWhen(r.at)):'Not done on this laptop yet')+'</i></span></button>';
+    +'<span class="sn-data-t"><b>Export everything</b><i>'+(r?esc(pdWhen(r.at)):'not yet')+'</i></span></button>';
 }
 
 /* ── the popup ── */
@@ -1542,14 +2316,14 @@ function pdCompare(file,fname){
     }).join(''):'<tr><td colspan="3" class="pd-nil">Nothing on either side</td></tr>');
   }).join('');
   var warn='', other=!!(u&&file.exported_by_id&&file.exported_by_id!==u.id);
-  if(other) warn+='<div class="pd-warn">This file is <b>'+esc(file.exported_by)+'’s</b>. Importing it <b>replaces</b> everything <b>'+esc(u.display_name)+'</b> has on this laptop — it does not add to it. To combine two people’s work, wait for the online version.</div>';
+  if(other) warn+='<div class="pd-warn">This file is <b>'+esc(file.exported_by)+'’s</b>. Online, importing <b>adds</b> it to the cloud — nothing of yours is removed.</div>';
   if(lose) warn+='<div class="pd-warn">This laptop has more in '+lose+' place'+(lose>1?'s':'')+' than the file (marked below). Those would be replaced — the safety copy keeps them.</div>';
   pdSet(pdHead('Import everything?','<b>'+esc(fname)+'</b><br>Exported '+esc(pdWhen(file.exported_at))+' by '+esc(file.exported_by)+' · PLUB v'+esc(file.build)+' · checked, undamaged')
     +warn
     +'<table class="pd-tbl"><thead><tr><th></th><th>In the file</th><th>On this laptop now</th></tr></thead><tbody>'+rows+'</tbody></table>'
-    +'<ol class="pd-steps"><li>A safety copy of this laptop downloads first</li><li>Everything is replaced with the file, exactly as it was</li><li>The page reloads and every count is checked against the file</li></ol>'
+    +'<ol class="pd-steps"><li>The file is combined with what’s in the cloud — nothing online is deleted</li><li>Anything missing or older online comes back from the file</li><li>You both see the result straight away</li></ol>'
     +'<p class="pd-tip">Close PLUB in any other tab first, or that tab can save its old copy back over this.</p>'
-    +'<div class="pd-foot"><button class="pd-btn" onclick="pdOpen()">Cancel</button><button class="pd-btn pd-pri'+(other?' pd-danger':'')+'" onclick="pdReplace()">'+(other?'Replace '+esc(u.display_name)+'’s data with '+esc(file.exported_by)+'’s':'Replace everything with this file')+'</button></div>');
+    +'<div class="pd-foot"><button class="pd-btn" onclick="pdOpen()">Cancel</button><button class="pd-btn pd-pri'+(other?' pd-danger':'')+'" onclick="pdReplace()">'+(other?'Add '+esc(file.exported_by)+'’s file to the cloud':'Add this file to the cloud')+'</button></div>');
 }
 function pdPark(){
   // empty both app frames first: each saves on its way out, and that save must land BEFORE the file is written, never after
@@ -1578,6 +2352,7 @@ function pdWrite(keys,before){
 }
 function pdReplace(){
   var file=_pdPending; if(!file) return;
+  if(window.PLUB_ONLINE) return plubOnlineImport(file);
   pdBusy('Saving a safety copy of this laptop first…');
   pdFlush();
   setTimeout(function(){
@@ -1678,7 +2453,8 @@ function golRender(){
     +'<button class="gol-later" onclick="golClose();pdOpen()">Need to put a file back? Import…</button></div>'
     +'</div>';
 }
-function golMaybe(){
+function golMaybe(){ return;   // online: the export to-do page has done its job
+
   var later=null; try{ later=sessionStorage.getItem('plub_golive_later'); }catch(e){}
   if(CLUB.user() && !golState().done && !later) golOpen();
 }
@@ -2429,6 +3205,386 @@ body.rail-min #plubBar{left:64px}
 .app-chip{white-space:nowrap}
 .p-board{padding-bottom:6px}
 </style>
+<script id="plub-foryou-audit">
+/* ═══════ FOR YOU + WEEKLY AUDIT — two shell pages that read both apps' stores; they change nothing except ticking a task done ═══════
+   For you: what's on this person's plate today — their tasks from both apps (overdue first), what's waiting on Jack,
+   what needs a push, and what the other person did lately. Becki lands here.
+   Weekly audit: who used PLUB, how and why, per person per week — from the activity log and session timer (both apps
+   log into the shared core) and, once online, the cloud's change history. Jack sees both people; Becki sees her own week. */
+var FY_DAY=864e5;
+function fyToday(){ var d=new Date(); d.setHours(0,0,0,0); return d.getTime(); }
+function fyDue(due){
+  if(!due) return {k:'none',t:'',r:5};
+  var d=new Date(String(due).length<=10?due+'T00:00:00':due); if(isNaN(d)) return {k:'none',t:'',r:5};
+  d.setHours(0,0,0,0); var diff=Math.round((d.getTime()-fyToday())/FY_DAY);
+  if(diff<0) return {k:'over',t:(-diff)+' day'+(diff===-1?'':'s')+' overdue',r:0};
+  if(diff===0) return {k:'today',t:'due today',r:1};
+  if(diff===1) return {k:'soon',t:'due tomorrow',r:2};
+  if(diff<7) return {k:'soon',t:'due '+d.toLocaleDateString('en-GB',{weekday:'short'}),r:3};
+  return {k:'later',t:'due '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}),r:4};
+}
+function fyStores(){ var ub=null, pl=null; try{ ub=JSON.parse(localStorage.getItem('ub_tracker_v1')||'null'); }catch(e){} try{ pl=JSON.parse(localStorage.getItem('pl_sourcing_v1')||'null'); }catch(e){} return {ub:ub,pl:pl}; }
+function fyTasks(u){
+  var out=[], st=fyStores();
+  CLUB.tasksFor(u.id).forEach(function(t){
+    out.push({src:'club', id:t.id, title:t.title, due:t.due, pri:t.priority, app:t.related_app, ref:t.related_ref, rel:t.related_name, url:t.url,
+      from:(t.created_by&&t.created_by!==u.id)?CLUB.nameOf(t.created_by):null, status:t.status});
+  });
+  ((st.ub&&st.ub.tasks)||[]).forEach(function(t){
+    if(t.to!==u.display_name || t.status==='done') return;
+    out.push({src:'ub', id:t.id, title:t.title, due:t.due, pri:t.pri, app:'ub', rel:t.rel, url:t.url, from:(t.from&&t.from!==u.display_name)?t.from:null, status:t.status});
+  });
+  out.forEach(function(t){ t.d=fyDue(t.due); });
+  var P={urgent:0,high:1,medium:2,normal:2,low:3};
+  out.sort(function(a,b){ return (a.d.r-b.d.r) || ((P[a.pri]==null?2:P[a.pri])-(P[b.pri]==null?2:P[b.pri])) || String(a.due||'9').localeCompare(String(b.due||'9')); });
+  return out;
+}
+function fyWaitingJack(){
+  var st=fyStores(), out=[];
+  ((st.ub&&st.ub.pipeline)||[]).forEach(function(p){
+    if(p.stage!=='jack_validation') return;
+    var d=p.entered?Math.max(0,Math.floor((Date.now()-new Date(p.entered).getTime())/FY_DAY)):null;
+    out.push({app:'ub', id:p.id, title:p.title, days:d, late:d!=null&&d>=3});
+  });
+  return out.sort(function(a,b){ return (b.days||0)-(a.days||0); });
+}
+function fyBadge(){
+  var u=CLUB.user(); if(!u) return 0;
+  var n=fyTasks(u).filter(function(t){ return t.d.k==='over'||t.d.k==='today'; }).length;
+  if(u.role==='owner') n+=fyWaitingJack().length;
+  return n;
+}
+var FY_KIND={idea_added:'added the idea',idea_updated:'updated',stage:'moved',entered_pipeline:'put into the pipeline',launched:'launched',dropped:'dropped',
+  supplier_added:'added supplier',supplier_contacted:'contacted supplier',sample_added:'added a sample for',sample_ordered:'ordered a sample of',sample_received:'received a sample of',
+  task_done:'finished the task',task_assigned:'gave a task',task_status:'updated the task',task_note:'added a note to',product_opened:'opened',note:'added a note to',
+  session_start:'started a session',session_end:'ended a session',session_logged:'logged a session',signed_in:'signed in',signed_out:'signed out',
+  storefront_checked:'checked the storefront',flagged:'flagged',task:''};
+// Unique Bundles mirrors its own task events too — a completed task would otherwise show twice
+function fyShow(a){ return !FY_QUIET[a.kind] && !(a.kind==='task' && /^Task completed/i.test(a.entity_name||'')); }
+var FY_QUIET={product_opened:1,signed_in:1,signed_out:1,session_start:1};
+function fyActLine(a,showWho){
+  var verb=FY_KIND[a.kind]!=null?FY_KIND[a.kind]:String(a.kind||'').replace(/_/g,' ');
+  var what=a.entity_name?' <b>'+esc(a.entity_name)+'</b>':'';
+  var move=(a.from_val||a.to_val)?' <i>'+esc(a.from_val||'')+(a.from_val&&a.to_val?' → ':'')+esc(a.to_val||'')+'</i>':'';
+  if(a.kind==='task_assigned'){ if(a.to_val&&a.to_val!==a.actor_name) move=' <i>to '+esc(a.to_val)+'</i>'; else { verb='added the task'; move=''; } }
+  var app=a.app==='ub'?'<span class="fy-app ub">UB</span>':a.app==='pl'?'<span class="fy-app pl">PL</span>':'';
+  var t=new Date(a.at), hm=('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2);
+  return '<div class="fy-act"><span class="fy-t">'+hm+'</span>'+(showWho?'<b class="fy-who">'+esc(a.actor_name||'?')+'</b> ':'')+verb+what+move+' '+app+(a.mins?' <span class="fy-mins">'+fmtH(a.mins/60)+'</span>':'')+'</div>';
+}
+function fyDone(src,id){
+  if(src==='club'){ CLUB.taskStatus(id,'done'); }
+  else { frameRun('ub','taskStatus('+JSON.stringify(id)+',"done"); saveState(); flushSave();'); }
+  setTimeout(function(){ renderPipe(); chromeSync(true); },250);
+}
+function fyOpenTask(src,id,app,ref){
+  if(src==='ub'){ show('ub'); railGo('ub','tasks'); return; }
+  if(app&&ref){ ovOpen(app,ref); return; }
+  show(app==='pl'?'pl':'ub');
+}
+
+function renderForYou(){
+  var u=CLUB.user(); if(!u){ document.getElementById('pipe').innerHTML=''; return; }
+  var jack=u.role==='owner', other=CLUB.users().filter(function(x){ return x.id!==u.id; })[0];
+  var tasks=fyTasks(u), waiting=fyWaitingJack(), cards=readStores().cards.filter(function(c){ return c.over; });
+  var over=tasks.filter(function(t){ return t.d.k==='over'; }).length, today=tasks.filter(function(t){ return t.d.k==='today'; }).length;
+  var hr=new Date().getHours(), hello=hr<12?'Morning':hr<18?'Afternoon':'Evening';
+  var chips='<div class="fy-chips">'
+    +(over?'<span class="fy-chip bad"><b>'+over+'</b> overdue</span>':'')
+    +'<span class="fy-chip'+(today?' warn':'')+'"><b>'+today+'</b> due today</span>'
+    +'<span class="fy-chip"><b>'+tasks.length+'</b> open tasks</span>'
+    +(waiting.length?'<span class="fy-chip '+(jack?'warn':'')+'"><b>'+waiting.length+'</b> waiting for '+(jack?'you':'Jack')+'</span>':'')
+    +(cards.length?'<span class="fy-chip"><b>'+cards.length+'</b> need a push</span>':'')+'</div>';
+  // tasks
+  var tl=tasks.length? tasks.map(function(t){
+      return '<div class="fy-task '+t.d.k+'">'
+        +'<button class="fy-tick" title="Mark done" onclick="fyDone(\''+t.src+'\','+esc(JSON.stringify(t.id))+')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg></button>'
+        +'<div class="fy-tb"><div class="fy-tt">'+esc(t.title||'Untitled task')+'</div>'
+        +'<div class="fy-tm">'+(t.d.t?'<span class="fy-due '+t.d.k+'">'+t.d.t+'</span>':'<span class="fy-due none">no date</span>')
+          +(t.app?'<span class="fy-app '+t.app+'">'+(t.app==='ub'?'UB':t.app==='pl'?'PL':'')+'</span>':'')
+          +(t.rel?'<span>'+esc(t.rel)+'</span>':'')+(t.from?'<span>from '+esc(t.from)+'</span>':'')
+          +(t.status==='in_process'||t.status==='in_progress'?'<span class="fy-ip">in progress</span>':'')+'</div></div>'
+        +(t.url?'<a class="fy-go" href="'+esc(t.url)+'" target="_blank" rel="noopener">Link ↗</a>':'')
+        +'<button class="fy-go" onclick="fyOpenTask(\''+t.src+'\','+esc(JSON.stringify(t.id))+',\''+(t.app||'')+'\','+esc(JSON.stringify(t.ref||null))+')">Open</button></div>';
+    }).join('') : '<div class="fy-empty">Nothing on your list. 🎉</div>';
+  // waiting on Jack
+  var wl=waiting.map(function(w){ return '<button class="fy-row'+(w.late?' late':'')+'" onclick="ovOpen(\'ub\','+esc(JSON.stringify(w.id))+')"><span class="fy-app ub">UB</span><b>'+esc(w.title)+'</b><em>'+(w.days==null?'':w.days===0?'today':w.days+' day'+(w.days===1?'':'s'))+(w.late?' — over 3 days':'')+'</em></button>'; }).join('');
+  // needs a push
+  var pl=cards.sort(function(a,b){ return (b.days||0)-(a.days||0); }).slice(0,12).map(function(c){ return '<button class="fy-row" onclick="ovOpen(\''+c.app+'\','+esc(JSON.stringify(c.id))+')"><span class="fy-app '+c.app+'">'+c.app.toUpperCase()+'</span><b>'+esc(c.title)+'</b><em>'+esc(c.stage)+' · '+c.days+' days</em></button>'; }).join('');
+  // the other person lately
+  var acts=other?CLUB.activityBetween(Date.now()-7*FY_DAY,Date.now()+60000,other.id).filter(fyShow).slice(-12).reverse():[];
+  var al=acts.map(function(a){ return fyActLine(a,false); }).join('');
+  document.getElementById('pipe').innerHTML='<div class="ov-main"><div class="pane ov-pane fy-pane">'
+    +'<div class="page-hd"><div><div class="eyebrow">'+new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+'</div>'
+    +'<div class="page-title">'+hello+', '+esc(u.display_name)+'</div><div class="page-sub">Everything that needs you, in one place — both apps.</div></div>'
+    +'<button class="fy-add" onclick="sfOpen()">＋ Storefront link</button></div>'
+    +chips
+    +'<div class="fy-grid"><div class="fy-col">'
+      +'<div class="ov-card fy-card"><div class="fy-h">Your tasks<span>'+tasks.length+'</span></div>'+tl+'</div>'
+    +'</div><div class="fy-col">'
+      +(waiting.length?'<div class="ov-card fy-card"><div class="fy-h">'+(jack?'Waiting for you to validate':'Waiting for Jack to validate')+'<span>'+waiting.length+'</span></div>'+wl+'</div>':'')
+      +'<div class="ov-card fy-card"><div class="fy-h">Needs a push<span>'+cards.length+'</span></div>'+(pl||'<div class="fy-empty">Nothing is past its stage target.</div>')+'</div>'
+      +(other?'<div class="ov-card fy-card"><div class="fy-h">'+esc(other.display_name)+' lately<span>7 days</span></div>'+(al||'<div class="fy-empty">'+(window.PLUB_ONLINE?'Nothing yet this week.':'Shows up once PLUB is online — '+esc(other.display_name)+'’s work is on '+(other.role==='owner'?'his':'her')+' laptop for now.')+'</div>')+'</div>':'')
+    +'</div></div></div></div>';
+}
+
+/* ── Sarah's weekly storefront link → a "check this storefront" task: UB for Becki, PL for Jack, due that Friday ── */
+var _sfApp='ub';
+function sfFriday(){ var d=new Date(); d.setHours(0,0,0,0); var add=(5-d.getDay()+7)%7; if(add<2) add+=7;   // pasted Thu–Sun → next week's Friday, never due today
+  d.setDate(d.getDate()+add); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+function sfPersonFor(app){ var us=CLUB.users(); var p=us.filter(function(u){ return app==='pl'?u.role==='owner':u.role!=='owner'; })[0]; return p||us[0]; }
+// a list file (like "UB and PL Keepa links - last 5 weeks.md"): "## UB" / "## PL" sections, a "### …" heading per week,
+// the link on the line under it. Each week becomes one task, for the person who owns that side.
+function sfParseMd(text){
+  var out=[], app=null, head=null;
+  String(text||'').split(/\n/).forEach(function(line){
+    var t=line.trim(), h2=t.match(/^##\s+(UB|PL)\b/i), h3=t.match(/^###\s+(.+)$/), m=t.match(/https?:\/\/\S+/i);
+    if(h2){ app=h2[1].toLowerCase(); head=null; return; }
+    if(h3){ head=h3[1].trim(); var a=head.match(/^(UB|PL)\b/i); if(a) app=a[1].toLowerCase(); return; }
+    if(m && app){ var name=(head||'Storefront paste').replace(/^(UB|PL)\s*[—–-]\s*/i,''); out.push({url:m[0].replace(/[),.;]+$/,''),name:name,app:app}); head=null; }
+  });
+  return out;
+}
+function sfIsMd(text){ return /^##\s+(UB|PL)\b/im.test(String(text||'')) || /^###\s+(UB|PL)\b/im.test(String(text||'')); }
+function sfItems(){
+  var text=(document.getElementById('sfLinks')||{}).value||'';
+  var list=sfIsMd(text)?sfParseMd(text):sfParse(text).map(function(x){ return {url:x.url,name:x.name,app:_sfApp}; });
+  var have={}; CLUB.all('tasks').forEach(function(t){ if(t.url) have[t.url]=1; });
+  list.forEach(function(x){ x.dupe=!!have[x.url]; });
+  return list;
+}
+function sfFile(inp){ var f=inp.files&&inp.files[0]; if(!f) return; f.text().then(function(t){ var ta=document.getElementById('sfLinks'); ta.value=t; sfPreview(); }); }
+function sfParse(text){
+  return String(text||'').split(/\n+/).map(function(line){
+    var m=line.match(/https?:\/\/\S+/i); if(!m) return null;
+    var url=m[0].replace(/[),.;]+$/,''), name=line.replace(m[0],'').replace(/^[\s\-–—:|·•]+|[\s\-–—:|·•]+$/g,'').trim();
+    if(!name){ var seller=(url.match(/[?&](?:me|seller)=([A-Z0-9]+)/i)||[])[1]; try{ var h=new URL(url).hostname.replace(/^www\./,''); name=seller?'Amazon seller '+seller:h; }catch(e){ name='Storefront'; } }
+    return {url:url,name:name};
+  }).filter(Boolean);
+}
+function sfOpen(){
+  _sfApp='ub';
+  pdSet(pdHead('Add a storefront link','Paste Sarah’s link — or several, one per line. You can put a name before each link. They become “check this storefront” tasks, due <b>Friday</b>.')
+    +'<div class="sf-up"><input type="file" id="sfFileIn" accept=".md,.txt,text/plain,text/markdown" style="display:none" onchange="sfFile(this)"><button class="pd-btn" onclick="document.getElementById(\'sfFileIn\').click()">⬆ Upload a list file (.md)</button><span>UB and PL sections go to the right person automatically</span></div>'
+    +'<textarea id="sfLinks" class="sf-ta" placeholder="https://www.amazon.co.uk/s?me=A1B2C3D4…&#10;Gift Box Co — https://www.amazon.co.uk/s?me=…" oninput="sfPreview()"></textarea>'
+    +'<div class="sf-pick"><button class="sf-b on" data-a="ub" onclick="sfPick(\'ub\')"><span class="fy-app ub">UB</span> Unique Bundles <i>→ '+esc(sfPersonFor('ub').display_name)+'</i></button>'
+    +'<button class="sf-b" data-a="pl" onclick="sfPick(\'pl\')"><span class="fy-app pl">PL</span> Private Label <i>→ '+esc(sfPersonFor('pl').display_name)+'</i></button></div>'
+    +'<div id="sfPrev" class="sf-prev"></div>'
+    +'<div class="pd-foot"><button class="pd-btn" onclick="pdClose()">Cancel</button><button class="pd-btn pd-pri" id="sfGo" onclick="sfSave()" disabled>Add</button></div>');
+  setTimeout(function(){ var t=document.getElementById('sfLinks'); if(t) t.focus(); },30);
+}
+function sfPick(a){ _sfApp=a; Array.prototype.forEach.call(document.querySelectorAll('.sf-b'),function(b){ b.classList.toggle('on',b.getAttribute('data-a')===a); }); sfPreview(); }
+function sfPreview(){
+  var all=sfItems(), list=all.filter(function(x){ return !x.dupe; }), el=document.getElementById('sfPrev'), go=document.getElementById('sfGo');
+  var md=sfIsMd((document.getElementById('sfLinks')||{}).value), pick=document.querySelector('.sf-pick'); if(pick) pick.style.display=md?'none':'';
+  var by={}; list.forEach(function(x){ var n=sfPersonFor(x.app).display_name; by[n]=(by[n]||0)+1; });
+  if(go){ go.disabled=!list.length; go.textContent=list.length?'Add '+Object.keys(by).map(function(n){ return by[n]+' for '+n; }).join(' + '):'Add'; }
+  if(el) el.innerHTML=all.length?all.map(function(x){ return '<div'+(x.dupe?' class="dupe"':'')+'><b><span class="fy-app '+x.app+'">'+x.app.toUpperCase()+'</span> Check storefront: '+esc(x.name)+' <i>→ '+esc(sfPersonFor(x.app).display_name)+(x.dupe?' · already added':'')+'</i></b><span>'+esc(x.url.length>90?x.url.slice(0,90)+'…':x.url)+'</span></div>'; }).join(''):'';
+}
+function sfSave(){
+  var list=sfItems().filter(function(x){ return !x.dupe; }), due=sfFriday(), by={};
+  list.forEach(function(x){ var who=sfPersonFor(x.app); by[who.display_name]=(by[who.display_name]||0)+1;
+    CLUB.taskAdd({title:'Check storefront: '+x.name, url:x.url, type:'storefront', due:due, priority:'normal', assigned_to:who.id, related_app:x.app}); });
+  pdSet(pdHead('Added ✓')+'<div class="pd-ok"><b>'+Object.keys(by).map(function(n){ return by[n]+' storefront task'+(by[n]>1?'s':'')+' for '+esc(n); }).join(' · ')+'</b><span>Due Friday · on their For you list</span></div><div class="pd-foot"><button class="pd-btn pd-pri" onclick="pdClose()">Done</button></div>');
+  try{ renderPipe(); }catch(e){} chromeSync(true);
+}
+
+/* ── weekly audit ── */
+var _auWeek=0;   // 0 = this week, 1 = last week …
+function auMonday(offset){ var d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7)-7*(offset||0)); return d.getTime(); }
+function auStep(n){ _auWeek=Math.max(0,_auWeek+n); renderPipe(); }
+var AU_AREAS=[['ub','ideas','UB · Ideas & ranking'],['ub','pipeline','UB · Pipeline'],['ub','inbox','UB · Review queue'],['ub','tasks','UB · Tasks'],['ub','vendors','UB · Suppliers'],
+  ['ub','storefronts','UB · Storefronts'],['ub','seasons','UB · Seasonality'],['pl','ideas','PL · Ideas & pipeline'],['pl','data.vendors','PL · Suppliers'],['pl','data.weekTasks','PL · Week plan'],
+  ['club','tasks','Shared tasks'],['club','sessions','Session timer']];
+var _auHist={};
+function auHistory(ws,cb){
+  var be=window.plubBackend&&plubBackend(); if(!be||!be.history){ cb(null); return; }
+  var key=String(ws); if(_auHist[key]){ cb(_auHist[key]); return; }
+  be.history(new Date(ws).toISOString()).then(function(rows){ _auHist[key]=rows||[]; cb(_auHist[key]); }).catch(function(){ cb(null); });
+}
+function renderAudit(){
+  var u=CLUB.user(); if(!u){ document.getElementById('pipe').innerHTML=''; return; }
+  var jack=u.role==='owner', ws=auMonday(_auWeek), we=ws+7*FY_DAY, now=Date.now();
+  var sum=CLUB.summarise(ws,we), people=CLUB.users().filter(function(x){ return jack||x.id===u.id; });
+  var days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var label=_auWeek===0?'This week':_auWeek===1?'Last week':'Week of '+new Date(ws).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  var cardsH=people.map(function(p){
+    var s=sum[p.id]||{acts:[],mins:0,byType:{}};
+    var sess=CLUB.sessionsFor(p.id,ws,we);
+    var perDay=days.map(function(_,i){ var a=ws+i*FY_DAY, b=a+FY_DAY;
+      var ts=s.acts.map(function(x){ return new Date(x.at).getTime(); }).concat(sess.map(function(x){ return new Date(x.started_at).getTime(); })).filter(function(t){ return t>=a&&t<b; }).sort();
+      return {n:ts.length,first:ts[0],last:ts[ts.length-1],future:a>now};
+    });
+    var active=perDay.filter(function(d){ return d.n; }).length;
+    var hm=function(t){ var d=new Date(t); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); };
+    var dayH='<div class="au-days">'+perDay.map(function(d,i){ return '<div class="au-day'+(d.n?' on':'')+(d.future?' fut':'')+(i>4?' we':'')+'" title="'+(d.n?hm(d.first)+'–'+hm(d.last)+' · '+d.n+' things':'nothing')+'"><b>'+days[i]+'</b><i>'+(d.n?hm(d.first)+'<br>'+hm(d.last):'—')+'</i></div>'; }).join('')+'</div>';
+    var tot=s.mins||0, types=Object.keys(s.byType||{}).sort(function(a,b){ return s.byType[b]-s.byType[a]; });
+    var typeH=types.length?types.map(function(k){ var m=s.byType[k], pc=tot?Math.round(m/tot*100):0;
+      return '<div class="au-type"><span>'+esc(CLUB.wtLabel(k)||k||'Unlabelled')+(CLUB.wtCounts(k)?'':' <em>not KPI</em>')+'</span><div class="au-bar"><s style="width:'+pc+'%"></s></div><b>'+fmtH(m/60)+'</b></div>'; }).join('')
+      :'<div class="fy-empty">No sessions timed.</div>';
+    var notes=sess.filter(function(x){ return x.note||x.notes; }).slice(-4).map(function(x){ return '<div class="au-note">“'+esc(x.note||x.notes)+'” <span>'+esc(CLUB.wtLabel(x.work_type)||'')+'</span></div>'; }).join('');
+    var nums=[['Ideas added',s.ideas_added],['Into pipeline',s.entered],['Moved forward',s.moved],['Tasks done',s.tasks_done],['Suppliers',s.suppliers],['Samples',s.samples],['Launched',s.launched],['Dropped',s.dropped]];
+    return '<div class="ov-card au-card"><div class="au-ph"><span class="au-av" style="--av:'+(p.role==='owner'?'#A78BFF':'#00E5A0')+'">'+esc(p.display_name[0])+'</span><b>'+esc(p.display_name)+'</b>'
+      +'<em>'+active+' day'+(active===1?'':'s')+' active · '+fmtH(tot/60)+' timed</em></div>'
+      +dayH
+      +'<div class="au-nums">'+nums.map(function(n){ return '<div class="'+(n[1]?'':'z')+'"><b>'+(n[1]||0)+'</b><span>'+n[0]+'</span></div>'; }).join('')+'</div>'
+      +'<div class="fy-h sm">Where the time went</div>'+typeH
+      +(notes?'<div class="fy-h sm">What they said they did</div>'+notes:'')
+      +'</div>';
+  }).join('');
+  var acts=[]; people.forEach(function(p){ ((sum[p.id]||{}).acts||[]).forEach(function(a){ if(fyShow(a)) acts.push(a); }); });
+  acts.sort(function(a,b){ return new Date(b.at)-new Date(a.at); });
+  var byDay={}; acts.forEach(function(a){ var k=new Date(a.at).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'}); (byDay[k]=byDay[k]||[]).push(a); });
+  var tl=Object.keys(byDay).map(function(k){ return '<div class="au-dh">'+k+'<span>'+byDay[k].length+'</span></div>'+byDay[k].map(function(a){ return fyActLine(a,jack); }).join(''); }).join('')||'<div class="fy-empty">Nothing recorded this week.</div>';
+  document.getElementById('pipe').innerHTML='<div class="ov-main"><div class="pane ov-pane au-pane">'
+    +'<div class="page-hd"><div><div class="eyebrow">'+(jack?'Who used PLUB, how, and why':'Your week')+'</div><div class="page-title">'+(jack?'Weekly audit':'My week')+'</div>'
+    +'<div class="page-sub">'+new Date(ws).toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' – '+new Date(we-FY_DAY).toLocaleDateString('en-GB',{day:'numeric',month:'short'})+(window.PLUB_ONLINE?'':' · this laptop only until PLUB is online')+'</div></div>'
+    +'<div class="au-nav"><button onclick="auStep(1)">‹</button><span>'+label+'</span><button onclick="auStep(-1)"'+(_auWeek===0?' disabled':'')+'>›</button></div></div>'
+    +'<div class="au-grid">'+cardsH+'</div>'
+    +'<div class="au-two"><div class="ov-card au-card"><div class="fy-h">Parts of PLUB used this week</div><div id="auAreas"><div class="fy-empty">'+(window.PLUB_ONLINE?'Loading…':'Shows once PLUB is online — it reads the cloud’s change history.')+'</div></div></div>'
+    +'<div class="ov-card au-card"><div class="fy-h">Not touched in 4 weeks</div><div id="auUnused"><div class="fy-empty">'+(window.PLUB_ONLINE?'Loading…':'Shows once PLUB is online.')+'</div></div></div></div>'
+    +'<div class="ov-card au-card"><div class="fy-h">Timeline</div>'+tl+'</div>'
+    +'</div></div>';
+  if(window.PLUB_ONLINE){
+    var mem=(window.plubMembers&&plubMembers())||{}, nm=function(uid){ return (mem[uid]&&mem[uid].name)||'?'; };
+    auHistory(ws,function(rows){
+      var el=document.getElementById('auAreas'); if(!el) return;
+      if(!rows){ el.innerHTML='<div class="fy-empty">Couldn’t read the history just now.</div>'; return; }
+      rows=rows.filter(function(r){ var t=new Date(r.at).getTime(); return t<we && (jack || nm(r.by).toLowerCase()===u.id); });
+      var counts={}; rows.forEach(function(r){ if(r.coll==='_order'||r.coll==='_doc') return; var k=r.app+'|'+r.coll, w=nm(r.by); counts[k]=counts[k]||{}; counts[k][w]=(counts[k][w]||0)+1; });
+      var list=AU_AREAS.filter(function(a){ return counts[a[0]+'|'+a[1]]; }).map(function(a){ var c=counts[a[0]+'|'+a[1]]; var tot=Object.keys(c).reduce(function(x,k){ return x+c[k]; },0);
+        return '<div class="au-area"><span>'+a[2]+'</span><b>'+tot+'</b><em>'+Object.keys(c).map(function(k){ return esc(k)+' '+c[k]; }).join(' · ')+'</em></div>'; }).join('');
+      el.innerHTML=list||'<div class="fy-empty">No changes saved this week.</div>';
+    });
+    auHistory(now-28*FY_DAY,function(rows){
+      var el=document.getElementById('auUnused'); if(!el) return;
+      if(!rows){ el.innerHTML='<div class="fy-empty">Couldn’t read the history just now.</div>'; return; }
+      var seen={}; rows.forEach(function(r){ seen[r.app+'|'+r.coll]=1; });
+      var unused=AU_AREAS.filter(function(a){ return !seen[a[0]+'|'+a[1]]; });
+      el.innerHTML=unused.length?unused.map(function(a){ return '<div class="au-area dim"><span>'+a[2]+'</span><em>nothing saved in 28 days</em></div>'; }).join('')+'<p class="au-hint">Kept on purpose — just worth knowing what isn’t being used.</p>'
+        :'<div class="fy-empty">Every part of PLUB was used in the last 4 weeks.</div>';
+    });
+  }
+}
+</script>
+<style id="plub-foryou-audit-style">
+.fy-pane .page-hd{display:flex;align-items:flex-end;gap:12px}
+.fy-add{margin-left:auto;height:34px;padding:0 14px;border-radius:9px;border:1px solid rgba(0,229,160,.45);background:rgba(0,229,160,.08);color:#B8F5DE;font:700 12.5px 'Inter',sans-serif;cursor:pointer}
+.fy-add:hover{border-color:#00E5A0;color:#fff}
+.sf-ta{width:100%;min-height:96px;margin-top:12px;padding:10px 12px;border-radius:10px;border:1px solid #3A3A44;background:#0E0E12;color:#F5F5F8;font:13px/1.5 ui-monospace,Menlo,monospace;resize:vertical}
+.sf-ta:focus{outline:none;border-color:#00E5A0}
+.sf-pick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.sf-b{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;border:1px solid #33333C;background:#18181E;color:#E4E4EA;font:700 13px 'Inter',sans-serif;cursor:pointer;text-align:left}
+.sf-b i{font-style:normal;font-weight:600;color:#AEB0BB;margin-left:auto}
+.sf-b.on{border-color:#00E5A0;background:rgba(0,229,160,.08);color:#fff}
+.sf-up{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:12px;color:#AEB0BB}
+.sf-prev div.dupe{opacity:.5}
+.sf-prev b i{font-style:normal;font-weight:600;color:#AEB0BB}
+.sf-prev{max-height:300px;overflow:auto;margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.sf-prev div{padding:8px 10px;border-radius:8px;background:#16161C;border:1px solid #26262E}
+.sf-prev b{display:block;font-size:12.5px;color:#fff} .sf-prev span{font-size:11px;color:#AEB0BB;word-break:break-all}
+.fy-chips{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 14px}
+.fy-chip{padding:6px 11px;border-radius:999px;background:var(--s2);border:1px solid var(--b2);font-size:12.5px;color:#C6C7D0}
+.fy-chip b{color:#fff;font-weight:800}
+.fy-chip.warn{border-color:rgba(255,197,61,.45);background:rgba(255,197,61,.08);color:#FFE7A8}
+.fy-chip.bad{border-color:rgba(255,84,112,.5);background:rgba(255,84,112,.1);color:#FFD5DC}
+.fy-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px;align-items:start}
+.fy-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.fy-card{padding:14px 16px!important}
+.fy-h{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:800;color:#F5F5F8;margin-bottom:10px}
+.fy-h span{margin-left:auto;font-size:11px;font-weight:700;color:#AEB0BB;background:var(--s3);border-radius:999px;padding:2px 8px}
+.fy-h.sm{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#AEB0BB;margin:14px 0 8px}
+.fy-task{display:flex;align-items:center;gap:11px;padding:10px 6px;border-top:1px solid var(--b1)}
+.fy-task:first-of-type{border-top:none}
+.fy-task.over{background:linear-gradient(90deg,rgba(255,84,112,.07),transparent 60%)}
+.fy-tick{width:26px;height:26px;border-radius:8px;flex:none;border:1.5px solid #4A4A55;background:transparent;color:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.12s}
+.fy-tick:hover{border-color:#00E5A0;color:#00E5A0;background:rgba(0,229,160,.08)}
+.fy-tick svg{width:15px;height:15px}
+.fy-tb{flex:1;min-width:0}
+.fy-tt{font-size:13.5px;font-weight:650;color:#F5F5F8;line-height:1.35}
+.fy-tm{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:4px;font-size:11.5px;color:#AEB0BB}
+.fy-due{font-weight:700}
+.fy-due.over{color:#FF8FA3} .fy-due.today{color:#FFDC85} .fy-due.soon{color:#E4E4EA} .fy-due.none{color:#9C9EAA;font-weight:500}
+.fy-ip{color:#7DBEFF;font-weight:700}
+.fy-app{display:inline-block;padding:1px 6px;border-radius:5px;font-size:10px;font-weight:800;letter-spacing:.04em}
+.fy-app.ub{background:rgba(0,229,160,.14);color:#5FF2C0} .fy-app.pl{background:rgba(167,139,255,.16);color:#C9B8FF}
+.fy-go{flex:none;height:28px;padding:0 10px;border-radius:8px;border:1px solid var(--b2);background:var(--s2);color:#E4E4EA;font:700 11.5px 'Inter',sans-serif;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.fy-go:hover{border-color:#6A6A76;color:#fff}
+.fy-row{display:flex;align-items:center;gap:9px;width:100%;padding:9px 8px;border:none;border-top:1px solid var(--b1);background:none;color:#E4E4EA;font:inherit;font-size:13px;text-align:left;cursor:pointer;border-radius:6px}
+.fy-row:first-of-type{border-top:none}
+.fy-row:hover{background:var(--s2)}
+.fy-row b{flex:1;min-width:0;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fy-row em{font-style:normal;font-size:11.5px;color:#AEB0BB;white-space:nowrap}
+.fy-row.late em{color:#FF8FA3;font-weight:700}
+.fy-act{padding:7px 2px;border-top:1px solid var(--b1);font-size:12.5px;color:#C6C7D0;line-height:1.45}
+.fy-act b{color:#F5F5F8;font-weight:650} .fy-act i{font-style:normal;color:#AEB0BB}
+.fy-t{display:inline-block;width:42px;color:#9C9EAA;font-variant-numeric:tabular-nums;font-size:11.5px}
+.fy-who{color:#fff!important}
+.fy-mins{color:#7DBEFF;font-weight:700}
+.fy-empty{padding:10px 2px;font-size:12.5px;color:#AEB0BB}
+.au-nav{display:flex;align-items:center;gap:8px;margin-left:auto}
+.au-nav span{font-size:13px;font-weight:700;color:#F5F5F8;min-width:96px;text-align:center}
+.au-nav button{width:30px;height:30px;border-radius:8px;border:1px solid var(--b2);background:var(--s2);color:#E4E4EA;font-size:16px;cursor:pointer}
+.au-nav button:disabled{opacity:.35;cursor:default}
+.au-pane .page-hd{display:flex;align-items:flex-end;gap:12px}
+.au-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px;margin-bottom:14px}
+.au-card{padding:14px 16px!important}
+.au-ph{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.au-ph b{font-size:15px;color:#fff} .au-ph em{margin-left:auto;font-style:normal;font-size:12px;color:#AEB0BB}
+.au-av{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#04130D;background:var(--av)}
+.au-days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.au-day{border-radius:8px;border:1px solid var(--b1);background:var(--s1);padding:6px 4px;text-align:center}
+.au-day b{display:block;font-size:10.5px;color:#AEB0BB;font-weight:800;letter-spacing:.04em}
+.au-day i{display:block;margin-top:3px;font-style:normal;font-size:10.5px;line-height:1.35;color:#6F717C;font-variant-numeric:tabular-nums}
+.au-day.on{border-color:rgba(0,229,160,.45);background:rgba(0,229,160,.07)} .au-day.on b{color:#5FF2C0} .au-day.on i{color:#E4E4EA}
+.au-day.we{opacity:.75} .au-day.fut{opacity:.4}
+.au-nums{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
+.au-nums div{border-radius:8px;background:var(--s2);padding:8px 9px}
+.au-nums b{display:block;font-size:18px;color:#fff;font-weight:800;font-variant-numeric:tabular-nums}
+.au-nums span{font-size:10.5px;color:#AEB0BB;font-weight:700}
+.au-nums .z b{color:#6F717C}
+.au-type{display:grid;grid-template-columns:150px 1fr 58px;align-items:center;gap:10px;padding:4px 0;font-size:12.5px;color:#C6C7D0}
+.au-type em{font-style:normal;font-size:10px;color:#9C9EAA}
+.au-type b{text-align:right;color:#fff;font-variant-numeric:tabular-nums}
+.au-bar{height:7px;border-radius:99px;background:var(--s3);overflow:hidden}
+.au-bar s{display:block;height:100%;background:#3B9EFF;border-radius:99px}
+.au-note{padding:6px 0;font-size:12.5px;color:#E4E4EA;border-top:1px solid var(--b1)}
+.au-note span{color:#9C9EAA;font-size:11px}
+.au-two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.au-area{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:7px 0;border-top:1px solid var(--b1);font-size:12.5px;color:#E4E4EA}
+.au-area b{color:#fff;text-align:right} .au-area em{grid-column:1/-1;font-style:normal;font-size:11px;color:#AEB0BB}
+.au-area.dim span{color:#AEB0BB}
+.au-hint{margin-top:8px;font-size:11.5px;color:#9C9EAA}
+.au-dh{display:flex;justify-content:space-between;margin:12px 0 2px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#AEB0BB}
+.au-dh span{font-weight:700}
+@media(max-width:900px){.fy-grid,.au-two{grid-template-columns:1fr}.au-nums{grid-template-columns:repeat(2,1fr)}.au-type{grid-template-columns:110px 1fr 50px}}
+</style>
+<style id="shell-step1">
+#pipe .eyebrow,#pipe .ov-t-n,#pipe .ov-ss,#pipe .fc-list-h span,#pipe .fc-list-h i,#pipe .pcs-bad,#pipe .p-col b,#pipe .p-col .c0,#plubRail .snm-h,#plubRail .snm-h span,#plubRail .sn-role,#plubRail .sn-role span{font-size:10.5px!important}
+
+/* no label under 10.5px on the main screens (24 Oct) */
+.ov-node span,.ov-node i,.app-chip,.ov-p,.fc-stuck,.fc-cell span,.fc-cell i,#plubRail .nav-badge,#plubRail .sn-app em,#plubRail .snm-row,#plubRail .snm-row span,#plubRail .snm-row i,.ov-pane th,.fy-app{font-size:10.5px!important}
+.ov-app{font-size:10px!important}
+.pav,.pav.sm{font-size:10px!important}
+
+/* step 1 design pass (24 Oct): a shorter sidebar, a quieter Overview banner */
+#plubRail .sn-data{padding:6px 9px!important;margin:4px 6px 2px!important;gap:8px!important}
+#plubRail .sn-data-ic{width:22px!important;height:22px!important;border-radius:7px!important}
+#plubRail .sn-data-ic svg{width:13px!important;height:13px!important}
+#plubRail .sn-data-t{flex-direction:row!important;align-items:baseline;gap:8px;flex:1}
+#plubRail .sn-data-t b{font-size:12px}
+#plubRail .sn-data-t i{margin-left:auto;font-size:10.5px}
+#plubRail .sn-month{margin:6px 4px 2px!important;padding:7px 10px!important}
+#plubRail .snm-foot{display:none}
+#plubRail .sn-nav .nav-item{padding:4px 7px!important;min-height:32px}
+#plubRail .sn-nav .sn-sec{padding:5px 8px 1px!important}
+#plubRail .sn-brand{padding-top:10px!important;padding-bottom:8px!important}
+#plubRail .sn-app{padding-top:6px!important;padding-bottom:6px!important}
+#plubRail .snm-row{margin-top:5px}
+.ov-hero.compact{padding:10px 16px!important;margin-bottom:12px!important}
+.ov-hero.compact .ov-head{font-size:17px!important;margin:2px 0 0!important}
+.ov-hero.compact .ov-sub{font-size:12.5px!important;margin-top:2px!important}
+.ov-detail-h{margin:22px 0 10px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#AEB0BB}
+</style>
 <style id="plub-readable">
 /* ═══ READABILITY PASS v1.00 — the same block in all three files, last in the page so it wins ═══
    Grey text was #787A87 at 9–11px: ~4.2:1 on near-black, hard work to read. Lifted to ~7:1, quiet tier
@@ -2444,6 +3600,29 @@ body.rail-min #plubBar{left:64px}
 .pl-task-grip{color:#8E909C!important}
 .f-fn-gap i{color:#8E909C!important}
 .kpi-rules-hd p{color:#B4B6C1!important}
+</style>
+<script>
+function plubOnlineImport(file){
+  pdBusy('Adding the file to the cloud…');
+  plubImportFile(file).then(function(n){
+    pdSet(pdHead('Added ✓')+'<div class="pd-ok"><b>'+n+' item'+(n===1?'':'s')+' added or brought back</b><span>Nothing online was deleted · you both see it now</span></div><div class="pd-foot"><button class="pd-btn pd-pri" onclick="pdClose()">Done</button></div>');
+  }).catch(function(e){ pdShowError('The import did not finish ('+esc(String(e&&e.message||e))+'). Nothing online was removed.'); });
+}
+</script>
+<style id="plub-online-style">
+#plubCloud{white-space:nowrap}
+.pc-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:0;background:#9C9EAA}
+.pc-dot.ok{background:#00E5A0;box-shadow:0 0 6px rgba(0,229,160,.6)} .pc-dot.busy{background:#3B9EFF} .pc-dot.warn{background:#FFC53D} .pc-dot.bad{background:#FF5470}
+#plubCloudToast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);opacity:0;pointer-events:none;z-index:10060;max-width:560px;padding:11px 16px;border-radius:12px;background:#17171D;border:1px solid #3A3A44;color:#F5F5F8;font:600 13px/1.45 'Inter',sans-serif;box-shadow:0 14px 40px rgba(0,0,0,.55);transition:opacity .2s,transform .2s}
+#plubCloudToast.show{opacity:1;transform:translate(-50%,0)}
+#clubGate .fl{margin-top:16px;text-align:left;max-width:560px}
+#clubGate .fl h3{font-size:16px;font-weight:800;color:#F5F5F8}
+#clubGate .fl p{margin:6px 0 12px;font-size:13px;line-height:1.5;color:#C6C7D0}
+#clubGate .fl-files{margin:12px 0 4px;font-size:12.5px;color:#C6C7D0;line-height:1.7}
+#clubGate .fl-files b{color:#fff}
+#clubGate .fl-go{margin-top:14px;display:flex;justify-content:flex-end}
+#clubGate .cg-box:has(.fl){width:min(640px,calc(100vw - 32px));max-height:calc(100vh - 40px);overflow:auto}
+.plub-testchip{margin-left:6px;padding:2px 7px;border-radius:999px;background:rgba(255,138,61,.16);border:1px solid rgba(255,138,61,.55);color:#FFB27F;font-size:10px;font-weight:800;letter-spacing:.04em}
 </style>
 </body>
 </html>

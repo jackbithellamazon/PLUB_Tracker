@@ -1,6 +1,30 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
+<script>
+/* PLUB ONLINE storage shim — runs before anything else on the page. The local version and the online one live on the
+   same web address, so they'd share browser storage. Every PLUB key is quietly stored under a plubc_ name instead,
+   so the online copy can never touch the local copy (kept 30 days as the fallback). The apps don't notice. */
+(function(){
+  var MAP={plub_v1:1,plub_who:1,plub_mode:1,plub_outbox_v1:1,ubpl_shell_tab:1,plub_rail_min:1,plub_ov_view:1,plub_ov_filter:1,
+    ub_tracker_v1:1,ub_tracker_lock:1,ub_sb_min:1,ub_last_report:1,ub_last_backup:1,pl_sourcing_v1:1,pls_theme:1,pls_draft:1,pl_sb_min:1,
+    plub_last_full_export:1,plub_golive_v1:1,plub_build_seen:1};
+  var DYN=/^(ub_tracker_v1__|pl_sourcing_v1_quarantine_)/;
+  function to(k){ k=String(k); return (MAP[k]||DYN.test(k))?'plubc_'+k:k; }
+  function from(k){ return (k&&k.indexOf('plubc_')===0&&(MAP[k.slice(6)]||DYN.test(k.slice(6))))?k.slice(6):k; }
+  var P=Storage.prototype, g=P.getItem, s=P.setItem, r=P.removeItem, kf=P.key;
+  P.getItem=function(k){ return g.call(this,to(k)); };
+  P.setItem=function(k,v){ return s.call(this,to(k),v); };
+  P.removeItem=function(k){ return r.call(this,to(k)); };
+  P.key=function(i){ return from(kf.call(this,i)); };
+  var add=window.addEventListener;
+  window.addEventListener=function(type,fn,opt){
+    if(type!=='storage'||typeof fn!=='function') return add.call(this,type,fn,opt);
+    return add.call(this,type,function(e){ fn({key:from(e.key),newValue:e.newValue,oldValue:e.oldValue,storageArea:e.storageArea,url:e.url}); },opt);
+  };
+  window.PLUB_ONLINE=true;
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PL Sourcing — Product Intelligence</title>
@@ -385,6 +409,7 @@ const db = (function(){
   return {
     from: function(t){ return builder(t); },
     rpc: function(){ return Promise.resolve({ data: null, error: { message: 'Not available in local mode — use Settings → Backup & migration instead.' } }); },
+    __reload: function(){ var raw=null; try{ raw=localStorage.getItem(PL_STORE_KEY); }catch(e){} if(raw){ try{ var n=JSON.parse(raw); if(n&&Array.isArray(n.ideas)) S=n; }catch(e){} } },
     _localMode: true
   };
 })();
@@ -3121,11 +3146,9 @@ function renderDash(){
           :'<span class="ic-tag warn" style="width:fit-content">No ASINs</span>'
         )
         // missing banner
+        // one quiet chip instead of a red box — the full list is on hover and in the idea itself
         +(isIncomplete
-          ?'<div style="padding:6px 10px;background:var(--rd);border:1px solid var(--rb);border-radius:7px;font-size:10px;font-family:var(--mono);color:var(--red);line-height:1.8">'
-            +'<span style="font-weight:700">Missing: </span>'
-            +allMissing.join(' · ')
-          +'</div>'
+          ?'<span class="ic-miss" title="Still to fill in: '+esc(allMissing.join(' · '))+'">'+allMissing.length+' to finish</span>'
           :''
         )
         // checklist summary
@@ -11147,6 +11170,17 @@ body.plub-embed .app{height:100vh!important;grid-row:auto;grid-column:auto}
 @media(max-width:760px){.vnd-grid2{grid-template-columns:1fr}}
 </style>
 <style>#pane-week tr.pq-task{cursor:default}</style>
+<style id="pl-step1">
+#pane-dash .srcx-best,#pane-dash .srcx-best span,.sr-all-l,.page-notes-count{font-size:10.5px!important}
+.plc-top .pav{font-size:10px!important}
+
+/* no label under 10.5px on the main screens (24 Oct) */
+#pane-dash .ic-tag,#pane-dash .ic-rank{font-size:11px!important}
+.plc-chip,.plc-chip i,.plc-flag,.plc-bar b,.plc-score i,.pl-col-meta span,.sr-chip .sr-r,.plk-t i,.srcx-sub{font-size:10.5px!important}
+
+.ic-miss{display:inline-flex;align-items:center;gap:5px;width:fit-content;padding:3px 9px;border-radius:999px;border:1px solid rgba(255,197,61,.45);background:rgba(255,197,61,.08);color:#FFDC85;font-size:11px;font-weight:700;cursor:help}
+.ic-miss:before{content:'';width:6px;height:6px;border-radius:50%;background:#FFC53D}
+</style>
 <style id="plub-readable">
 /* ═══ READABILITY PASS v1.00 — the same block in all three files, last in the page so it wins ═══
    Grey text was #787A87 at 9–11px: ~4.2:1 on near-black, hard work to read. Lifted to ~7:1, quiet tier
@@ -11163,5 +11197,15 @@ body.plub-embed .app{height:100vh!important;grid-row:auto;grid-column:auto}
 .f-fn-gap i{color:#8E909C!important}
 .kpi-rules-hd p{color:#B4B6C1!important}
 </style>
+<script>
+// online: the other person's changes arrived — re-read the store, reload the data, redraw the page that's open
+window.plubReload=async function(){
+  try{ _flushPendingSave(); }catch(e){}
+  db.__reload(); await loadAllData();
+  try{ weekTasks=loadWeekTasks(); weeklyFocus=loadWeeklyFocus(); plGoals=loadPlGoals(); }catch(e){}
+  var a=document.querySelector('.pane.active'); try{ nav(a?a.id.replace('pane-',''):'dash'); }catch(e){}
+  try{ updateNavCounts(); updateLastSaved(); }catch(e){}
+};
+</script>
 </body>
 </html>
