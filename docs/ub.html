@@ -1,30 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-<script>
-/* PLUB ONLINE storage shim — runs before anything else on the page. The local version and the online one live on the
-   same web address, so they'd share browser storage. Every PLUB key is quietly stored under a plubc_ name instead,
-   so the online copy can never touch the local copy (kept 30 days as the fallback). The apps don't notice. */
-(function(){
-  var MAP={plub_v1:1,plub_who:1,plub_mode:1,plub_outbox_v1:1,ubpl_shell_tab:1,plub_rail_min:1,plub_ov_view:1,plub_ov_filter:1,
-    ub_tracker_v1:1,ub_tracker_lock:1,ub_sb_min:1,ub_last_report:1,ub_last_backup:1,pl_sourcing_v1:1,pls_theme:1,pls_draft:1,pl_sb_min:1,
-    plub_last_full_export:1,plub_golive_v1:1,plub_build_seen:1};
-  var DYN=/^(ub_tracker_v1__|pl_sourcing_v1_quarantine_)/;
-  function to(k){ k=String(k); return (MAP[k]||DYN.test(k))?'plubc_'+k:k; }
-  function from(k){ return (k&&k.indexOf('plubc_')===0&&(MAP[k.slice(6)]||DYN.test(k.slice(6))))?k.slice(6):k; }
-  var P=Storage.prototype, g=P.getItem, s=P.setItem, r=P.removeItem, kf=P.key;
-  P.getItem=function(k){ return g.call(this,to(k)); };
-  P.setItem=function(k,v){ return s.call(this,to(k),v); };
-  P.removeItem=function(k){ return r.call(this,to(k)); };
-  P.key=function(i){ return from(kf.call(this,i)); };
-  var add=window.addEventListener;
-  window.addEventListener=function(type,fn,opt){
-    if(type!=='storage'||typeof fn!=='function') return add.call(this,type,fn,opt);
-    return add.call(this,type,function(e){ fn({key:from(e.key),newValue:e.newValue,oldValue:e.oldValue,storageArea:e.storageArea,url:e.url}); },opt);
-  };
-  window.PLUB_ONLINE=true;
-})();
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BDL Unique Bundle Tracker</title>
@@ -3380,8 +3356,7 @@ const gbp = n => '£'+(+n).toLocaleString('en-GB',{minimumFractionDigits:2,maxim
 const gbp0 = n => '£'+Math.round(+n).toLocaleString('en-GB');
 const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let uid = 100;
-// online: numbers can never clash between laptops — they're time-based and end in this person's digit (Jack 1, Becki 2)
-const nid = () => (uid = Math.max(Math.floor(uid/10)+1, Date.now())*10 + (((window.parent||window).PLUB_DIGIT)||0));
+const nid = () => ++uid;
 
 /* ─── current user — gates Jack-only decisions, stamps history + events ─── */
 let CURRENT_USER = (window.CLUB && CLUB.user()) ? CLUB.user().display_name : 'Becki';
@@ -3502,7 +3477,7 @@ function applyState(s){
   swap(archive.launched,nLaunched); swap(archive.dropped,nDropped);
   swap(EVENTS,nEvents);
   if(nLog) sessionLog = nLog;
-  // online: tasks keep the person they were given to (the solo build re-addressed every task to whoever opened it)
+  tasks.forEach(t=>{ t.to=CURRENT_USER; t.from=CURRENT_USER; t.unread=null; });   // solo build: adopt any legacy Jack-addressed tasks
   session = s.session || null;
   if(s.tkDraft && typeof s.tkDraft==='object') tkDraft = s.tkDraft;
   // Deep-merge settings one level down instead of swapping whole sub-objects. A backup
@@ -4842,15 +4817,10 @@ function buildActions(){
     const bottleneck = jq.length >= SETTINGS.jackBottleneck;
     acts.push({pri:'purple', t:`${jq.length} product${jq.length>1?'s':''} need${jq.length>1?'':'s'} Jack's answer${bottleneck?' — chase him':''}`, m:`Oldest waiting ${oldest} days${bottleneck?' · queue building, clear decisions to keep the pipeline flowing':''}`, go:()=>{pipeFilter='jack';nav('pipeline')}, btn:'Open queue'}); }
   // pipeline health — an empty stage is a future month with no launches in it
-  // several empty stages are one problem with one fix — show them as one row, not a wall of red
-  const alarms = stageHealth().filter(h=>h.state==='alarm');
-  if(alarms.length>1) acts.push({pri:'red', t:`${alarms.length} stages empty for ${Math.min(...alarms.map(h=>h.emptyDays))}+ days — ${alarms.map(h=>h.name).join(', ')}`,
-      m:`Every stage feeds the next — each empty one is a launch you will miss in a few weeks' time.`, go:()=>nav('pipeline'), btn:'Open pipeline'});
   stageHealth().forEach(h=>{
-    if(h.state==='alarm' && alarms.length===1) acts.push({pri:'red', t:`${h.name} has been empty ${h.emptyDays} days`,
+    if(h.state==='alarm') acts.push({pri:'red', t:`${h.name} has been empty ${h.emptyDays} days`,
       m:`Nothing is in ${h.name}. Every stage feeds the next — this is a launch you will miss in ${Math.max(1,Math.round((SETTINGS.ageing[h.key]||7)/7))} weeks' time.`,
       go:()=>nav('pipeline'), btn:'Open pipeline'});
-    else if(h.state==='alarm') {}
     else if(h.state==='empty') acts.push({pri:'amber', t:`${h.name} is empty`,
       m:`Minimum is ${h.min}. Move something in before it stalls the stages behind it.`, go:()=>nav('pipeline'), btn:'Open pipeline'});
     else if(h.state==='low') acts.push({pri:'blue', t:`${h.name} is below minimum — ${h.count} of ${h.min}`,
@@ -4954,7 +4924,6 @@ function animateRings(){
     });
   }));
 }
-let acAllUrgent = false;   // Action Centre shows the top 5 urgent items; this opens the rest
 function renderAction(){ saveState();
   const jq = pipeline.filter(p=>p.stage==='jack_validation' && !p.waiting);
   const acts = buildActions(); _acts = acts;
@@ -5032,79 +5001,6 @@ function renderAction(){ saveState();
         </div>
         <div class="wc-foot">Saves automatically on this laptop &middot; back it up daily from the chip in the top bar</div>
       </div>`:''}
-    <div class="ac-status">${(()=>{ try{ return ubWorkloadBox(); }catch(e){ console.error('workload',e); return ''; } })()}</div>
-    <div class="act-grid">
-      <div>
-        ${(()=>{
-          const urgentPris = ['red','purple','amber'];
-          const row = (a,i)=>`
-            <div class="action-row">
-              <span class="act-rank">${String(i+1).padStart(2,'0')}</span>
-              <div class="act-spine ${spine[a.pri]}"></div>
-              <div class="act-body">
-                <div class="act-title">${esc(a.t)}</div>
-                <div class="act-meta">${esc(a.m)}</div>
-              </div>
-              ${a.manual
-                ? `<button class="btn btn-sm btn-green" onclick="completeManual(${a.manual})">✓ ${a.btn}</button>`
-                : `<button class="btn btn-sm" onclick="runAct(${i})">${a.btn}</button>`}
-              <button class="act-x" title="Dismiss — comes back if the situation changes" onclick="dismissAct(${i})">✕</button>
-            </div>`;
-          const urgent = [], routine = [];
-          acts.forEach((a,i)=>{ (urgentPris.includes(a.pri)?urgent:routine).push(row(a,i)); });
-          if(urgent.length < 5 && !window._actsInit){ actShowAll = true; window._actsInit = true; }
-          const shownUrgent = acAllUrgent ? urgent : urgent.slice(0,5);
-          return `
-            <div class="sec-label">Needs attention <span class="line"></span><span class="card-count">${urgent.length}</span></div>
-            <div class="card">
-              ${urgent.length? shownUrgent.join('') + (urgent.length>5? `<button class="ac-more" onclick="acAllUrgent=!acAllUrgent;renderAction()">${acAllUrgent?'Show the top 5 only':'Show all '+urgent.length+' →'}</button>`:'') : `<div class="empty" style="padding:24px"><div class="empty-t">Nothing urgent 🎯</div><div class="empty-s">No overdue items, blocks or bottlenecks right now.</div></div>`}
-            </div>
-            ${routine.length? `
-              <div class="sec-label" style="margin-top:16px">Routine <span class="line"></span>
-                <button class="btn btn-sm" style="padding:2px 10px" onclick="actShowAll=!actShowAll;renderAction()">${actShowAll?'Hide':'Show '+routine.length+' more'}</button></div>
-              ${actShowAll? `<div class="card">${routine.join('')}</div>` : ''}`:''}`;
-        })()}
-      </div>
-      <div>
-        <div class="sec-label">Needs Jack's answer <span class="line"></span><span class="card-count">${jq.length}</span></div>
-        <div class="jack-card sec">
-          ${jq.length ? jq.sort((a,b)=>daysIn(b.entered)-daysIn(a.entered)).map(p=>{ const e=econFor(p); return `
-            <div class="jack-row">
-              <div><div class="jack-name">${esc(p.title)}</div>
-              <div class="jack-sub"><b style="color:${daysIn(p.entered)>SETTINGS.ageing.jack_validation?'var(--rt)':daysIn(p.entered)>=SETTINGS.ageing.jack_validation-1?'var(--at)':'var(--gt)'}">Waiting ${daysIn(p.entered)}d</b> · ${e.hasCosts
-                ? `margin ${Math.round(e.margin*100)}% · ROI ${Math.round(e.roi*100)}% · <span style="color:${e.pass?'var(--gt)':'var(--rt)'}">${e.pass?'Pass':'Fail'}</span>`
-                : `<span style="color:var(--at)">costs not entered yet</span>`}</div></div>
-              <button class="btn btn-sm btn-purple" onclick="openWorkspace(${p.id})">Open</button>
-            </div>`;}).join('') : '<div class="empty"><div class="empty-t">Nothing needs Jack right now</div></div>'}
-        </div>
-        <div class="sec-label">This month — sourcing <span class="line"></span><button class="btn btn-sm" style="padding:2px 8px" onclick="nav('sessions')">Full view</button></div>
-        ${(()=>{ const m = monthRollup();
-          return `<div class="card sec" style="padding:12px 14px;cursor:pointer" onclick="nav('sessions')">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px">
-              <div style="font-size:12.5px;font-weight:700">${m.sessions} session${m.sessions===1?'':'s'} · ${fmtKpi({unit:'h'},m.mins/60)}h${session?' · <span style="color:var(--rt)">live now</span>':''}</div>
-              <div style="font-size:10.5px;color:var(--t3)">${WT_ORDER().filter(w=>(m.byType||{})[w.key]>0).map(w=>fmtKpi({unit:'h'},m.byType[w.key]/60)+'h '+w.label.toLowerCase()).join(' · ')||'no time logged yet'}</div>
-            </div>
-            <div class="sw-grid" style="grid-template-columns:repeat(4,1fr)">
-              <div class="sw-metric"><div class="v">${m.ideas}</div><div class="l">ideas</div></div>
-              <div class="sw-metric"><div class="v">${m.reviewed}</div><div class="l">reviewed</div></div>
-              <div class="sw-metric"><div class="v" style="color:var(--gt)">${m.greens}</div><div class="l">greens</div></div>
-              <div class="sw-metric"><div class="v">${m.progressed||0}</div><div class="l">progressed</div></div>
-            </div>
-          </div>`; })()}
-        <div class="sec-label">Pipeline attention <span class="line"></span></div>
-        <div class="card">
-          <div class="mini-stat"><span>Active products</span><b>${pipeline.length}</b></div>
-          <div class="mini-stat"><span>Overdue in stage</span><b style="color:${pipeline.filter(isOver).length?'var(--at)':'var(--t1)'}">${pipeline.filter(isOver).length}</b></div>
-          <div class="mini-stat"><span>Waiting date passed</span><b style="color:${pipeline.filter(waitExpired).length?'var(--rt)':'var(--t1)'}">${pipeline.filter(waitExpired).length}</b></div>
-        </div>
-        <div class="sec-label">Recent activity <span class="line"></span>${EVENTS.length>7?`<button class="btn btn-sm" style="padding:2px 9px" onclick="showEventLog()">View all</button>`:''}</div>
-        <div class="card">
-          ${EVENTS.length? EVENTS.slice(-7).reverse().map(e=>`<div class="mini-stat" style="gap:10px"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t2);font-size:12px">${esc(e.label)}</span><span class="td-sub" style="flex-shrink:0">${esc(e.actor)}</span></div>`).join('')
-          : `<div class="empty" style="padding:16px"><div class="empty-s">Everything you do lands here — ideas captured, reviews cleared, moves, Jack decisions.</div></div>`}
-        </div>
-      </div>
-    </div>
-    <div class="ac-month"><div class="sec-label ac-month-h">How the month’s going <span class="line"></span></div>
     ${(()=>{ const info = kpiInfo(); const tiers=activeKpis.map(kpiTier);
         const behind=tiers.filter(t=>t.rank<=1).length, ahead=tiers.filter(t=>t.rank>=3).length, started=monthHasActivity();
         const summary = !started ? `${mp.label} hasn't started yet — targets fill in as work happens`
@@ -5126,6 +5022,7 @@ function renderAction(){ saveState();
             + cell(w.waiting,'Waiting','on somebody else','#22D3EE',IC.pause)
             + `</div>`;
         })()}
+        ${(()=>{ try{ return ubWorkloadBox(); }catch(e){ console.error('workload',e); return ''; } })()}
         ${(()=>{
           // Same "This month" card the Overview and PL's Action Centre use, so the
           // three surfaces show one component instead of three dialects. The ring
@@ -5174,6 +5071,75 @@ function renderAction(){ saveState();
                 <div class="fc-sub">${c.stuck?`<span class="fc-stuck">${c.stuck} stuck</span>`:''}${c.waiting?`<span class="fc-wait">${c.waiting} waiting</span>`:''}${!c.stuck&&!c.waiting?`<span>${esc(c.sub)||'&nbsp;'}</span>`:''}</div>
               </div>${ix<fl.cols.length-1?'<div class="flow-arrow">›</div>':''}`).join('')}</div>
           </div>`; })()}`; })()}
+    <div class="act-grid">
+      <div>
+        ${(()=>{
+          const urgentPris = ['red','purple','amber'];
+          const row = (a,i)=>`
+            <div class="action-row">
+              <span class="act-rank">${String(i+1).padStart(2,'0')}</span>
+              <div class="act-spine ${spine[a.pri]}"></div>
+              <div class="act-body">
+                <div class="act-title">${esc(a.t)}</div>
+                <div class="act-meta">${esc(a.m)}</div>
+              </div>
+              ${a.manual
+                ? `<button class="btn btn-sm btn-green" onclick="completeManual(${a.manual})">✓ ${a.btn}</button>`
+                : `<button class="btn btn-sm" onclick="runAct(${i})">${a.btn}</button>`}
+              <button class="act-x" title="Dismiss — comes back if the situation changes" onclick="dismissAct(${i})">✕</button>
+            </div>`;
+          const urgent = [], routine = [];
+          acts.forEach((a,i)=>{ (urgentPris.includes(a.pri)?urgent:routine).push(row(a,i)); });
+          if(urgent.length < 5 && !window._actsInit){ actShowAll = true; window._actsInit = true; }
+          return `
+            <div class="sec-label">Needs attention <span class="line"></span><span class="card-count">${urgent.length}</span></div>
+            <div class="card">
+              ${urgent.length? urgent.join('') : `<div class="empty" style="padding:24px"><div class="empty-t">Nothing urgent 🎯</div><div class="empty-s">No overdue items, blocks or bottlenecks right now.</div></div>`}
+            </div>
+            ${routine.length? `
+              <div class="sec-label" style="margin-top:16px">Routine <span class="line"></span>
+                <button class="btn btn-sm" style="padding:2px 10px" onclick="actShowAll=!actShowAll;renderAction()">${actShowAll?'Hide':'Show '+routine.length+' more'}</button></div>
+              ${actShowAll? `<div class="card">${routine.join('')}</div>` : ''}`:''}`;
+        })()}
+      </div>
+      <div>
+        <div class="sec-label">Needs Jack's answer <span class="line"></span><span class="card-count">${jq.length}</span></div>
+        <div class="jack-card sec">
+          ${jq.length ? jq.sort((a,b)=>daysIn(b.entered)-daysIn(a.entered)).map(p=>{ const e=econFor(p); return `
+            <div class="jack-row">
+              <div><div class="jack-name">${esc(p.title)}</div>
+              <div class="jack-sub"><b style="color:${daysIn(p.entered)>SETTINGS.ageing.jack_validation?'var(--rt)':daysIn(p.entered)>=SETTINGS.ageing.jack_validation-1?'var(--at)':'var(--gt)'}">Waiting ${daysIn(p.entered)}d</b> · ${e.hasCosts
+                ? `margin ${Math.round(e.margin*100)}% · ROI ${Math.round(e.roi*100)}% · <span style="color:${e.pass?'var(--gt)':'var(--rt)'}">${e.pass?'Pass':'Fail'}</span>`
+                : `<span style="color:var(--at)">costs not entered yet</span>`}</div></div>
+              <button class="btn btn-sm btn-purple" onclick="openWorkspace(${p.id})">Open</button>
+            </div>`;}).join('') : '<div class="empty"><div class="empty-t">Nothing needs Jack right now</div></div>'}
+        </div>
+        <div class="sec-label">This month — sourcing <span class="line"></span><button class="btn btn-sm" style="padding:2px 8px" onclick="nav('sessions')">Full view</button></div>
+        ${(()=>{ const m = monthRollup();
+          return `<div class="card sec" style="padding:12px 14px;cursor:pointer" onclick="nav('sessions')">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px">
+              <div style="font-size:12.5px;font-weight:700">${m.sessions} session${m.sessions===1?'':'s'} · ${fmtKpi({unit:'h'},m.mins/60)}h${session?' · <span style="color:var(--rt)">live now</span>':''}</div>
+              <div style="font-size:10.5px;color:var(--t3)">${WT_ORDER().filter(w=>(m.byType||{})[w.key]>0).map(w=>fmtKpi({unit:'h'},m.byType[w.key]/60)+'h '+w.label.toLowerCase()).join(' · ')||'no time logged yet'}</div>
+            </div>
+            <div class="sw-grid" style="grid-template-columns:repeat(4,1fr)">
+              <div class="sw-metric"><div class="v">${m.ideas}</div><div class="l">ideas</div></div>
+              <div class="sw-metric"><div class="v">${m.reviewed}</div><div class="l">reviewed</div></div>
+              <div class="sw-metric"><div class="v" style="color:var(--gt)">${m.greens}</div><div class="l">greens</div></div>
+              <div class="sw-metric"><div class="v">${m.progressed||0}</div><div class="l">progressed</div></div>
+            </div>
+          </div>`; })()}
+        <div class="sec-label">Pipeline attention <span class="line"></span></div>
+        <div class="card">
+          <div class="mini-stat"><span>Active products</span><b>${pipeline.length}</b></div>
+          <div class="mini-stat"><span>Overdue in stage</span><b style="color:${pipeline.filter(isOver).length?'var(--at)':'var(--t1)'}">${pipeline.filter(isOver).length}</b></div>
+          <div class="mini-stat"><span>Waiting date passed</span><b style="color:${pipeline.filter(waitExpired).length?'var(--rt)':'var(--t1)'}">${pipeline.filter(waitExpired).length}</b></div>
+        </div>
+        <div class="sec-label">Recent activity <span class="line"></span>${EVENTS.length>7?`<button class="btn btn-sm" style="padding:2px 9px" onclick="showEventLog()">View all</button>`:''}</div>
+        <div class="card">
+          ${EVENTS.length? EVENTS.slice(-7).reverse().map(e=>`<div class="mini-stat" style="gap:10px"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t2);font-size:12px">${esc(e.label)}</span><span class="td-sub" style="flex-shrink:0">${esc(e.actor)}</span></div>`).join('')
+          : `<div class="empty" style="padding:16px"><div class="empty-s">Everything you do lands here — ideas captured, reviews cleared, moves, Jack decisions.</div></div>`}
+        </div>
+      </div>
     </div>`;
 }
 function showEventLog(){ resetJkBtn();
@@ -6533,20 +6499,19 @@ function renderPipeline(){ saveState();
     ${pipeView==='list'? pipeListBody(filt,qf,sev) : !pipeline.length? `<div class="board-empty">
         <b>The belt is empty</b>
         <span>Score an idea green in <u onclick="nav('ideas')">Ideas &amp; Ranking</u> and hit <b>→ Sourcing</b> — it lands here and starts moving through the five stages.</span>
-      </div>` : `<div class="board ${pipeDensity==='compact'?'compact':''}" style="grid-template-columns:${STAGES.map(s=>pipeline.some(p=>p.stage===s.key)?'minmax(210px,1fr)':'64px').join(' ')}">
+      </div>` : `<div class="board ${pipeDensity==='compact'?'compact':''}" style="grid-template-columns:repeat(${STAGES.length},minmax(210px,1fr))">
       ${STAGES.map(s=>{
         const items = pipeline.filter(p=>p.stage===s.key && filt(p) && qf(p));
         const all = pipeline.filter(p=>p.stage===s.key);
         if(!all.length){
           const h0 = stageHealth().find(x=>x.key===s.key) || {emptyDays:0,state:'empty'};
-          return `<div class="col empty fold st-${s.key}" title="${esc(s.name)} — empty${h0.emptyDays?' '+h0.emptyDays+' days':''}. Drag a product here." ondragover="event.preventDefault()" ondrop="dropOnStage(pipeDrag,'${s.key}')">
-            <div class="slim-n">0</div><div class="slim-t">${s.name}</div>${h0.emptyDays?`<div class="slim-e ${h0.state==='alarm'?'bad':''}">empty ${h0.emptyDays}d</div>`:''}
-            <div class="col-head slim-hide">
+          return `<div class="col empty st-${s.key}">
+            <div class="col-head">
               <div class="col-title">${s.name}<span class="n zero">0</span><span class="col-th" title="Attention after ${SETTINGS.ageing[s.key]} days">⏱ ${SETTINGS.ageing[s.key]}d</span></div>
               <div class="col-desc">${s.desc}</div>
               <div class="col-meta"><span class="badge ${h0.state==='alarm'?'bg-red':'bg-amber'}"><span class="bd"></span>empty${h0.emptyDays?' '+h0.emptyDays+'d':''}</span></div>
             </div>
-            <div class="col-body slim-hide" ondragover="event.preventDefault()" ondrop="dropOnStage(pipeDrag,'${s.key}')">
+            <div class="col-body" ondragover="event.preventDefault()" ondrop="dropOnStage(pipeDrag,'${s.key}')">
               <div class="col-zero"><div class="col-zero-ic">${UB_STAGE_ICON[s.key]||''}</div>
                 <b>No products</b><span>Drag one here${s.key==='sourcing'?', or score an idea green and send it through':''}</span></div>
             </div></div>`;
@@ -8719,27 +8684,6 @@ tr:hover .comp-del{opacity:1}
 .vnd-foot .btn{margin-left:auto}
 @media(max-width:760px){.vnd-grid2{grid-template-columns:1fr}}
 </style>
-<style id="ub-step1">
-#pane-action .info-cell .s,#pane-action .ov-t-n,#pane-action .phz-t span{font-size:10.5px!important}
-
-/* no label under 10.5px on the main screens (24 Oct) */
-.sec-label{font-size:11px!important}
-.eyebrow,.fld-req,.phz-cell span,.phz-cell i,.info-cell .s{font-size:10.5px!important}
-
-/* step 1 design pass (24 Oct) — the actions lead, the month's numbers follow, empty stages fold away */
-.ac-status .wkld{margin-bottom:12px}
-.ac-status .wk-cells,.ac-status .wk-hrs{display:none!important}      /* the same numbers are in the month section below */
-.ac-month{margin-top:6px}
-.ac-month-h{margin-top:22px!important}
-.ac-more{display:block;width:100%;padding:10px 14px;border:none;border-top:1px solid var(--b1);background:none;color:#B8B9FF;font:700 12.5px var(--sans,inherit);text-align:left;cursor:pointer}
-.ac-more:hover{color:#fff;background:rgba(255,255,255,.03)}
-.col.fold{display:flex!important;flex-direction:column;align-items:center;gap:10px;padding:14px 0!important;min-height:220px;cursor:default;opacity:1!important}
-.col.fold .slim-hide{display:none!important}
-.col.fold .slim-n{font-size:15px;font-weight:800;color:#9C9EAA}
-.col.fold .slim-t{writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#C6C7D0}
-.col.fold .slim-e{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10.5px;font-weight:700;color:#FFDC85}
-.col.fold .slim-e.bad{color:#FF8FA3}
-</style>
 <style id="plub-readable">
 /* ═══ READABILITY PASS v1.00 — the same block in all three files, last in the page so it wins ═══
    Grey text was #787A87 at 9–11px: ~4.2:1 on near-black, hard work to read. Lifted to ~7:1, quiet tier
@@ -8756,14 +8700,5 @@ tr:hover .comp-del{opacity:1}
 .f-fn-gap i{color:#8E909C!important}
 .kpi-rules-hd p{color:#B4B6C1!important}
 </style>
-<script>
-// online: the other person's changes arrived — reload this app's data from its store and redraw what's on screen
-window.plubReload=function(){
-  try{ if(!SAFE_MODE) flushSave(); }catch(e){}
-  var raw=null; try{ raw=localStorage.getItem(STORE_KEY); }catch(e){}
-  if(raw){ try{ applyState(JSON.parse(raw)); SAFE_MODE=false; }catch(e){ console.warn('online reload kept safe mode',e); } }
-  try{ renderPane(currentPane()); updateBadges(); paintSaved(); }catch(e){}
-};
-</script>
 </body>
 </html>
